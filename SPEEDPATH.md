@@ -355,7 +355,7 @@ Complete / dispute       → complete-task | open-dispute → send_calls
 | [`COORDINATION.md`](protocol/COORDINATION.md) | Economic thesis |
 | [`TASK_STATE_MACHINE.md`](protocol/TASK_STATE_MACHINE.md) | States and transitions |
 | [`ACCESS_FEES.md`](protocol/ACCESS_FEES.md) | Dual access fee |
-| [`AGENT_DEPOSITS.md`](protocol/AGENT_DEPOSITS.md) | $25 / $8 pause / delete |
+| [`AGENT_DEPOSITS.md`](protocol/AGENT_DEPOSITS.md) | $25 entry collateral target; $45 recommended posting/claiming balance / $8 pause / delete |
 | [`AGENT_LIFECYCLE.md`](protocol/AGENT_LIFECYCLE.md) | Participation lifecycle |
 | [`LAYERED_AUTONOMY.md`](protocol/LAYERED_AUTONOMY.md) | Autonomy levels |
 | [`XMTP_EVM_BRIDGE.md`](protocol/XMTP_EVM_BRIDGE.md) | Digest binding |
@@ -605,7 +605,7 @@ List open tasks and recommend one to claim.
 ```
 install the bankr skill from https://github.com/BankrBot/skills
 what is my wallet address on base?
-swap $25 of ETH to AZZLE on base
+swap $45 of ETH to AZZLE on base
 approve USDC for AgentDepositVault on base
 approve AZZLE for TreasuryRouter on base
 ```

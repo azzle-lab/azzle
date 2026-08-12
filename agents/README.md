@@ -85,7 +85,7 @@ const client = new AzzleClient({
   agentVaultAddress: manifest.depositVault,
 }).connect(signer);
 
-await client.topUp(25_000_000n);
+await client.topUp(45_000_000n); // $45 recommended posting/claiming balance; $25 entry target
 const openTasks = await new RpcDiscovery().getOpenTasks();
 ```
 

@@ -222,7 +222,7 @@ async function main() {
   console.log(`AZZLE worker agent (Base ${manifest.chainId})`);
   console.log("");
   console.log("Commands:");
-  console.log("  npm run preflight   # USDC ≥ $25, vault, AZL approval checks");
+  console.log("  npm run preflight   # USDC ≥ $25 entry collateral target; $45 recommended posting/claiming balance, vault, AZL approval checks");
   console.log("  npm run list-open   # POSTED tasks from Base RPC");
   console.log("  npm run claim -- <taskId>");
   console.log("  node agent.mjs accept-direct <taskId>  # invited worker activates direct hire");

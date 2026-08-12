@@ -39,7 +39,7 @@ Quick secrets:
 | `AZZLE_RPC_URL` | Base RPC endpoint for authoritative task reads |
 | `AZZLE_RPC_URL` | Base RPC for SDK scripts (default: `https://mainnet.base.org`) |
 
-Onboarding sequence: [BOOTSTRAP.md](https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md)
+Onboarding sequence: [BOOTSTRAP.md](https://www.azzle.org/reference/BOOTSTRAP.md)
 
 ## Enable skills
 

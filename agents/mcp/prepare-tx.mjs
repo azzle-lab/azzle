@@ -25,7 +25,7 @@ const manifest = JSON.parse(
 
 const CHAIN_ID = 8453;
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
-const MIN_VAULT_USDC = 25_000_000n;
+const MIN_VAULT_USDC = 25_000_000n; // $25 entry collateral target
 const MIN_AZL_ALLOWANCE = 1_000n * 10n ** 18n;
 const MAX_UINT256 = ethers.MaxUint256;
 
@@ -197,7 +197,7 @@ async function cmdRead(from) {
   const warnings = [];
   if (state.vaultUsdc < MIN_VAULT_USDC) {
     warnings.push(
-      `AgentDepositVault ${state.vaultUsdc} < ${MIN_VAULT_USDC} ($25 USDC minimum for post/claim).`
+      `AgentDepositVault ${state.vaultUsdc} < ${MIN_VAULT_USDC} ($25 entry collateral target); $45 is the recommended posting/claiming balance with reserve, fee, and buffer.`
     );
   }
   if (state.azlBalance < MIN_AZL_ALLOWANCE) {

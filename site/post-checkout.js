@@ -119,6 +119,14 @@
     setPanelStatus("rd-checkout-status", text, kind);
   }
 
+  function setCheckoutStatusWithPricingLink(text, kind) {
+    const el = $("rd-checkout-status");
+    if (!el) return;
+    el.innerHTML = text + ' <a href="/pricing">Post more than 3 Tasks per Day.</a>';
+    el.classList.remove("busy", "ok", "err");
+    if (kind) el.classList.add(kind);
+  }
+
   function setPricingStatus(text, kind) {
     setPanelStatus("rd-pricing-status", text, kind);
   }
@@ -200,7 +208,7 @@
         taskId,
         txHash,
         description: task?.description,
-        taskAmountAzl: task?.taskAmountAzl ?? task?.budgetAzl,
+        taskAmountAzl: task?.taskAmountAzl ?? task?.budgetAzl ?? task?.budget,
         deadlineDays: task?.deadlineDays,
         discoveryOpen: task?.discoveryOpen !== false,
       }),
@@ -221,7 +229,10 @@
     const nameEl = $("rd-plan-name");
     const usageEl = $("rd-plan-usage");
     const expiresEl = $("rd-plan-expires");
-    if (nameEl) nameEl.textContent = quota.plan;
+    if (nameEl) {
+      nameEl.textContent =
+        quota.limit == null ? "Unlimited Tasks" : "Post " + quota.limit + " Tasks per Day";
+    }
     if (usageEl) {
       usageEl.textContent =
         quota.limit == null ? "Unlimited today" : quota.remaining + " of " + quota.limit + " left today";
@@ -247,7 +258,7 @@
 
   function limitLabel(plan) {
     if (plan.dailyLimit == null) return "Unlimited / day";
-    return plan.dailyLimit + " tasks / day";
+    return plan.dailyLimit + " Tasks per Day";
   }
 
   function fmtAzlAmount(n) {
@@ -256,6 +267,18 @@
     if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + "B AZL";
     if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + "M AZL";
     return v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " AZL";
+  }
+
+  function updatePostButton(accessFeeAzl, accessFeeUsd = "5.00 per Task Fee") {
+    const button = $("rd-btn-post");
+    if (!button) return;
+    const note = button.querySelector(".rd-post-action-note");
+    if (note) {
+      note.textContent =
+        (accessFeeAzl ? fmtAzlAmount(accessFeeAzl) : "current AZL quote") +
+        " · $" +
+        accessFeeUsd;
+    }
   }
 
   async function loadAzlPreviews(plans) {
@@ -460,6 +483,7 @@
       renderUpgradeCards(currentQuota, postingPlans);
 
       const status = await api.getStatus();
+      updatePostButton(status.accessFeeAzl, status.accessFeeUsd);
       if (!status.configured) {
         setCheckoutStatus("Server missing contract config.", "err");
         if (depositBtn) depositBtn.disabled = true;
@@ -481,54 +505,61 @@
           );
         } else if (status.needsPostTopUp) {
           setCheckoutStatus(
-            "$" +
-              status.depositUsdc +
-              " entry on file — listing debits $" +
-              status.listingFeeUsdc +
-              " from your AZL collateral. Post will use the oracle-priced access amount.",
-              status.listingFeeUsdc +
-              " automatically if needed.",
-            undefined
+            "Add " +
+              (status.postCollateralShortfallAzl || status.listingFeeUsdc) +
+              " AZL collateral to cover the live-task reserve and access fee before posting.",
+            "err"
           );
         } else if (status.canPost) {
           setCheckoutStatus(
-            "Deposit on file ($" +
-              status.depositUsdc +
-              "). " +
+            "Minimum collateral is on file. " +
               quotaLine +
-            " · listing uses the $5 USD target converted to AZL.",
+            " · posting uses the oracle-priced AZL access amount.",
             "ok"
           );
         } else {
           setCheckoutStatus("You need sufficient AZL collateral for the oracle-priced access fee.", "err");
         }
         if (depositBtn) {
-          depositBtn.disabled = checkoutBusy;
-          depositBtn.textContent = "Add USDC";
+          depositBtn.setAttribute("aria-disabled", checkoutBusy ? "true" : "false");
+          depositBtn.textContent = "Add collateral";
         }
         if (postBtn) {
-          postBtn.disabled = checkoutBusy || quotaBlocked || (!status.canPost && !status.needsPostTopUp);
+          postBtn.disabled = checkoutBusy || quotaBlocked || !status.canPost;
         }
       } else {
         setStepState("deposit", "on");
         setStepState("post", null);
+        const depositLabel = $("rd-btn-deposit-label");
+        const depositNote = $("rd-btn-deposit-note");
+        if (depositLabel && status.collateralShortfallUsd && status.collateralShortfallAzl) {
+          depositLabel.textContent =
+            "Add $" + status.collateralShortfallUsd + " toward the $45 recommended posting balance";
+          depositNote.textContent =
+            status.collateralShortfallAzl + " AZL still needed · Open wallet →";
+        } else if (depositLabel && status.collateralShortfallUsd === "0.00") {
+          depositLabel.textContent = "Add task reserve and access fee";
+          depositNote.textContent = "Open wallet to reach the $45 recommended posting balance →";
+        }
         if (!status.canDeposit) {
           setCheckoutStatus(
-            "Add $25 USDC on Base — you have $" + status.usdcWallet + " in your wallet.",
+            "Add $" +
+              status.collateralShortfallUsd +
+              " (" +
+              status.collateralShortfallAzl +
+              " AZL) toward the $45 recommended posting balance.",
             "err"
           );
         } else {
-          setCheckoutStatus(
-            "One-time $25 USDC entry deposit on Base (wallet USDC: $" +
-              status.usdcWallet +
-              "). First listing also debits $5 from this deposit. " +
-              (quotaLine || "Free: 3 posts/day."),
+          setCheckoutStatusWithPricingLink(
+            " " +
+              "Posting a task costs $5. Workers also pay $5 to claim it, so adjust your budget accordingly. " +
+              "Below $5 task value is unprofitable; do not expect workers to pick it up.",
             undefined
           );
         }
         if (depositBtn) {
-          depositBtn.disabled = checkoutBusy;
-          depositBtn.textContent = "Deposit $25 USDC";
+          depositBtn.setAttribute("aria-disabled", checkoutBusy ? "true" : "false");
         }
         if (postBtn) postBtn.disabled = true;
       }
@@ -577,7 +608,7 @@
       if (result?.alreadyDeposited) {
         onProgress?.("Deposit already on file — you're ready to post.", "ok");
       } else {
-        onProgress?.("USDC deposited.", "ok");
+        onProgress?.("Collateral funded.", "ok");
       }
       await refreshCheckout();
       return { ok: true };

@@ -2,7 +2,12 @@ import "./browser-polyfills.js";
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { PrivyProvider, usePrivy, useWallets } from "@privy-io/react-auth";
+import {
+  PrivyProvider,
+  usePrivy,
+  useSign7702Authorization,
+  useWallets,
+} from "@privy-io/react-auth";
 import { base } from "viem/chains";
 import { createPosterApi } from "./azzle-chain.js";
 
@@ -21,8 +26,11 @@ function emitWallet(address) {
 
 function pickWallet(wallets) {
   return (
-    wallets.find((w) => w.walletClientType !== "privy" && w.chainId === `eip155:${base.id}`) ??
-    wallets.find((w) => w.walletClientType !== "privy") ??
+    // EIP-7702 authorization is signed by Privy's embedded-wallet hook.
+    // Keep the wallet client and authorization signer on the same address.
+    wallets.find((w) => w.walletClientType === "privy" && w.chainId === `eip155:${base.id}`) ??
+    wallets.find((w) => w.walletClientType === "privy") ??
+    wallets.find((w) => w.chainId === `eip155:${base.id}`) ??
     wallets[0] ??
     null
   );
@@ -31,6 +39,7 @@ function pickWallet(wallets) {
 function PosterBridge() {
   const { ready, authenticated, logout } = usePrivy();
   const { wallets } = useWallets();
+  const { signAuthorization } = useSign7702Authorization();
   const wallet = pickWallet(wallets);
 
   useEffect(() => {
@@ -45,9 +54,10 @@ function PosterBridge() {
       ready,
       authenticated,
       wallet: authenticated ? wallet : null,
+      signAuthorization: authenticated ? signAuthorization : null,
     });
     window.dispatchEvent(new Event("azzle-poster-ready"));
-  }, [ready, authenticated, wallet]);
+  }, [ready, authenticated, wallet, signAuthorization]);
 
   return null;
 }

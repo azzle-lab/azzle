@@ -49,7 +49,7 @@ export function baseCfg() {
     MODEL: process.env.AZZLE_LLM_MODEL ?? "deepseek-v4-flash",
     PRIVY_APP_ID: process.env.PRIVY_APP_ID ?? "",
     PRIVY_CLIENT_ID: process.env.PRIVY_CLIENT_ID ?? "",
-    BASE_RPC: process.env.BASE_RPC_URL ?? "https://mainnet.base.org",
+    BASE_RPC: process.env.BASE_RPC_URL ?? "https://base-rpc.publicnode.com",
     MANIFEST,
     BILLING_WALLET: process.env.AZZLE_BILLING_WALLET ?? MANIFEST?.governance ?? "",
   };

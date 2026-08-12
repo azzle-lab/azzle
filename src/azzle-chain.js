@@ -13,12 +13,25 @@ import {
   stringToBytes,
   stringToHex,
   zeroAddress,
+  fallback,
 } from "viem";
+import { toAccount } from "viem/accounts";
 import { base } from "viem/chains";
+import { entryPoint07Address } from "viem/account-abstraction";
+import { createPimlicoClient } from "permissionless/clients/pimlico";
+import { createSmartAccountClient } from "permissionless";
+import { to7702KernelSmartAccount } from "permissionless/accounts";
+import { encodeCallDataEpV07 } from "@zerodev/sdk";
 import { sendDeliveryNotice } from "./xmtp-browser.js";
 
 const AZL_PER_ACTION = 1000n * 10n ** 18n;
 const MIN_ETH_WEI = 50_000_000_000_000n; // ~0.00005 ETH for gas buffer
+const HOP_CALLTYPE_DELEGATECALL = "0xff";
+const ENTRY_POINT_V07 = {
+  address: entryPoint07Address,
+  version: "0.7",
+};
+const EIP7702_KERNEL_IMPLEMENTATION = "0xd6CEDDe84be40893d153Be9d467CD6aD37875b28";
 
 function formatAzlHuman(amount) {
   const n = typeof amount === "bigint" ? Number(formatUnits(amount, 18)) : Number(amount);
@@ -48,6 +61,16 @@ function formatTxError(err) {
   if (lower.includes("insufficient funds")) {
     return "Not enough ETH on Base for gas — add a small amount of ETH, then try again.";
   }
+  if (
+    lower.includes("azzlgateway: oracle") ||
+    lower.includes("oracle: invalid") ||
+    lower.includes("oracle is not valid")
+  ) {
+    return "AZL oracle is not ready yet. Deposits are temporarily paused while the Base price feed warms up.";
+  }
+  if (lower.includes("rate limit") || lower.includes("over rate limit") || lower.includes("429")) {
+    return "Base RPC is rate-limited — retrying with a backup RPC. Please try again in a few seconds.";
+  }
   if (lower.includes("execution reverted") || lower.includes("revert")) {
     return "Transaction failed onchain — check you have $20 USDC and ETH for gas on Base.";
   }
@@ -59,6 +82,21 @@ function parseEthAddress(addr) {
   const a = addr.trim();
   if (!/^0x[a-fA-F0-9]{40}$/.test(a)) throw new Error("Invalid address — use a Base 0x… address");
   return a;
+}
+
+function requireConfiguredAddress(name, value) {
+  if (typeof value !== "string" || !/^0x[a-fA-F0-9]{40}$/.test(value)) {
+    throw new Error(`${name} is not configured. Refresh the wallet page or contact support.`);
+  }
+  return value;
+}
+
+function requireBalanceConfig(c, address) {
+  requireConfiguredAddress("connected wallet", address);
+  requireConfiguredAddress("USDC token", c?.usdc);
+  requireConfiguredAddress("AZL token", c?.azlToken);
+  requireConfiguredAddress("deposit vault", c?.depositVault);
+  requireConfiguredAddress("payment gateway", c?.paymentGateway);
 }
 
 async function ensureUsdcAllowance(walletClient, publicClient, usdc, owner, spender, needed) {
@@ -117,6 +155,37 @@ const ERC20_ABI = [
   },
 ];
 
+const ORACLE_ABI = [
+  {
+    type: "function",
+    name: "isValid",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "quoteUsdForAzl",
+    stateMutability: "view",
+    inputs: [{ name: "azlAmount", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "quoteUsdForAzlPar",
+    stateMutability: "view",
+    inputs: [{ name: "azlAmount", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "quoteAzlForUsd",
+    stateMutability: "view",
+    inputs: [{ name: "usdAmount", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+  },
+];
+
 const VAULT_ABI = [
   {
     type: "function",
@@ -146,6 +215,29 @@ const VAULT_ABI = [
     inputs: [{ name: "account", type: "address" }],
     outputs: [{ type: "uint256" }],
   },
+  {
+    type: "function",
+    name: "latchedEntryFloor",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "taskQuotes",
+    stateMutability: "view",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [{
+      type: "tuple",
+      components: [
+        { name: "entryDeposit", type: "uint256" },
+        { name: "liveTaskReserve", type: "uint256" },
+        { name: "accessFee", type: "uint256" },
+        { name: "exitCompensation", type: "uint256" },
+        { name: "exitProtocolShare", type: "uint256" },
+      ],
+    }],
+  },
 ];
 
 const PAYMENT_GATEWAY_ABI = [
@@ -155,6 +247,31 @@ const PAYMENT_GATEWAY_ABI = [
     stateMutability: "nonpayable",
     inputs: [
       { name: "exactUsdcIn", type: "uint256" },
+      { name: "minAzlOut", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "fundWithEth",
+    stateMutability: "payable",
+    inputs: [
+      { name: "minAzlOut", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    outputs: [{ type: "uint256" }],
+  },
+];
+
+const AZL_HOP_ABI = [
+  {
+    type: "function",
+    name: "depositUsingAzl",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "exactAzlIn", type: "uint256" },
+      { name: "minWethOut", type: "uint256" },
       { name: "minAzlOut", type: "uint256" },
       { name: "deadline", type: "uint256" },
     ],
@@ -207,7 +324,7 @@ const REGISTRY_ABI = [
     stateMutability: "nonpayable",
     inputs: [
       { name: "totalAmount", type: "uint256" },
-      { name: "deadline", type: "uint256" },
+      { name: "deadline", type: "uint64" },
     ],
     outputs: [{ type: "uint256" }],
   },
@@ -354,11 +471,24 @@ const TASK_STATE = [
 
 let siteConfig = null;
 
+function normalizeSiteConfig(config) {
+  const rawContracts = config?.contracts ?? {};
+  const external = rawContracts.external ?? config?.external ?? {};
+  const contracts = {
+    ...rawContracts,
+    usdc: rawContracts.usdc ?? rawContracts.USDC ?? external.usdc,
+    azlToken: rawContracts.azlToken ?? rawContracts.azl ?? external.azl,
+    depositVault: rawContracts.depositVault ?? rawContracts.agentDepositVault,
+    paymentGateway: rawContracts.paymentGateway ?? rawContracts.azlPaymentGateway,
+  };
+  return { ...config, contracts };
+}
+
 export async function loadSiteConfig() {
   if (siteConfig) return siteConfig;
   const res = await fetch("/api/site-config", { cache: "no-store" });
   if (!res.ok) throw new Error("Could not load site config");
-  siteConfig = await res.json();
+  siteConfig = normalizeSiteConfig(await res.json());
   return siteConfig;
 }
 
@@ -468,7 +598,64 @@ async function tryPostWithOpenScopeBatch(wallet, walletClient, publicClient, cfg
   }
 }
 
+async function tryFundWithUsdcBatch(wallet, publicClient, cfg, address, amount, onProgress) {
+  const c = cfg.contracts;
+  requireConfiguredAddress("USDC token", c?.usdc);
+  requireConfiguredAddress("payment gateway", c?.paymentGateway);
+  requireConfiguredAddress("connected wallet", address);
+  const provider = await wallet.getEthereumProvider();
+  const chainId = numberToHex(cfg.chainId ?? base.id);
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const approveData = encodeFunctionData({
+    abi: ERC20_ABI,
+    functionName: "approve",
+    args: [c.paymentGateway, amount],
+  });
+  const fundData = encodeFunctionData({
+    abi: PAYMENT_GATEWAY_ABI,
+    functionName: "fundWithUsdc",
+    args: [amount, 1n, deadline],
+  });
+
+  try {
+    onProgress?.("Approving USDC + funding collateral (batched)…");
+    const result = await provider.request({
+      method: "wallet_sendCalls",
+      params: [{
+        version: "2.0.0",
+        chainId,
+        from: address,
+        atomicRequired: true,
+        calls: [
+          { to: c.usdc, data: approveData, value: "0x0" },
+          { to: c.paymentGateway, data: fundData, value: "0x0" },
+        ],
+      }],
+    });
+    const batchId = typeof result === "string" ? result : result?.id;
+    if (!batchId) return null;
+
+    let status = null;
+    for (let i = 0; i < 40; i++) {
+      status = await provider.request({ method: "wallet_getCallsStatus", params: [batchId] });
+      if (status?.status === 200 || status?.status === "CONFIRMED") break;
+      if (status?.status === 500 || status?.status === "FAILED") {
+        throw new Error("Batched USDC deposit failed onchain");
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    const txHash = status?.receipts?.[0]?.transactionHash ?? status?.transactionHash ?? null;
+    return txHash ? { hash: txHash, batched: true } : null;
+  } catch (error) {
+    // A rejected wallet_sendCalls request is expected for wallets without
+    // batching support; preserve the error for diagnostics if the sequential
+    // fallback also fails.
+    return { unsupported: true, error };
+  }
+}
+
 async function getWalletClient(wallet, cfg) {
+  requireConfiguredAddress("connected wallet", wallet?.address);
   const provider = await wallet.getEthereumProvider();
   const chain = { ...base, id: cfg.chainId ?? base.id };
   try {
@@ -477,16 +664,154 @@ async function getWalletClient(wallet, cfg) {
     /* wallet may already be on Base */
   }
   return createWalletClient({
-    account: wallet.address,
+    // ZeroDev's EIP-7702 adapter reads signer.account.address. Passing only
+    // the address string leaves viem's account as a string and yields
+    // `undefined` during Kernel account construction.
+    account: { address: wallet.address, type: "json-rpc" },
     chain,
     transport: custom(provider),
   });
 }
 
+function isAddress(value) {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+async function fundAzlThroughHop(
+  wallet,
+  publicClient,
+  cfg,
+  address,
+  amount,
+  onProgress,
+  signAuthorization
+) {
+  const hop = requireConfiguredAddress("AZL hop contract", cfg.contracts?.azlHop);
+  const bundlerUrl = cfg.contracts?.pimlicoBundlerUrl?.trim();
+  if (!bundlerUrl) throw new Error("Pimlico bundler is not configured for atomic AZL deposits.");
+  const provider = await wallet.getEthereumProvider();
+  const walletClient = await getWalletClient(wallet, cfg);
+  const signer = toAccount({
+    address,
+    async signMessage({ message }) {
+      return walletClient.signMessage({ account: walletClient.account, message });
+    },
+    async signTypedData(typedData) {
+      return walletClient.signTypedData({
+        account: walletClient.account,
+        ...typedData,
+      });
+    },
+    async signAuthorization(authorization) {
+      if (eip7702Auth) return eip7702Auth;
+      return walletClient.signAuthorization({
+        account: walletClient.account,
+        ...authorization,
+      });
+    },
+  });
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const data = encodeFunctionData({
+    abi: AZL_HOP_ABI,
+    functionName: "depositUsingAzl",
+    args: [amount, 1n, 1n, deadline],
+  });
+
+  if (typeof provider.request !== "function") throw new Error("Wallet provider unavailable.");
+
+  onProgress?.("Preparing Kernel delegatecall through Pimlico…");
+  const entryPoint = ENTRY_POINT_V07;
+  // Reuse the rate-limited/fallback-aware client used by the rest of the
+  // wallet flow. Creating a second client against mainnet.base.org here
+  // bypasses the configured RPC and causes repeated 429s during setup.
+  const executionClient = publicClient;
+  if (typeof signAuthorization !== "function") {
+    throw new Error(
+      "This wallet cannot sign EIP-7702 authorizations. Refresh and reconnect the Privy wallet."
+    );
+  }
+  if (wallet.address.toLowerCase() !== address.toLowerCase()) {
+    throw new Error(
+      "The connected wallet changed while preparing the AZL deposit. Refresh and reconnect."
+    );
+  }
+  const implementation =
+    EIP7702_KERNEL_IMPLEMENTATION;
+  const code = await executionClient.getCode({ address });
+  const delegatedPrefix = `0xef0100${implementation.slice(2).toLowerCase()}`;
+  const eip7702Auth =
+    code?.toLowerCase().startsWith(delegatedPrefix)
+      ? undefined
+      : await signAuthorization({
+          contractAddress: implementation,
+          chainId: cfg.chainId ?? base.id,
+          nonce: await executionClient.getTransactionCount({ address }),
+        });
+  if (eip7702Auth && eip7702Auth.address.toLowerCase() !== implementation.toLowerCase()) {
+    throw new Error("Privy signed the EIP-7702 authorization for the wrong Kernel implementation.");
+  }
+  const account = await to7702KernelSmartAccount({
+    client: executionClient,
+    owner: signer,
+    entryPoint,
+    accountLogicAddress: implementation,
+  });
+  const kernelAddress = await account.getAddress();
+  if (!isAddress(kernelAddress) || kernelAddress.toLowerCase() !== address.toLowerCase()) {
+    throw new Error("Kernel account address does not match the connected Privy wallet.");
+  }
+
+  const pimlicoClient = createPimlicoClient({
+    chain: { ...base, id: cfg.chainId ?? base.id },
+    transport: http(bundlerUrl),
+    entryPoint,
+  });
+  const smartAccountClient = createSmartAccountClient({
+    account,
+    chain: { ...base, id: cfg.chainId ?? base.id },
+    bundlerTransport: http(bundlerUrl),
+    userOperation: {
+      estimateFeesPerGas: async () => (await pimlicoClient.getUserOperationGasPrice()).fast,
+    },
+  });
+  const callData = await encodeCallDataEpV07(
+    [{ to: hop, value: 0n, data }],
+    "delegatecall",
+  );
+  const userOpHash = await smartAccountClient.sendUserOperation({
+    account,
+    callData,
+    // The authorization makes the EOA executable during Pimlico's simulation.
+    // Do not provide factory fields: the bundler then reports AA10 because
+    // the authorization has already constructed the account context.
+    ...(eip7702Auth
+      ? {
+          authorization: eip7702Auth,
+        }
+      : {}),
+  });
+  return { hash: userOpHash, userOperation: true, callType: HOP_CALLTYPE_DELEGATECALL };
+}
+
 function getPublicClient(cfg) {
+  const configuredRpc = typeof cfg.rpcUrl === "string" ? cfg.rpcUrl.trim() : "";
+  // The public Base endpoint is frequently rate-limited. Do not let a stale
+  // site-config response make it the primary transport for wallet reads.
+  const primary =
+    configuredRpc && !configuredRpc.includes("mainnet.base.org")
+      ? configuredRpc
+      : "https://base-rpc.publicnode.com";
+  const backup = [
+    "https://mainnet.base.org",
+    "https://1rpc.io/base",
+  ].filter((url) => url !== primary);
   return createPublicClient({
     chain: base,
-    transport: http(cfg.rpcUrl ?? "https://mainnet.base.org"),
+    transport: fallback(
+      [http(primary), ...backup.map((url) => http(url))],
+      { rank: false, retryCount: 2, retryDelay: 500 }
+    ),
+    pollingInterval: 4_000,
   });
 }
 
@@ -501,7 +826,7 @@ function taskIdFromReceipt(receipt, registry) {
   return hit.args.taskId;
 }
 
-export function createPosterApi({ ready, authenticated, wallet }) {
+export function createPosterApi({ ready, authenticated, wallet, signAuthorization }) {
   const idle = {
     ready: false,
     address: null,
@@ -546,45 +871,98 @@ export function createPosterApi({ ready, authenticated, wallet }) {
       const cfg = await loadSiteConfig();
       const c = cfg.contracts;
       if (!c?.taskRegistry) return { signedIn: true, configured: false };
+      requireBalanceConfig(c, address);
+      requireConfiguredAddress("pricing policy", c?.pricingPolicy);
 
       const publicClient = getPublicClient(cfg);
-      const [usdcBal, depositBal, azlBal, usdcAllowGateway, quote] =
-        await publicClient.multicall({
-          contracts: [
-            { address: c.usdc, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
-            { address: c.depositVault, abi: VAULT_ABI, functionName: "deposits", args: [address] },
-            { address: c.azlToken, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
-            { address: c.usdc, abi: ERC20_ABI, functionName: "allowance", args: [address, c.paymentGateway] },
-            { address: c.pricingPolicy, abi: PRICING_POLICY_ABI, functionName: "quoteTask" },
-          ],
-        });
+      const [usdcBal, depositBal, availableBal, azlBal, usdcAllowGateway, quote] = await Promise.all([
+        publicClient.readContract({
+          address: c.usdc,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.depositVault,
+          abi: VAULT_ABI,
+          functionName: "deposits",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.depositVault,
+          abi: VAULT_ABI,
+          functionName: "available",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.azlToken,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.usdc,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [address, c.paymentGateway],
+        }),
+        publicClient.readContract({
+          address: c.pricingPolicy,
+          abi: PRICING_POLICY_ABI,
+          functionName: "quoteTask",
+        }),
+      ]);
 
-      const deposit = depositBal.result ?? 0n;
-      const usdc = usdcBal.result ?? 0n;
-      const entryDeposit = quote.result?.entryDeposit ?? 0n;
-      const liveTaskReserve = quote.result?.liveTaskReserve ?? 0n;
-      const accessFee = quote.result?.accessFee ?? 0n;
+      const deposit = depositBal ?? 0n;
+      const available = availableBal ?? 0n;
+      const usdc = usdcBal ?? 0n;
+      const entryDeposit = quote?.entryDeposit ?? 0n;
+      const liveTaskReserve = quote?.liveTaskReserve ?? 0n;
+      const accessFee = quote?.accessFee ?? 0n;
       const needsDeposit = deposit < entryDeposit;
-      const needsPostTopUp = deposit < entryDeposit + liveTaskReserve + accessFee;
-      const needsUsdcApprove = (usdcAllowGateway.result ?? 0n) === 0n;
+      const needsPostTopUp = available < entryDeposit + liveTaskReserve + accessFee;
+      const postCollateralShortfallAzl = needsPostTopUp
+        ? entryDeposit + liveTaskReserve + accessFee - available
+        : 0n;
+      const needsUsdcApprove = (usdcAllowGateway ?? 0n) === 0n;
+      const collateralShortfallAzl = needsDeposit ? entryDeposit - deposit : 0n;
+      let collateralShortfallUsd = 0n;
+      if (collateralShortfallAzl > 0n) {
+        try {
+          collateralShortfallUsd = await publicClient.readContract({
+            address: c.usdOracle,
+            abi: ORACLE_ABI,
+            functionName: "quoteUsdForAzl",
+            args: [collateralShortfallAzl],
+          });
+        } catch {
+          /* Keep the AZL shortfall visible if the quote is temporarily unavailable. */
+        }
+      }
 
       return {
         signedIn: true,
         configured: true,
         usdcWallet: formatUnits(usdc, 6),
         depositAzl: formatUnits(deposit, 18),
-        azlWallet: formatUnits(azlBal.result ?? 0n, 18),
+        availableAzl: formatUnits(available, 18),
+        azlWallet: formatUnits(azlBal ?? 0n, 18),
         needsDeposit,
         needsPostTopUp,
         needsUsdcApprove,
         depositReady: !needsDeposit,
         canDeposit: usdc > 0n,
         canPost:
-          deposit >= entryDeposit + liveTaskReserve + accessFee &&
-          (azlBal.result ?? 0n) >= AZL_PER_ACTION,
+          available >= entryDeposit + liveTaskReserve + accessFee &&
+          (azlBal ?? 0n) >= AZL_PER_ACTION,
         taskFloorMin: formatUnits(liveTaskReserve, 18),
         listingFeeUsdc: formatUnits(accessFee, 18),
+        accessFeeAzl: formatUnits(accessFee, 18),
+        accessFeeUsd: "5.00 per Task Fee",
         entryDepositMin: formatUnits(entryDeposit, 18),
+        collateralShortfallAzl: formatUnits(collateralShortfallAzl, 18),
+        collateralShortfallUsd: formatUnits(collateralShortfallUsd, 6),
+        postCollateralShortfallAzl: formatUnits(postCollateralShortfallAzl, 18),
       };
     },
 
@@ -592,40 +970,102 @@ export function createPosterApi({ ready, authenticated, wallet }) {
       const cfg = await loadSiteConfig();
       const c = cfg.contracts;
       if (!c?.taskRegistry) return { signedIn: true, configured: false };
+      requireBalanceConfig(c, address);
 
       const publicClient = getPublicClient(cfg);
-      const eth = await publicClient.getBalance({ address });
-      const [usdc, azl, vault, maxW, usdcAllowGateway] = await publicClient.multicall({
-        contracts: [
-          { address: c.usdc, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
-          { address: c.azlToken, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
-          { address: c.depositVault, abi: VAULT_ABI, functionName: "deposits", args: [address] },
-          { address: c.depositVault, abi: VAULT_ABI, functionName: "withdrawable", args: [address] },
-          { address: c.usdc, abi: ERC20_ABI, functionName: "allowance", args: [address, c.paymentGateway] },
-        ],
-      });
+      // Keep these as independent concurrent reads. Some Base RPC providers
+      // resolve eth_call immediately but queue a large multicall for seconds.
+      const results = await Promise.allSettled([
+        publicClient.getBalance({ address }),
+        publicClient.readContract({
+          address: c.usdc,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.azlToken,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.depositVault,
+          abi: VAULT_ABI,
+          functionName: "deposits",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.depositVault,
+          abi: VAULT_ABI,
+          functionName: "withdrawable",
+          args: [address],
+        }),
+        publicClient.readContract({
+          address: c.usdc,
+          abi: ERC20_ABI,
+          functionName: "allowance",
+          args: [address, c.paymentGateway],
+        }),
+      ]);
+      const [ethRead, usdcRead, azlRead, vaultRead, maxWRead, allowanceRead] = results;
+      const valueOf = (result) => result.status === "fulfilled" ? result.value : null;
+      const eth = valueOf(ethRead);
+      const usdc = valueOf(usdcRead);
+      const azl = valueOf(azlRead);
+      const vault = valueOf(vaultRead);
+      const maxW = valueOf(maxWRead);
+      const usdcAllowGateway = valueOf(allowanceRead);
+      const failedReads = results.filter((result) => result.status === "rejected");
+      if (failedReads.length === results.length) {
+        throw failedReads[0].reason;
+      }
 
-      const vaultAmt = vault.result ?? 0n;
-      const maxWithdrawAmt = maxW.result ?? 0n;
-      const usdcAllowance = usdcAllowGateway.result ?? 0n;
+      const vaultAmt = vault ?? 0n;
+      const maxWithdrawAmt = maxW ?? 0n;
+      const usdcAllowance = usdcAllowGateway ?? 0n;
+      let vaultUsd = 0n;
+      let vaultMarketUsd = 0n;
+      try {
+        [vaultUsd, vaultMarketUsd] = await Promise.all([
+          publicClient.readContract({
+            address: c.usdOracle,
+            abi: ORACLE_ABI,
+            functionName: "quoteUsdForAzl",
+            args: [vaultAmt],
+          }),
+          publicClient.readContract({
+            address: c.usdOracle,
+            abi: ORACLE_ABI,
+            functionName: "quoteUsdForAzlPar",
+            args: [vaultAmt],
+          }),
+        ]);
+      } catch {
+        /* Preserve balance rendering if the oracle is temporarily unavailable. */
+      }
 
       return {
         signedIn: true,
         configured: true,
         address,
         eth: formatUnits(eth, 18),
-        usdcWallet: formatUnits(usdc.result ?? 0n, 6),
+        usdcWallet: formatUnits(usdc ?? 0n, 6),
         usdcVault: formatUnits(vaultAmt, 18),
+        usdcVaultUsd: formatUnits(vaultUsd ?? 0n, 6),
+        usdcVaultMarketUsd: formatUnits(vaultMarketUsd ?? 0n, 6),
+        usdcVaultMeetsMinimum: (vaultUsd ?? 0n) >= 45_000_000n,
         usdcVaultAllowance: formatUnits(usdcAllowance, 6),
         needsUsdcApprove: usdcAllowance === 0n,
         maxVaultWithdraw: formatUnits(maxWithdrawAmt, 18),
-        azlWallet: formatUnits(azl.result ?? 0n, 18),
+        azlWallet: formatUnits(azl ?? 0n, 18),
         entryDepositMin: "oracle-priced AZL",
         taskFloorMin: "oracle-priced AZL",
         listingFeeUsdc: "oracle-priced AZL",
         depositReady: vaultAmt > 0n,
         canPost: vaultAmt > 0n,
         needsPostTopUp: false,
+        partial: failedReads.length > 0,
       };
     },
 
@@ -672,8 +1112,10 @@ export function createPosterApi({ ready, authenticated, wallet }) {
     async fundCollateral(amountUsdc, onProgress) {
       const cfg = await loadSiteConfig();
       const c = cfg.contracts;
-      const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
+      requireConfiguredAddress("USDC token", c?.usdc);
+      requireConfiguredAddress("payment gateway", c?.paymentGateway);
+      requireConfiguredAddress("connected wallet", address);
       const amount = parseUnits(String(amountUsdc), 6);
       if (amount <= 0n) throw new Error("Enter a valid USDC amount");
 
@@ -693,10 +1135,35 @@ export function createPosterApi({ ready, authenticated, wallet }) {
         throw new Error("Not enough ETH on Base for gas.");
       }
 
-      onProgress?.("Approve USDC for protocol deposit…");
-      await ensureUsdcAllowance(walletClient, publicClient, c.usdc, address, c.paymentGateway, amount);
+      const oracleReady = await publicClient.readContract({
+        address: requireConfiguredAddress("USD oracle", c?.usdOracle),
+        abi: ORACLE_ABI,
+        functionName: "isValid",
+      });
+      if (!oracleReady) {
+        throw new Error(
+          "AZL oracle is not ready yet. Deposits are temporarily paused while the Base price feed warms up."
+        );
+      }
+
+      const allowance = await publicClient.readContract({
+        address: c.usdc,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address, c.paymentGateway],
+      });
+
+      if (allowance < amount) {
+        const batched = await tryFundWithUsdcBatch(wallet, publicClient, cfg, address, amount, onProgress);
+        if (batched && !batched.unsupported) return batched;
+
+        const walletClient = await getWalletClient(wallet, cfg);
+        onProgress?.("Wallet batching unavailable — approving USDC…");
+        await ensureUsdcAllowance(walletClient, publicClient, c.usdc, address, c.paymentGateway, amount);
+      }
 
       onProgress?.("Converting USDC to AZL collateral…");
+      const walletClient = await getWalletClient(wallet, cfg);
       const receipt = await runTx("fundWithUsdc", async () => {
         const hash = await walletClient.writeContract({
           address: c.paymentGateway,
@@ -707,6 +1174,56 @@ export function createPosterApi({ ready, authenticated, wallet }) {
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
       return { hash: receipt.transactionHash };
+    },
+
+    async fundWithEth(amountEth, onProgress) {
+      const cfg = await loadSiteConfig();
+      const c = cfg.contracts;
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      const amount = parseUnits(String(amountEth), 18);
+      if (amount <= 0n) throw new Error("Enter a valid ETH amount");
+
+      const balance = await publicClient.getBalance({ address });
+      if (balance < amount + MIN_ETH_WEI) {
+        throw new Error("Not enough ETH in wallet for the deposit and Base gas.");
+      }
+
+      onProgress?.("Converting ETH to AZL collateral…");
+      const receipt = await runTx("fundWithEth", async () => {
+        const hash = await walletClient.writeContract({
+          address: c.paymentGateway,
+          abi: PAYMENT_GATEWAY_ABI,
+          functionName: "fundWithEth",
+          args: [1n, BigInt(Math.floor(Date.now() / 1000) + 600)],
+          value: amount,
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async fundWithAzl(amountAzl, onProgress) {
+      const cfg = await loadSiteConfig();
+      const publicClient = getPublicClient(cfg);
+      const amount = parseUnits(String(amountAzl), 18);
+      if (amount <= 0n) throw new Error("Enter a valid AZL amount");
+      const azlBalance = await publicClient.readContract({
+        address: cfg.contracts.azlToken,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [address],
+      });
+      if (azlBalance < amount) throw new Error("Not enough AZL in wallet.");
+      return fundAzlThroughHop(
+        wallet,
+        publicClient,
+        cfg,
+        address,
+        amount,
+        onProgress,
+        signAuthorization
+      );
     },
 
     async withdrawCollateral(amountAzl, onProgress) {
@@ -820,6 +1337,13 @@ export function createPosterApi({ ready, authenticated, wallet }) {
       const openDiscovery = discoveryOpen !== false;
 
       if (status.needsDeposit) throw new Error("Fund AZL collateral first — /wallet");
+      if (!status.canPost) {
+        throw new Error(
+          "Add " +
+            (status.postCollateralShortfallAzl || "more") +
+            " AZL collateral before posting — /wallet"
+        );
+      }
 
       const totalAmount = parseUnits(String(taskAmountAzl), 18);
       const deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineDays * 86400);
@@ -862,6 +1386,7 @@ export function createPosterApi({ ready, authenticated, wallet }) {
         return {
           taskId: taskId.toString(),
           hash: receipt.transactionHash,
+          taskAmountAzl: formatUnits(totalAmount, 18),
           scopePublished: true,
           batched: false,
         };
@@ -870,6 +1395,7 @@ export function createPosterApi({ ready, authenticated, wallet }) {
       return {
         taskId: taskId.toString(),
         hash: receipt.transactionHash,
+        taskAmountAzl: formatUnits(totalAmount, 18),
         scopePublished: false,
         discoveryOpen: false,
       };
@@ -1013,41 +1539,61 @@ export function createPosterApi({ ready, authenticated, wallet }) {
       return { hash: receipt.transactionHash };
     },
 
-    async claimReadiness() {
+    async claimReadiness(taskId) {
       const cfg = await loadSiteConfig();
       const c = cfg.contracts;
       const publicClient = getPublicClient(cfg);
-      const [depositBal, azlBal, eth, quote] = await Promise.all([
-        publicClient.readContract({
-          address: c.depositVault,
-          abi: VAULT_ABI,
-          functionName: "deposits",
-          args: [address],
-        }),
-        publicClient.readContract({
-          address: c.azlToken,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address],
+      if (taskId === undefined || taskId === null) throw new Error("Task ID is required");
+      const id = BigInt(taskId);
+      const [reads, eth] = await Promise.all([
+        publicClient.multicall({
+          contracts: [
+            { address: c.depositVault, abi: VAULT_ABI, functionName: "available", args: [address] },
+            { address: c.depositVault, abi: VAULT_ABI, functionName: "latchedEntryFloor", args: [address] },
+            { address: c.depositVault, abi: VAULT_ABI, functionName: "taskQuotes", args: [id] },
+            { address: c.azlToken, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
+            { address: c.stakingVault, abi: STAKING_ABI, functionName: "stakingActive" },
+            { address: c.stakingVault, abi: STAKING_ABI, functionName: "creditsOf", args: [address] },
+          ],
         }),
         publicClient.getBalance({ address }),
-        publicClient.readContract({
-          address: c.pricingPolicy,
-          abi: PRICING_POLICY_ABI,
-          functionName: "quoteTask",
-        }),
       ]);
+      const [available, currentEntryFloor, quoteRead, azlBal, stakingActive, credits] = reads;
+      const quote = quoteRead.result;
+      if (!quote || quote.liveTaskReserve === 0n) {
+        throw new Error("Task has no latched collateral quote");
+      }
       const entryDeposit = quote.entryDeposit ?? 0n;
       const liveTaskReserve = quote.liveTaskReserve ?? 0n;
       const accessFee = quote.accessFee ?? 0n;
-      const requiredDeposit = entryDeposit + liveTaskReserve + accessFee;
+      const exitCompensation = quote.exitCompensation ?? 0n;
+      const exitProtocolShare = quote.exitProtocolShare ?? 0n;
+      const usesActionCredit =
+        Boolean(stakingActive.result) && (credits.result ?? 0n) >= 10n ** 18n;
+      const chargedAccessFee = usesActionCredit ? 0n : accessFee;
+      const entryFloor = (currentEntryFloor.result ?? 0n) > entryDeposit
+        ? currentEntryFloor.result ?? 0n
+        : entryDeposit;
+      const requiredAvailable = entryFloor + liveTaskReserve + chargedAccessFee;
+      const availableAzl = available.result ?? 0n;
       return {
-        depositAzl: formatUnits(depositBal, 18),
-        accessFeeAzl: formatUnits(accessFee, 18),
-        requiredDepositAzl: formatUnits(requiredDeposit, 18),
-        hasCollateral: depositBal >= requiredDeposit,
+        availableAzl: formatUnits(availableAzl, 18),
+        requiredAvailableAzl: formatUnits(requiredAvailable, 18),
+        shortfallAzl: formatUnits(
+          availableAzl >= requiredAvailable ? 0n : requiredAvailable - availableAzl,
+          18,
+        ),
+        hasCollateral: availableAzl >= requiredAvailable,
         hasGas: eth >= MIN_ETH_WEI,
-        walletAzl: formatUnits(azlBal, 18),
+        walletAzl: formatUnits(azlBal.result ?? 0n, 18),
+        entryDepositAzl: formatUnits(entryDeposit, 18),
+        existingEntryFloorAzl: formatUnits(currentEntryFloor.result ?? 0n, 18),
+        liveTaskReserveAzl: formatUnits(liveTaskReserve, 18),
+        accessFeeAzl: formatUnits(accessFee, 18),
+        chargedAccessFeeAzl: formatUnits(chargedAccessFee, 18),
+        exitCompensationAzl: formatUnits(exitCompensation, 18),
+        exitProtocolShareAzl: formatUnits(exitProtocolShare, 18),
+        usesActionCredit,
       };
     },
 

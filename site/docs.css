@@ -91,6 +91,7 @@ body.page-docs .azzle-theme-toggle--floating{display:none}
 .docs-sidebar-head{
   padding:0 10px 20px;
   margin-bottom:4px;
+  margin-top: 30px;
   border-bottom:1px solid var(--b);
 }
 .docs-sidebar-kicker{

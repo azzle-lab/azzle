@@ -118,6 +118,6 @@ Next steps:
   npm run preflight       # wallet + deposit checks
   npm start
 
-Onboarding: https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md
+Onboarding: https://www.azzle.org/reference/BOOTSTRAP.md
 `);
 }

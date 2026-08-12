@@ -6,6 +6,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(await readFile(join(root, "contracts", "deployments", "base-8453.json"), "utf8"));
 
 const current = {
+  deploymentBlock: manifest.deploymentBlock,
+  governance: manifest.governance,
+  bundleHash: manifest.bundleHash,
+  finalizedTx: manifest.finalizedTx,
   factory: manifest.factory,
   observationOracle: manifest.observationOracle,
   twapAdapter: manifest.twapAdapter,
@@ -27,6 +31,22 @@ const current = {
   azl: manifest.external.azl,
   weth: manifest.external.weth,
 };
+
+const siteConfigPath = join(root, "site", "v2-config.js");
+let siteConfig = await readFile(siteConfigPath, "utf8");
+
+siteConfig = siteConfig.replace(
+  /(\bdeploymentBlock:\s*)\d+/,
+  `$1${current.deploymentBlock}`,
+);
+for (const [key, value] of Object.entries(current)) {
+  if (key === "deploymentBlock" || typeof value !== "string") continue;
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  siteConfig = siteConfig.replace(
+    new RegExp(`(\\b${escaped}:\\s*")[^"]*(")`),
+    `$1${value}$2`,
+  );
+}
 
 const contractCards = [
   ["AZL Token", manifest.external.azl],
@@ -100,5 +120,7 @@ for (const file of files) {
   }
   await writeFile(file, content);
 }
+
+await writeFile(siteConfigPath, siteConfig);
 
 console.log("[site-addresses] synchronized active site surfaces from canonical V2 manifest");

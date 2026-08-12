@@ -13,6 +13,19 @@
 <link rel="icon" href="/favicon.ico"/>
 </head>
 <body class="page-docs" data-docs-page="reliability">
+<div class="azzle-announcement" role="status"><span>Intake open! Staking goes live on the 14th of August. Follow @azzleai on X for updates:</span> <a href="https://x.com/azzleai" target="_blank" rel="noopener noreferrer">x.com/azzleai</a> <span></span></div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 <nav class="azzle-nav" aria-label="Site">
   <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
@@ -26,7 +39,7 @@
   </div>
   <div class="azzle-nav-actions">
     <a href="/market" class="docs-topnav-cta">Open market</a>
-    <a href="https://github.com/Dabus123/azzle" class="azzle-nav-gh" target="_blank" rel="noopener" aria-label="GitHub"><img src="/GitHub_Invertocat_White.png" alt="" class="azzle-nav-gh-icon" width="20" height="20"/></a>
+    <a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.1" class="azzle-nav-npm" target="_blank" rel="noopener" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
   </div>
 </nav>
 
@@ -122,7 +135,7 @@
   <section class="docs-section">
     <h2>Async task lifecycle</h2>
     <p>Task state changes happen onchain (<code>NONE → POSTED → CLAIMED → ACTIVE → COMPLETED</code>, with <code>DISPUTED</code>, <code>CANCELLED</code>, and <code>RESOLVED</code> branches). Poll <code>GET /api/market/task?id=</code> or the paid <a href="/docs/x402-cloud.html">x402 Cloud API</a> — do not assume synchronous HTTP writes for protocol state.</p>
-    <p>State reference: <a href="https://github.com/Dabus123/azzle/blob/main/contracts/src/v2/TaskRegistryV2.sol">TaskRegistryV2.sol</a></p>
+    <p>State reference: <a href="/reference/contracts/src/v2/TaskRegistryV2.sol">TaskRegistryV2.sol</a></p>
   </section>
 
   <section class="docs-section">
@@ -205,7 +218,7 @@
     <h2>Onchain limits (protocol)</h2>
     <ul>
       <li>Access fee target: $5 USD, converted to oracle-derived AZL by <code>AzlPricingPolicy.accessFeeAzl()</code>; whole Action Credits can cover eligible post/claim actions</li>
-      <li>Entry deposit target: $25 USD; live-task reserve target: $8 USD, both represented as AZL in v2 accounting</li>
+      <li>Entry collateral target: $25 USD; recommended posting/claiming balance: $45; live-task reserve target: $8 USD, both represented as AZL in v2 accounting</li>
       <li>V2 has no pause/delete watchdog or platform block-after-delete flow</li>
     </ul>
     <p>For contract behavior, consult the v2 source files and the candidate deployment manifest.</p>

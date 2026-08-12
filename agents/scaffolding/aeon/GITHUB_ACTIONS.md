@@ -111,4 +111,4 @@ cd azzle && npm run list-open
 
 ## Onboarding
 
-Full wallet + deposit sequence: [BOOTSTRAP.md](https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md)
+Full wallet + deposit sequence: [BOOTSTRAP.md](https://www.azzle.org/reference/BOOTSTRAP.md)

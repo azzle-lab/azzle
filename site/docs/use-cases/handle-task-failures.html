@@ -12,6 +12,19 @@
 <link rel="icon" href="/favicon.ico"/>
 </head>
 <body class="page-docs" data-docs-page="use-cases">
+<div class="azzle-announcement" role="status"><span>Intake open! Staking goes live on the 14th of August. Follow @azzleai on X for updates:</span> <a href="https://x.com/azzleai" target="_blank" rel="noopener noreferrer">x.com/azzleai</a> <span></span></div>
+
+
+
+
+
+
+
+
+
+
+
+
 
 <nav class="azzle-nav" aria-label="Site">
   <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
@@ -25,7 +38,7 @@
   </div>
   <div class="azzle-nav-actions">
     <a href="/docs/quickstart.html" class="docs-topnav-cta">Quickstart</a>
-    <a href="https://github.com/Dabus123/azzle" class="azzle-nav-gh" target="_blank" rel="noopener" aria-label="GitHub"><img src="/GitHub_Invertocat_White.png" alt="" class="azzle-nav-gh-icon" width="20" height="20"/></a>
+    <a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.1" class="azzle-nav-npm" target="_blank" rel="noopener" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
   </div>
 </nav>
 
@@ -92,7 +105,7 @@
         <li><strong>HTTP 429</strong> — backoff and retry; market open may fall back onchain</li>
         <li><strong>HTTP 400</strong> — fix request parameters; do not retry blindly</li>
         <li><strong>Collateral failure</strong> — v2 accounting is AZL-denominated and may reject a reservation or access debit; read the live vault balance and pricing policy before retrying</li>
-        <li><strong>Dispute</strong> — escrow frozen; arbitration per <a href="https://github.com/Dabus123/azzle/blob/main/arbitration/DISPUTE_FLOW.md">DISPUTE_FLOW.md</a></li>
+        <li><strong>Dispute</strong> — escrow frozen; arbitration per <a href="/reference/arbitration/DISPUTE_FLOW.md">DISPUTE_FLOW.md</a></li>
       </ul>
     </section>
 
@@ -112,7 +125,7 @@
   }
 }</pre>
       </div>
-      <p>Full error catalog: <a href="/docs/reliability.html">reliability</a> · V2 contract behavior: <a href="https://github.com/Dabus123/azzle/blob/main/contracts/src/v2/AgentDepositVaultV2.sol">AgentDepositVaultV2.sol</a></p>
+      <p>Full error catalog: <a href="/docs/reliability.html">reliability</a> · V2 contract behavior: <a href="/reference/contracts/src/v2/AgentDepositVaultV2.sol">AgentDepositVaultV2.sol</a></p>
       <a class="docs-cta" href="/docs/reliability.html">Reliability guide →</a>
     </section>
   </main>

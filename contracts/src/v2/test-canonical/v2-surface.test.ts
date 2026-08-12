@@ -15,6 +15,14 @@ const policySource = readFileSync(
   resolve(root, "src/v2/AzlPricingPolicy.sol"),
   "utf8",
 );
+const depositVaultSource = readFileSync(
+  resolve(root, "src/v2/AgentDepositVaultV2.sol"),
+  "utf8",
+);
+const gatewaySource = readFileSync(
+  resolve(root, "src/v2/AzlPaymentGateway.sol"),
+  "utf8",
+);
 const escrowSource = readFileSync(
   resolve(root, "src/v2/EscrowVaultV2.sol"),
   "utf8",
@@ -110,6 +118,28 @@ describe("AZZLE V2 canonical surface", function () {
     expect(policySource).to.contain("ACCESS_FEE_USD6 = 5_000_000");
     expect(policySource).to.contain("quoteAzlForUsd(1_000_000)");
     expect(policySource).to.contain("function quoteTask()");
+  });
+
+  it("latches collateral quotes at post and reuses them at claim", function () {
+    expect(registrySource).to.contain("deposits.reserveTask(taskId, msg.sender, waived, true);");
+    expect(registrySource).to.contain("deposits.reserveTask(taskId, msg.sender, waived, false);");
+    expect(depositVaultSource).to.contain(
+      "mapping(uint256 => IAzlV2Policy.TaskQuote) public taskQuotes;",
+    );
+    expect(depositVaultSource).to.contain("quote = policy.quoteTask();");
+    expect(depositVaultSource).to.contain('require(quote.liveTaskReserve > 0, "ADv2: unquoted");');
+  });
+
+  it("values realized intake output at par instead of double-applying the haircut", function () {
+    expect(gatewaySource).to.contain(
+      "uint256 executionValue6 = oracle.quoteUsdForAzlPar(amount);",
+    );
+    expect(gatewaySource).to.not.contain(
+      "uint256 executionValue6 = oracle.quoteUsdForAzl(amount);",
+    );
+    expect(gatewaySource).to.contain(
+      "uint256 minimumValue6 = Math.mulDiv(inputUsd6, BPS - maxExecutionDeviationBps, BPS);",
+    );
   });
 
   it("rejects retired lifecycle selectors from the active registry", function () {

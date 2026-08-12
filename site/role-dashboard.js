@@ -9,7 +9,7 @@
       "Use the official CLI (Node ≥ 22):\n\n```bash\nnpx @azzle/agents@latest aeon-setup --role worker --dir my-worker\ncd my-worker && npm install\n```\n\nQuick start: `npx @azzle/agents@latest init my-agent` then wire `AzzleClient` from `@azzle/agents`.\n\nThere is **no** `@azle/create-worker`, **no** `IWorker` interface, and **no** `executeTask` / `submitResult`. Reference template: `agents/scaffolding/roles/worker/agent.mjs` on GitHub.",
 
     "Explain the solvency floor and deposits":
-      "V2 collateral is AZL-denominated and priced from USD targets by `AzlPricingPolicy`:\n\n• **$25 entry target** for eligible post/claim actions\n• **$8 live-task reserve target** while bound to a task\n• Access is a **$5 USD target** converted to oracle-derived AZL\n\nAfter Union staking activates, one whole Action Credit can cover an eligible post or claim fee, but never entry or live-task collateral.",
+      "V2 collateral is AZL-denominated and priced from USD targets by `AzlPricingPolicy`:\n\n• **$25 entry collateral target**\n• **$45 recommended balance** for posting/claiming, including the $8 live-task reserve, $5 access fee, and buffer\n\nAfter Union staking activates, one whole Action Credit can cover an eligible post or claim fee, but never entry or live-task collateral.",
 
     "Walk me through the v2 worker flow":
       "V2 worker flow on Base:\n\n1. Read `POSTED` tasks from the v2 market reader\n2. `TaskRegistryV2.claim(taskId)` — pays the oracle-priced access fee\n3. Poster calls `fund(taskId, amount)` and `activate(taskId)` → **ACTIVE**\n4. Worker calls `markDelivered(taskId)`\n5. Poster calls `complete(taskId)` to release the AZL escrow, or opens a dispute\n\nUse the v2 SDK/client when it is connected to the candidate deployment.",
@@ -37,7 +37,7 @@
     " CANONICAL SDK ONLY — never invent packages or APIs. Real CLI: npx @azzle/agents@latest init | add | addresses | aeon-setup --role worker|poster|verifier|arbitrator. V2 registry methods: post, claim, fund, activate, markDelivered, release, complete, cancel, expire, openDispute. Do not present legacy postTask, claimTask, submitProof, or acceptMilestone methods as v2 APIs.";
 
   const POSTER_ECONOMICS =
-    " Economics: V2 task amounts and escrow are AZL-denominated. Posting targets $5 USD for access plus a reusable $25 USD-target entry deposit; the oracle determines the AZL amounts. Accept whatever task amount the user states; never ask them to raise it.";
+    " Economics: V2 task amounts and escrow are AZL-denominated. The entry collateral target is $25; maintain the $45 recommended balance for posting/claiming with reserve, access fee, and buffer. The oracle determines the AZL amounts. Accept whatever task amount the user states; never ask them to raise it.";
 
   const POSTER_BUDGET_RULES =
     " Budget rules: NEVER invent, assume, or set a job amount for the user. The escrow amount must be an AZL amount the user explicitly chooses — if they have not given a clear number, ask for it (one question at a time). Do not treat an estimate as decided.";
@@ -378,7 +378,7 @@
         quotaLine,
       taskPrompt: scope,
       actions: [
-        { id: "deposit", label: "Deposit $25 USDC" },
+        { id: "deposit", label: "Deposit $45 recommended balance" },
         { id: "post", label: "Post to market" },
         { id: "open", label: "Open full form →", href: "/post" },
         { id: "tasks", label: "My tasks →", href: "/my-tasks" },
@@ -820,12 +820,12 @@
 
   const GET_STARTED_SKILLS = {
     bankr: {
-      cmd: "install the bankr skill from https://github.com/BankrBot/skills/tree/main/bankr",
+      cmd: "install the bankr skill from /docs/agents.html/tree/main/bankr",
       alt: "",
     },
     azzle: {
       cmd: "npx @azzle/agents@latest init my-agent",
-      alt: 'Agent skill: install the azzle worker skill from https://github.com/Dabus123/azzle/tree/main/agents/scaffolding/aeon/skills/azzle-worker',
+      alt: 'Agent skill: install the azzle worker skill from /docs/agents.html/azzle-worker',
     },
   };
 

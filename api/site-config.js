@@ -1,7 +1,5 @@
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 const MANIFEST = require("../contracts/deployments/base-8453.json");
+const DEPLOYED_AZL_HOP = "0xd089c46C01ccDE2875CCD4Fc46F8D1B170dd32D9";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +25,7 @@ function postingStoreBackend() {
   return "file";
 }
 
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS);
     res.end();
@@ -47,7 +45,7 @@ export default function handler(req, res) {
     privyClientId: process.env.PRIVY_CLIENT_ID || "",
     chainId: Number(MANIFEST.chainId),
     chainName: "Base",
-    rpcUrl: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+    rpcUrl: process.env.BASE_RPC_URL || "https://base-rpc.publicnode.com",
     contracts: {
       usdc: MANIFEST.external.usdc,
       azlToken: MANIFEST.external.azl,
@@ -62,6 +60,8 @@ export default function handler(req, res) {
       usdOracle: MANIFEST.usdOracle,
       pricingPolicy: MANIFEST.pricingPolicy,
       paymentGateway: MANIFEST.paymentGateway,
+      azlHop: process.env.V2_HOP_ADDRESS?.trim() || DEPLOYED_AZL_HOP,
+      pimlicoBundlerUrl: process.env.PIMLICO_BUNDLER_URL || "",
       taskScopeRegistry,
       observationOracle: MANIFEST.observationOracle,
       twapAdapter: MANIFEST.twapAdapter,

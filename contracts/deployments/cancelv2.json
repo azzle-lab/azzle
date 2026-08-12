@@ -1,0 +1,27 @@
+{
+    "version": "1.0",
+    "chainId": "8453",
+    "meta": {
+      "name": "AZZLE V2 oracle reference proposal",
+      "txBuilderVersion": "1.18.0",
+      "createdFromSafeAddress": "0xB459145b74Ca4B198f73C0d573a161e85CA76D27"
+    },
+    "prerequisites": [
+      "Accept all ownership transfers.",
+      "Maintain observer samples continuously for at least 2 hours."
+    ],
+    "transactions": [
+      {
+        "to": "0xdBF2F47386Abb343b5c7C1613EFfec4F8Ae341B8",
+        "value": "0",
+        "data": null,
+        "contractMethod": {
+          "inputs": [],
+          "name": "cancelReferenceProposal()",
+          "payable": false
+        },
+        "contractInputsValues": {}
+      }
+    ]
+  }
+  

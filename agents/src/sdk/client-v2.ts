@@ -14,7 +14,10 @@ const REGISTRY_ABI = [
 ];
 const VAULT_ABI = [
   "function withdraw(uint256 amount,address recipient)", "function claimPayout(address recipient)",
-  "function deposits(address) view returns (uint256)", "function withdrawable(address) view returns (uint256)",
+  "function deposits(address) view returns (uint256)", "function reserved(address) view returns (uint256)",
+  "function available(address) view returns (uint256)", "function withdrawable(address) view returns (uint256)",
+  "function latchedEntryFloor(address) view returns (uint256)",
+  "function taskQuotes(uint256 taskId) view returns (uint256 entryDeposit,uint256 liveTaskReserve,uint256 accessFee,uint256 exitCompensation,uint256 exitProtocolShare)",
 ];
 const GATEWAY_ABI = [
   "function fundWithUsdc(uint256 exactUsdcIn,uint256 minAzlOut,uint256 deadline) returns (uint256)",
@@ -115,7 +118,19 @@ export class AzzleV2Client {
   withdrawDeposit(amount: bigint, recipient: string) { return this.vault.withdraw(amount, recipient); }
   claimDepositPayout(recipient: string) { return this.vault.claimPayout(recipient); }
   depositBalance(account: string) { return this.vault.deposits(account) as Promise<bigint>; }
+  reservedDeposit(account: string) { return this.vault.reserved(account) as Promise<bigint>; }
+  availableDeposit(account: string) { return this.vault.available(account) as Promise<bigint>; }
   withdrawableDeposit(account: string) { return this.vault.withdrawable(account) as Promise<bigint>; }
+  latchedEntryFloor(account: string) { return this.vault.latchedEntryFloor(account) as Promise<bigint>; }
+  getTaskQuote(taskId: bigint) {
+    return this.vault.taskQuotes(taskId) as Promise<{
+      entryDeposit: bigint;
+      liveTaskReserve: bigint;
+      accessFee: bigint;
+      exitCompensation: bigint;
+      exitProtocolShare: bigint;
+    }>;
+  }
 
   stake(amount: bigint) { return this.staking.stake(amount); }
   unstake(amount: bigint, recipient: string) { return this.staking.unstake(amount, recipient); }

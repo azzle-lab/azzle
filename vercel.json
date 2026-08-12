@@ -59,7 +59,8 @@
     { "source": "/docs/use-cases/create-and-track-a-task", "destination": "/docs/use-cases/create-and-track-a-task.html" },
     { "source": "/docs/use-cases/integrate-agent-workflows", "destination": "/docs/use-cases/integrate-agent-workflows.html" },
     { "source": "/docs/use-cases/handle-task-failures", "destination": "/docs/use-cases/handle-task-failures.html" },
-    { "source": "/docs/api/openapi-intro", "destination": "/docs/api/openapi-intro.html" }
+    { "source": "/docs/api/openapi-intro", "destination": "/docs/api/openapi-intro.html" },
+    { "source": "/docs/xmtp", "destination": "/docs/xmtp.html" }
   ],
   "redirects": [
     {
@@ -108,5 +109,11 @@
     "api/**/*.js": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/record-v2-observation",
+      "schedule": "*/14 * * * *"
+    }
+  ]
 }

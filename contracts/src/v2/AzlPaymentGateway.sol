@@ -185,14 +185,17 @@ contract AzlPaymentGateway is V2Ownable2Step, ReentrancyGuard {
         uint256 amount,
         address inputToken
     ) private {
-        uint256 executionValue6 = oracle.quoteUsdForAzl(amount);
+        // `amount` is the exact AZL received from the executor. Value it at
+        // par here: the conservative haircut belongs in the USD -> AZL
+        // liability quote and must not be applied a second time to the
+        // realized-output guard.
+        uint256 executionValue6 = oracle.quoteUsdForAzlPar(amount);
         uint256 minimumValue6 = Math.mulDiv(inputUsd6, BPS - maxExecutionDeviationBps, BPS);
         /// @dev Accepted Risk (deliberate trade-off): this guard is a floor only, with no matching ceiling.
-        ///      `quoteUsdForAzl` applies the oracle haircut, so favorable pool prints can still credit
-        ///      above the strict par reference. That is treated as bounded AMM arbitrage rather than
-        ///      a fund-loss vector — credited AZL is always the exact amount actually swapped
-        ///      in-transaction (verified by this function's own balance-delta checks), never drawn
-        ///      from other depositors' balances.
+        ///      Favorable pool prints can still credit above the strict par reference. That is treated as
+        ///      bounded AMM arbitrage rather than a fund-loss vector — credited AZL is always the exact
+        ///      amount actually swapped in-transaction (verified by this function's own balance-delta
+        ///      checks), never drawn from other depositors' balances.
         require(executionValue6 >= minimumValue6, "AzlGateway: execution deviation");
 
         uint256 vaultBefore = azl.balanceOf(custodyVault);

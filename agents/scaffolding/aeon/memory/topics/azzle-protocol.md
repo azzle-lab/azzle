@@ -50,6 +50,6 @@ claim task <taskId> on AZZLE protocol
 
 ## Docs
 
-- Fast setup: https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md
-- Agent entry: https://github.com/Dabus123/azzle/blob/main/AGENTS.md
+- Fast setup: https://www.azzle.org/reference/BOOTSTRAP.md
+- Agent entry: https://www.azzle.org/reference/AGENTS.md
 - TypeScript SDK: `@azzle/agents` in `azzle/package.json`

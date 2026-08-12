@@ -308,22 +308,38 @@
       actions.hidden = !canClaim;
       if (canClaim) {
         $("rd-market-claim")?.addEventListener("click", () => claimTask(task));
-        showClaimReadiness(api);
+        showClaimReadiness(api, String(task.localTaskId ?? task.id).replace(/^v2:/, ""));
       }
     }
   }
 
-  async function showClaimReadiness(api) {
+  async function showClaimReadiness(api, taskId) {
     const note = $("rd-market-claim-note");
     try {
-      const readiness = await api.claimReadiness();
+      const readiness = await api.claimReadiness(taskId);
       if (!note) return;
       const collateral = readiness.hasCollateral
         ? "Collateral ready"
-        : "Need " + fmtAzl(Number(readiness.requiredDepositAzl) * 1e18) + " protocol collateral";
-      note.textContent = collateral + " · " + (readiness.hasGas ? "Base gas ready" : "add ETH for Base gas") + ". Final eligibility is checked onchain.";
+        : "Need " + fmtAzl(Number(readiness.shortfallAzl) * 1e18) + " more available AZL";
+      const accessFee = readiness.usesActionCredit
+        ? "access fee waived by Action Credit"
+        : "access fee " + fmtAzl(Number(readiness.chargedAccessFeeAzl) * 1e18);
+      note.textContent =
+        "Latched at posting: entry floor " +
+        fmtAzl(Number(readiness.entryDepositAzl) * 1e18) +
+        ", reserve locked " +
+        fmtAzl(Number(readiness.liveTaskReserveAzl) * 1e18) +
+        ", " +
+        accessFee +
+        ". Required available: " +
+        fmtAzl(Number(readiness.requiredAvailableAzl) * 1e18) +
+        " · " +
+        collateral +
+        " · " +
+        (readiness.hasGas ? "Base gas ready" : "add ETH for Base gas") +
+        ". Final eligibility is checked onchain.";
     } catch {
-      if (note) note.textContent = "Readiness unavailable. The contract checks eligibility when you claim.";
+      if (note) note.textContent = "Latched claim quote unavailable. The contract checks eligibility when you claim.";
     }
   }
 

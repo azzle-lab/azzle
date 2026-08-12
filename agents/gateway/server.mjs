@@ -96,7 +96,7 @@ async function readinessFromPreflight(payer) {
     usdc: manifest.external.usdc,
   });
   const missing = [];
-  if (report.vaultUsdc < 25_000_000n) missing.push("vault balance < $25 for post/claim");
+  if (report.vaultUsdc < 25_000_000n) missing.push("vault balance < $25 entry collateral target; $45 recommended for post/claim");
   if (report.azlBalance < ACCESS_FEE_AZL_18) missing.push("AZZLE balance < 1,000");
   if (!report.azlAllowanceOk) missing.push("AZZLE allowance for TreasuryRouter < 1,000");
   return {

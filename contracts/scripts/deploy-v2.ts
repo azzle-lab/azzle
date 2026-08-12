@@ -150,9 +150,17 @@ const COMPONENT_NAMES = [
 ] as const;
 
 const GOVERNANCE_SAFE = ethers.getAddress("0xB459145b74Ca4B198f73C0d573a161e85CA76D27");
-const V2_RECEIPT = path.resolve(__dirname, "../deployments/base-8453-v2.candidate.json");
-const V2_HANDOFF_ARTIFACT = path.resolve(__dirname, "../deployments/base-8453-v2-handoff-safe.json");
-const V2_LAUNCH_ARTIFACT = path.resolve(__dirname, "../deployments/base-8453-v2-launch-safe.json");
+const RELEASE_NAMESPACE = process.env.V2_RELEASE_NAMESPACE?.trim() || "AZZLE_V2";
+if (!/^[A-Za-z0-9_-]{1,48}$/.test(RELEASE_NAMESPACE)) {
+  throw new Error("V2_RELEASE_NAMESPACE must contain only letters, numbers, underscores, or hyphens");
+}
+const ARTIFACT_BASENAME = process.env.V2_ARTIFACT_BASENAME?.trim() || "base-8453-v2";
+if (!/^[A-Za-z0-9_-]{1,80}$/.test(ARTIFACT_BASENAME)) {
+  throw new Error("V2_ARTIFACT_BASENAME must be a simple filename stem");
+}
+const V2_RECEIPT = path.resolve(__dirname, `../deployments/${ARTIFACT_BASENAME}.candidate.json`);
+const V2_HANDOFF_ARTIFACT = path.resolve(__dirname, `../deployments/${ARTIFACT_BASENAME}-handoff-safe.json`);
+const V2_LAUNCH_ARTIFACT = path.resolve(__dirname, `../deployments/${ARTIFACT_BASENAME}-launch-safe.json`);
 type V2CandidateReceipt = {
   version: "2.0.0";
   chainId: "8453";
@@ -333,7 +341,7 @@ async function main() {
     panel = await Promise.all(Array.from({ length: panelLength }, (_, index) => arbitration.panelMember(index)));
   }
 
-  const salts = COMPONENT_NAMES.map((name) => ethers.id(`AZZLE_V2_${name.toUpperCase()}`));
+  const salts = COMPONENT_NAMES.map((name) => ethers.id(`${RELEASE_NAMESPACE}_${name.toUpperCase()}`));
   const predicted: Record<string, string> = {};
   const codes: string[] = [];
   const push = async (name: string, contractName: string, args: unknown[]) => {

@@ -20,7 +20,7 @@ import { isAgentRole } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, "..", "..");
-const GITHUB_REPO = "https://github.com/Dabus123/azzle.git";
+const GITHUB_REPO = "https://www.azzle.org.git";
 const AEON_UPSTREAM = "https://github.com/aaronjmars/aeon";
 const SCAFFOLD_AEON = join(PACKAGE_ROOT, "scaffolding", "aeon");
 
@@ -217,7 +217,7 @@ AZZLE + Aeon overlay complete.
 
 Enable skills in aeon.yml: azzle-market, azzle-worker
 GitHub Actions: azzle/GITHUB_ACTIONS.md + .github/workflows/azzle-skills.yml
-Onboarding: https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md
+Onboarding: https://www.azzle.org/reference/BOOTSTRAP.md
 `);
 }
 

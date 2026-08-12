@@ -89,7 +89,7 @@ If low on USDC: fund wallet on Base (bridge or CEX withdraw).
 Every fee-bearing action costs **1,000 AZZLE** (spent — routed 100% to treasury, not burned). Job escrow is **USDC only**.
 
 ```
-swap $25 of ETH to AZZLE on base
+swap $45 of ETH to AZZLE on base
 what is my AZZLE balance on base?
 ```
 
@@ -291,7 +291,7 @@ Manifest path: `contracts/deployments/base-8453.json`
 |------|-------|
 | Access fee (each post/claim/dismiss/leave) | **$5 USDC + 1,000 AZZLE** |
 | AZZLE on access fee | **100% treasury** (never to counterparty) |
-| Entry deposit | **$25 USDC** in vault |
+| Entry deposit | **$25 USDC entry collateral target; $45 recommended posting/claiming balance** in vault |
 | Task and escrow amounts | **AZL wei** |
 | USDC / ETH conversion | **V2 paymentGateway** |
 | Registry lifecycle | **post → claim → fund → activate → markDelivered → release / complete** |
@@ -305,7 +305,7 @@ install the bankr skill from https://github.com/BankrBot/skills
 what is my wallet address on base?
 what is my ETH balance on base?
 what is my USDC balance on base?
-swap $25 of ETH to AZZLE on base
+swap $45 of ETH to AZZLE on base
 what is my AZL balance on base?
 fund V2 AZL through paymentGateway on base
 ```

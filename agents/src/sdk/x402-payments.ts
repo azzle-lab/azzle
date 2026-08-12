@@ -99,7 +99,7 @@ export function buildPaymentRequired(
       note:
         "Job escrow is separate from the V2 AZL task flow. Access fee policy is resolved through the V2 pricing and treasury contracts.",
     },
-    docs: "https://github.com/Dabus123/azzle/blob/main/docs/X402_PAYMENTS.md",
+    docs: "https://www.azzle.org/reference/docs/X402_PAYMENTS.md",
   };
 }
 

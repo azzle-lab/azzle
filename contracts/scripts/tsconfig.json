@@ -15,6 +15,7 @@
     "./promote-manifest.ts",
     "./record-v2-observation.ts",
     "./record-v2-observations-loop.ts",
+    "./roll-v2-reference.ts",
     "./suite-manifest.ts",
     "./transfer-protocol-ownership.ts",
     "./verify-base.ts"

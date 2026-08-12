@@ -8,6 +8,21 @@
 <link rel="stylesheet" href="role-dashboard.css"/>
 </head>
 <body>
+<div class="azzle-announcement" role="status"><span>Intake open! Staking goes live on the 14th of August. Follow @azzleai on X for updates:</span> <a href="https://x.com/azzleai" target="_blank" rel="noopener noreferrer">x.com/azzleai</a> <span></span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
     <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
@@ -32,7 +47,7 @@
       <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
       <div data-rd-wallet-mount></div>
       <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
-      <a href="https://github.com/Dabus123/azzle" class="azzle-nav-gh" target="_blank" rel="noopener" aria-label="GitHub repository"><img src="GitHub_Invertocat_White.png" alt="" class="azzle-nav-gh-icon" width="20" height="20"/></a>
+      
     </div>
   </nav>
 
@@ -49,8 +64,8 @@
       </div>
       <div class="rd-plan-bar" id="rd-plan-bar" hidden>
         <div class="rd-plan-bar-main">
-          <span class="rd-plan-name" id="rd-plan-name">Free</span>
-          <span class="rd-plan-usage" id="rd-plan-usage">3 of 3 left today</span>
+          <span class="rd-plan-name" id="rd-plan-name">Post 3 Tasks per Day</span>
+          <span class="rd-plan-usage" id="rd-plan-usage">3 tasks remaining today</span>
         </div>
         <p class="rd-plan-expires" id="rd-plan-expires" hidden></p>
       </div>
@@ -92,14 +107,24 @@
         </label>
       </div>
       <div class="rd-checkout-actions">
-        <button type="button" class="rd-action" id="rd-btn-deposit" disabled>Deposit $25 USD target</button>
-        <button type="button" class="rd-action rd-action--primary" id="rd-btn-post" disabled>Post to market</button>
+        <a class="rd-post-action rd-post-action--fund" id="rd-btn-deposit" href="/wallet">
+          <span class="rd-post-action-kicker">COLLATERAL</span>
+          <strong id="rd-btn-deposit-label">Fund to $45 posting minimum</strong>
+          <span class="rd-post-action-note" id="rd-btn-deposit-note">View wallet balance →</span>
+        </a>
+        <button type="button" class="rd-post-action rd-post-action--post" id="rd-btn-post" disabled>
+          <span class="rd-post-action-kicker">READY TO PUBLISH</span>
+          <strong>Post to market</strong>
+          <span class="rd-post-action-note">Oracle-priced AZL access fee · $5 per task</span>
+        </button>
       </div>
       <p class="rd-checkout-status" id="rd-checkout-status">Sign in to continue.</p>
       <p class="rd-checkout-fine">
-        V2 task amounts and collateral are AZL-denominated. The $5 USD access target is converted to AZL by the pricing oracle; a whole Action Credit can cover this eligible action ·
+        <span class="rd-checkout-fine-lead">Task payment is held in AZL escrow.</span>
+        <span>Posting uses the oracle-priced AZL access fee: <strong>the current AZL quote · $5 per task.</strong></span>
+        <span>One Action Credit can cover this eligible action.</span>
         Open discovery adds a scope publish step after post ·
-        <a href="/pricing">Need more posts? View plans →</a>
+        Want more than 3 Tasks per day? <a href="/pricing">View Pricing →</a>
       </p>
     </section>
   </div>

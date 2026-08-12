@@ -19,7 +19,7 @@ oracle value, then credits that exact fixed AZL amount.
 New V2 value-increasing actions preserve the protocol's USD policy targets only
 at the entry boundary:
 
-- Entry deposit: $25
+- Entry collateral target: $25; recommended posting/claiming balance: $45
 - Live-task reserve: $8
 - Access fee: $5
 - Exit compensation: $2.50 to the harmed party and $2.50 protocol share

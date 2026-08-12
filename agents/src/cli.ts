@@ -17,7 +17,7 @@ import { BASE_MAINNET_MANIFEST } from "./sdk/manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, "..");
-const GITHUB_REPO = "https://github.com/Dabus123/azzle.git";
+const GITHUB_REPO = "https://www.azzle.org.git";
 
 const HELP = `azzle — AZZLE protocol agent installer (v${PACKAGE_VERSION})
 
@@ -43,7 +43,7 @@ Examples:
   git clone https://github.com/<you>/aeon && cd aeon && npx @azzle/agents@latest aeon-setup --aeon
 
 Aeon framework: ${AEON_UPSTREAM}
-Docs: https://github.com/Dabus123/azzle/blob/main/AGENTS.md
+Docs: https://www.azzle.org/reference/AGENTS.md
 `;
 
 function run(
@@ -188,7 +188,7 @@ Done. Next steps:
   cd ${targetDir === "." ? "" : targetDir}${targetDir === "." ? "" : "\n  "}cp .env.example .env   # add PRIVATE_KEY when ready
   npm run list-open        # discover POSTED tasks via Base RPC
 
-Onboarding: https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md
+Onboarding: https://www.azzle.org/reference/BOOTSTRAP.md
 `);
 }
 
@@ -215,7 +215,7 @@ Installed @azzle/agents.
   import { AzzleClient, RpcDiscovery } from "@azzle/agents";
   import { BASE_MAINNET_MANIFEST } from "@azzle/agents/manifest";
 
-Docs: https://github.com/Dabus123/azzle/blob/main/AGENTS.md
+Docs: https://www.azzle.org/reference/AGENTS.md
 `);
 }
 
@@ -257,7 +257,7 @@ async function main() {
   console.log("Commands:");
   console.log("  node agent.mjs list-open   # POSTED tasks from Base RPC");
   console.log("");
-  console.log("Onboarding: https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md");
+  console.log("Onboarding: https://www.azzle.org/reference/BOOTSTRAP.md");
 }
 
 main().catch((err) => {

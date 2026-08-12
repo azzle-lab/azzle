@@ -13,6 +13,22 @@ const root = join(__dirname, "..");
 const site = join(root, "site");
 const out = join(root, "public");
 const stage = join(root, ".vercel-static");
+const referenceSources = [
+  ["BOOTSTRAP.md", "reference/BOOTSTRAP.md"],
+  ["MASTERSKILL.md", "reference/MASTERSKILL.md"],
+  ["AGENTS.md", "reference/AGENTS.md"],
+  ["CHANGELOG.md", "reference/CHANGELOG.md"],
+  ["SECURITY.md", "reference/SECURITY.md"],
+  ["SPEEDPATH.md", "reference/SPEEDPATH.md"],
+  ["contracts/deployments", "reference/contracts/deployments"],
+  ["contracts/src/v2", "reference/contracts/src/v2"],
+  ["protocol", "reference/protocol"],
+  ["arbitration", "reference/arbitration"],
+  ["launch-skills", "reference/launch-skills"],
+  ["docs", "reference/docs"],
+  ["agents/x402-cloud", "reference/agents/x402-cloud"],
+  ["xmtp-spec", "reference/xmtp-spec"],
+];
 
 const STATIC = [
   "index.html",
@@ -46,6 +62,7 @@ const STATIC = [
   "azzlelogo.png",
   "baselogo.png",
   "GitHub_Invertocat_White.png",
+  "npm_logo.png",
   "npm_logo.png",
   "favicon.ico",
   "og.png",
@@ -108,6 +125,7 @@ await mkdir(stage, { recursive: true });
 
 await import("./sync-manifest-surfaces.mjs");
 await import("./sync-site-contract-addresses.mjs");
+await import("./sync-announcement-bar.mjs");
 await import("./sync-docs-nav.mjs");
 await import("./verify-v2-site-config.mjs");
 await import("./verify-v2-docs.mjs");
@@ -116,6 +134,30 @@ for (const name of STATIC) {
   const src = await requireFile(name);
   await cp(src, join(stage, name));
 }
+
+for (const [source, destination] of referenceSources) {
+  const src = join(root, source);
+  const dest = join(stage, destination);
+  if ((await stat(src)).isDirectory()) {
+    await copyDirRecursive(src, dest);
+  } else {
+    await mkdir(dirname(dest), { recursive: true });
+    await cp(src, dest);
+  }
+}
+console.log("[vercel-build] source references copied");
+
+const schemasDir = join(stage, "reference", "xmtp-spec", "schemas");
+const schemaNames = (await readdir(schemasDir))
+  .filter((name) => name.endsWith(".json"))
+  .sort();
+await writeFile(
+  join(schemasDir, "index.html"),
+  `<!doctype html><meta charset="utf-8"><title>AZZLE XMTP schemas</title><h1>AZZLE XMTP schemas</h1><ul>${schemaNames
+    .map((name) => `<li><a href="${name}">${name}</a></li>`)
+    .join("")}</ul>`,
+  "utf8"
+);
 
 const docsDir = join(site, "docs");
 try {

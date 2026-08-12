@@ -8,6 +8,21 @@ optimizer_runs = 1
 via_ir = true
 remappings = ["@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"]
 
+[profile.fork]
+src = "src/v2"
+test = "test/fork"
+out = "out-fork"
+libs = ["node_modules", "lib"]
+solc = "0.8.24"
+optimizer = true
+optimizer_runs = 1
+via_ir = true
+remappings = [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "ds-test/=lib/forge-std/src/",
+]
+
 [profile.fuzz]
 src = "src/v2"
 test = "src/v2/test-canonical"

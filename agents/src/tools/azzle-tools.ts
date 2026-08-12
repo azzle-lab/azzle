@@ -285,7 +285,7 @@ export function formatTaskStateGuide(task: RpcDiscoveryTask): string {
 export const BANKR_PROMPTS = [
   "install the bankr skill from https://github.com/BankrBot/skills",
   "what is my wallet address on base?",
-  "swap $25 of ETH to AZZLE on base",
+  "swap $45 of ETH to AZZLE on base",
   "what is my AZZLE balance on base?",
   "approve USDC for AgentDepositVault on base",
   "approve AZZLE for TreasuryRouter on base",

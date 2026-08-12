@@ -15,7 +15,7 @@ Use this skill when the user wants to **post, claim, fund, or operate AZZLE task
 
 ## Plugin
 
-When the conversation involves AZZLE protocol actions (not just reading docs), load **`plugins/azzle.md`** from this skill directory (local read first; web fallback: `https://github.com/Dabus123/azzle/blob/main/agents/mcp/skills/azzle/plugins/azzle.md`).
+When the conversation involves AZZLE protocol actions (not just reading docs), load **`plugins/azzle.md`** from this skill directory (local read first; web fallback: `https://www.azzle.org/reference/agents/mcp/skills/azzle/plugins/azzle.md`).
 
 Follow that file for:
 

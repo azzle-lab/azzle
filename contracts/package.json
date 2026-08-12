@@ -22,6 +22,8 @@
     "deploy:base:v2:promote": "if not defined BASE_RPC_URL (echo Set BASE_RPC_URL in contracts/.env before promotion && exit /b 1) else (set V2_PHASE=promote&& hardhat run scripts/deploy-v2.ts --network base)",
     "deploy:base:v2:record-observation": "hardhat run scripts/record-v2-observation.ts --network base",
     "deploy:base:v2:record-observations": "npx ts-node scripts/record-v2-observations-loop.ts",
+    "deploy:base:v2:roll-reference": "hardhat run scripts/roll-v2-reference.ts --network base",
+    "deploy:base:v2:hop": "hardhat run scripts/deploy-v2-hop.ts --network base",
     "deploy:wire:satellite": "hardhat run scripts/wire-arbitration-satellite.ts --network base",
     "ownership:transfer": "hardhat run scripts/transfer-protocol-ownership.ts",
     "ownership:check": "hardhat run scripts/transfer-protocol-ownership.ts --network base -- --check",
@@ -32,6 +34,8 @@
     "verify:base": "hardhat run scripts/verify-base.ts --network base",
     "manifest:promote:dry": "hardhat run scripts/promote-manifest.ts --network base",
     "manifest:promote": "set MANIFEST_PROMOTE_APPLY=1&& set MANIFEST_PROMOTE_YES=1&& hardhat run scripts/promote-manifest.ts --network base",
+    "manifest:v2:promote:dry": "hardhat run scripts/promote-v2-manifest.ts --network base",
+    "manifest:v2:promote": "set V2_MANIFEST_PROMOTE_APPLY=1&& set V2_MANIFEST_PROMOTE_YES=1&& hardhat run scripts/promote-v2-manifest.ts --network base",
     "typecheck": "tsc -p scripts/tsconfig.json",
     "demo:lifecycle": "hardhat run scripts/lifecycle-local.ts"
   },

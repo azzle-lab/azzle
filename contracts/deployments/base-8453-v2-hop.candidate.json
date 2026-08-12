@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "chainId": "8453",
+  "name": "AzlHopV2",
+  "address": "0xd089c46C01ccDE2875CCD4Fc46F8D1B170dd32D9",
+  "deployer": "0x56C1A78c58404B6C7356D4Aad3967859d8bc85E1",
+  "gateway": "0x16da063F3d99edB9920adeb9aaE55CfA32434e1C",
+  "external": {
+    "azl": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3",
+    "weth": "0x4200000000000000000000000000000000000006",
+    "universalRouter": "0x6fF5693b99212Da76ad316178A184AB56D299b43",
+    "permit2": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+    "hook": "0xBDF938149ac6a781F94FAa0ed45E6A0e984c6544",
+    "poolId": "0xaa7a431d1f79ea1f96f4299cce18267b278eb417bd8457b33f3be3c2645254ad"
+  },
+  "sourceManifest": "base-8453.json"
+}

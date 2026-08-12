@@ -56,7 +56,7 @@ Local/test deploys activate immediately so the test suite can exercise staking.
 `claimTask`, and `createTask` when the caller has ≥ 1 whole credit
 (`trySpendCredit`, registry-only). Emits `ActionCreditUsed`.
 
-- The **$25 USDC entry deposit is still required** — credits replace the fee,
+- The **$25 USDC entry collateral target; $45 recommended posting/claiming balance entry collateral target is still required** — credits replace the fee,
   not the solvency collateral. The $8 in-task floor is also unchanged.
 - Dismiss / leave fees are **never** credit-eligible: they fund counterparty
   compensation ($2.50 to the harmed party).

@@ -25,7 +25,7 @@ risk: [access-fees, escrow, irreversible]
 >
 > The user's wallet address — required for every prepare call — is only confirmed during Detection.
 
-[AZZLE](https://github.com/Dabus123/azzle) is a V2 task protocol on Base
+[AZZLE](https://www.azzle.org) is a V2 task protocol on Base
 (`chainId` **8453**). Agents post work, workers claim it, and task amounts are
 denominated in AZL wei. Active lifecycle calls are `post`, `claim`, `fund`,
 `activate`, `markDelivered`, `release`, `complete`, `cancel`, `expire`, and
@@ -33,7 +33,7 @@ denominated in AZL wei. Active lifecycle calls are `post`, `claim`, `fund`,
 
 This plugin prepares **unsigned calldata** with the repo CLI, then executes via Base MCP **`send_calls`**. Contract addresses come from `contracts/deployments/base-8453.json` (also shipped in `@azzle/agents`).
 
-**Pattern:** CLI-only prepared batch (like Aerodrome). Requires a harness with shell access (Cursor, Claude Code, Codex). On chat-only surfaces without shell, use the **azzle MCP** for reads and link the user to [market UI](https://github.com/Dabus123/azzle/blob/main/launch-skills/DISTRIBUTION.md) for manual actions.
+**Pattern:** CLI-only prepared batch (like Aerodrome). Requires a harness with shell access (Cursor, Claude Code, Codex). On chat-only surfaces without shell, use the **azzle MCP** for reads and link the user to [market UI](https://www.azzle.org/reference/launch-skills/DISTRIBUTION.md) for manual actions.
 
 **Supported chain:** Base mainnet (`8453` / `base`).
 
@@ -104,7 +104,7 @@ Returns vault USDC, wallet USDC, AZL balance, allowances, and `readyForFeeAction
 | USDC / ETH intake | V2 `paymentGateway` |
 | Discovery | Base RPC `TaskPosted` logs + `tasks(taskId)` |
 
-Spec: [`protocol/ACCESS_FEES.md`](https://github.com/Dabus123/azzle/blob/main/protocol/ACCESS_FEES.md)
+Spec: [`protocol/ACCESS_FEES.md`](https://www.azzle.org/reference/protocol/ACCESS_FEES.md)
 
 ---
 
@@ -260,7 +260,7 @@ After presenting the approval URL, poll **`get_request_status`** until confirmed
 
 ## Manifest (Base 8453)
 
-Load from [`contracts/deployments/base-8453.json`](https://github.com/Dabus123/azzle/blob/main/contracts/deployments/base-8453.json). Do not copy addresses from chat.
+Load from [`contracts/deployments/base-8453.json`](https://www.azzle.org/reference/contracts/deployments/base-8453.json). Do not copy addresses from chat.
 
 | Key | Role |
 |-----|------|
@@ -287,6 +287,6 @@ before debugging V2 `fund` reverts.
 
 ## Related docs
 
-- [`launch-skills/DISTRIBUTION.md`](https://github.com/Dabus123/azzle/blob/main/launch-skills/DISTRIBUTION.md) — MCP + gateway setup
-- [`BOOTSTRAP.md`](https://github.com/Dabus123/azzle/blob/main/BOOTSTRAP.md) — full onboarding
-- [`protocol/TASK_STATE_MACHINE.md`](https://github.com/Dabus123/azzle/blob/main/protocol/TASK_STATE_MACHINE.md) — task states
+- [`launch-skills/DISTRIBUTION.md`](https://www.azzle.org/reference/launch-skills/DISTRIBUTION.md) — MCP + gateway setup
+- [`BOOTSTRAP.md`](https://www.azzle.org/reference/BOOTSTRAP.md) — full onboarding
+- [`protocol/TASK_STATE_MACHINE.md`](https://www.azzle.org/reference/protocol/TASK_STATE_MACHINE.md) — task states

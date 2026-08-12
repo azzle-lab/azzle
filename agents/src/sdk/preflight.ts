@@ -8,7 +8,8 @@ const ERC20_ABI = [
   "function decimals() external view returns (uint8)",
 ];
 
-export const MIN_VAULT_USDC = 25_000_000n; // $25, 6 decimals
+export const MIN_VAULT_USDC = 25_000_000n; // $25 entry collateral target, 6 decimals
+export const RECOMMENDED_POSTING_BALANCE_USDC = 45_000_000n; // $45 recommended balance with reserve, fee, and buffer
 export const MIN_AZL_ALLOWANCE = 1_000n * 10n ** 18n;
 export const RECOMMENDED_AZL_BALANCE = 10_000n * 10n ** 18n;
 
@@ -52,7 +53,7 @@ export async function checkWorkerPreflight(
 
   if (!vaultOk) {
     warnings.push(
-      `AgentDepositVault balance ${vaultUsdc} < ${MIN_VAULT_USDC} ($25 USDC). Top up before claim/post.`
+      `AgentDepositVault balance ${vaultUsdc} < ${MIN_VAULT_USDC} ($25 entry collateral target). Maintain $45 recommended balance for claim/post.`
     );
   }
   if (azlBalance < MIN_AZL_ALLOWANCE) {
@@ -66,7 +67,7 @@ export async function checkWorkerPreflight(
     );
   }
   if (walletUsdc < 25_000_000n) {
-    warnings.push(`Wallet USDC ${walletUsdc} is below $25 recommended for fees + gas.`);
+    warnings.push(`Wallet USDC ${walletUsdc} is below $45 recommended for posting/claiming with fees, reserve, and buffer.`);
   }
 
   return {
