@@ -298,6 +298,16 @@ const PRICING_POLICY_ABI = [
   },
 ];
 
+const REGISTRY_CAP_ABI = [
+  {
+    type: "function",
+    name: "openTaskCapUsd6",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+  },
+];
+
 const STAKING_ABI = [
   { type: "function", name: "stakingActive", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { type: "function", name: "stakeOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
@@ -1328,7 +1338,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       return this.fundCollateral(25, onProgress);
     },
 
-    async postV2({ description, taskAmountAzl, deadlineDays, discoveryOpen = true }, onProgress) {
+    async postV2({ description, taskAmountUsd, taskAmountAzl, deadlineDays, discoveryOpen = true }, onProgress) {
       const cfg = await loadSiteConfig();
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
@@ -1345,7 +1355,26 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         );
       }
 
-      const totalAmount = parseUnits(String(taskAmountAzl), 18);
+      const usdBudget = taskAmountUsd ?? taskAmountAzl;
+      const usdAmount6 = parseUnits(String(usdBudget), 6);
+      const capUsd6 = await publicClient.readContract({
+        address: c.taskRegistry,
+        abi: REGISTRY_CAP_ABI,
+        functionName: "openTaskCapUsd6",
+      });
+      if (usdAmount6 > capUsd6) {
+        throw new Error(
+          "Task budget exceeds the protocol cap of $" +
+            formatUnits(capUsd6, 6) +
+            " — choose a smaller task budget."
+        );
+      }
+      const totalAmount = await publicClient.readContract({
+        address: c.usdOracle,
+        abi: ORACLE_ABI,
+        functionName: "quoteAzlForUsd",
+        args: [usdAmount6],
+      });
       const deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineDays * 86400);
       const postArgs = [totalAmount, deadline];
 

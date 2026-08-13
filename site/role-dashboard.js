@@ -37,10 +37,10 @@
     " CANONICAL SDK ONLY — never invent packages or APIs. Real CLI: npx @azzle/agents@latest init | add | addresses | aeon-setup --role worker|poster|verifier|arbitrator. V2 registry methods: post, claim, fund, activate, markDelivered, release, complete, cancel, expire, openDispute. Do not present legacy postTask, claimTask, submitProof, or acceptMilestone methods as v2 APIs.";
 
   const POSTER_ECONOMICS =
-    " Economics: V2 task amounts and escrow are AZL-denominated. The entry collateral target is $25; maintain the $45 recommended balance for posting/claiming with reserve, access fee, and buffer. The oracle determines the AZL amounts. Accept whatever task amount the user states; never ask them to raise it.";
+    " Economics: V2 task amounts and escrow are AZL-denominated. The entry collateral target is $25; maintain the $45 recommended balance for posting/claiming with reserve, access fee, and buffer. The oracle determines the AZL amounts. The poster and worker each pay a $5 access fee, so warn clearly when a task budget is $10 or less because workers are unlikely to find it worthwhile. Never silently approve a low budget as attractive.";
 
   const POSTER_BUDGET_RULES =
-    " Budget rules: NEVER invent, assume, or set a job amount for the user. The escrow amount must be an AZL amount the user explicitly chooses — if they have not given a clear number, ask for it (one question at a time). Do not treat an estimate as decided.";
+    " Budget rules: NEVER invent, assume, or set a job amount for the user. Ask for the task budget in dollars, then the app converts it to oracle-priced AZL escrow. If the user gives a low budget, explain the worker's net economics and ask whether they want to increase it; do not present it as a strong budget without that warning.";
 
   const ROLES = {
     poster: {
@@ -54,7 +54,7 @@
         "Help me hire an agent to build a simple API",
       ],
       system:
-        "You help humans hire autonomous agents on AZZLE — like talking to a concise project manager, not a developer docs bot. Plain English only. Never mention TaskRegistry, BOOTSTRAP, SDK, XMTP, smart contracts, or 'agents' as the user themselves. Ask one question at a time: (1) desired outcome, (2) deadline, (3) job budget in USDC — always ask (3) unless the user already gave an explicit USDC amount for the job." +
+        "You help humans hire autonomous agents on AZZLE — like talking to a concise project manager, not a developer docs bot. Plain English only. Never mention TaskRegistry, BOOTSTRAP, SDK, XMTP, smart contracts, or 'agents' as the user themselves. Ask one question at a time: (1) desired outcome, (2) deadline, (3) job budget in dollars — always ask (3) unless the user already gave an explicit dollar amount for the job. The app converts the dollar budget to oracle-priced AZL escrow." +
         POSTER_BUDGET_RULES +
         POSTER_ECONOMICS +
         " When outcome, deadline, and user-stated budget are all collected, give a brief one-sentence acknowledgment only. Do NOT say buttons will appear or that the user should proceed — the app adds Deposit and Post buttons automatically in this chat. NEVER send users to /post, a form, or anywhere off this chat. Never mention TaskRegistry, BOOTSTRAP, GitHub, SDK, or manual steps. Keep replies under 3 sentences.",
@@ -132,6 +132,78 @@
     return window.AzzlePostCheckout ?? null;
   }
 
+  async function readPosterState() {
+    const pc = postCheckout();
+    const api = window.azzlePoster ?? null;
+    if (!walletAddress || !api?.ready) {
+      return {
+        signedIn: false,
+        message: "No wallet is currently connected. Do not assume the user can post, claim, or pay.",
+      };
+    }
+
+    const state = {
+      signedIn: true,
+      address: walletAddress,
+      chain: "Base (chainId 8453)",
+    };
+    try {
+      const [status, quota] = await Promise.all([
+        api.getStatus(),
+        pc?.fetchQuota?.(walletAddress),
+      ]);
+      state.status = status;
+      state.quota = quota ?? null;
+    } catch {
+      state.message =
+        "The connected wallet state could not be read right now. Do not infer deposit, AZL, quota, or posting readiness.";
+    }
+    return state;
+  }
+
+  function posterStatePrompt(state) {
+    if (!state.signedIn) return state.message;
+    const status = state.status;
+    const quota = state.quota;
+    const lines = [
+      "LIVE USER STATE (read just before this message; treat it as authoritative):",
+      "- Wallet: " + state.address + " on " + state.chain,
+    ];
+    if (status) {
+      lines.push(
+        "- Collateral: " +
+          (status.depositAzl ?? "unknown") +
+          " AZL deposited; " +
+          (status.availableAzl ?? "unknown") +
+          " AZL available",
+        "- Entry target reached: " +
+          (status.depositReady ? "yes" : "no") +
+          "; can post now: " +
+          (status.canPost ? "yes" : "no"),
+        "- Post collateral shortfall: " +
+          (status.postCollateralShortfallAzl ?? "unknown") +
+          " AZL",
+        "- Oracle access fee: " +
+          (status.accessFeeAzl ?? "unknown") +
+          " AZL (" +
+          (status.accessFeeUsd ?? "oracle-priced") +
+          ")"
+      );
+    }
+    if (quota) {
+      lines.push(
+        "- Posting plan: " +
+          (quota.plan ?? "unknown") +
+          "; remaining today: " +
+          (quota.limit == null ? "unlimited" : quota.remaining + " of " + quota.limit)
+      );
+    }
+    lines.push(
+      "Use these live values instead of any older conversation, cached copy, or generic $25/$45 statement. Never claim a transaction succeeded unless the app has a receipt."
+    );
+    return lines.join("\n");
+  }
+
   function getStoredTaskPrompt() {
     const msg = [...chats.poster].reverse().find((m) => m.role === "assistant" && m.taskPrompt);
     return msg?.taskPrompt ?? null;
@@ -170,6 +242,12 @@
     );
   }
 
+  function isGreetingLine(line) {
+    return /^(?:hi|hey|hello|yo|good morning|good afternoon|good evening)(?:\s+azzle)?[!. ]*$/i.test(
+      line.trim()
+    );
+  }
+
   function buildScopeFallback(draft) {
     const userLines = chats.poster
       .filter((m) => m.role === "user")
@@ -177,6 +255,7 @@
       .filter(
         (line) =>
           line &&
+          !isGreetingLine(line) &&
           !isAffirmative(line) &&
           !isDeadlineOnlyLine(line) &&
           !isBudgetOnlyLine(line)
@@ -195,7 +274,10 @@
   }
 
   async function formatTaskBrief(draft) {
-    const userLines = chats.poster.filter((m) => m.role === "user").map((m) => m.content);
+    const userLines = chats.poster
+      .filter((m) => m.role === "user")
+      .map((m) => m.content.trim())
+      .filter((line) => line && !isGreetingLine(line));
     const res = await fetch("/api/role-chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -207,9 +289,9 @@
             content:
               "User conversation:\n" +
               userLines.map((line, i) => i + 1 + ". " + line).join("\n") +
-              "\n\nEscrow budget: $" +
+              "\n\nEscrow budget: " +
               draft.budget +
-              " USDC\nDeadline: " +
+              " USD (converted to oracle-priced AZL escrow)\nDeadline: " +
               draft.days +
               " days\n\nWrite the agent task brief.",
           },
@@ -271,20 +353,21 @@
 
   function extractUserBudget(userLines) {
     const feeContext =
-      /\b(?:deposit|entry|access fee|posting fee|platform fee|vault|solvency|azzl|azl token)\b/i;
+      /\b(?:deposit|entry|access fee|posting fee|platform fee|vault|solvency|collateral|azzl|azl token)\b/i;
     const budgetPatterns = [
-      /\b(?:my\s+)?budget\s*(?:is|:|=)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd)?\b/i,
-      /\b(?:i(?:'ll|'d| will| would)?\s*(?:pay|offer|fund|put up|spend|allocate))\s+(?:up to|around|about|exactly|at least)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd)?\b/i,
-      /\b(?:i\s+)?(?:have|got|only|just)\s+\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd)?\b/i,
-      /\b(?:about|around|upto|up to|at most|max|maximum)\s+\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd)?\b/i,
-      /\b(?:it'?s|that's|thats)\s+\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd)?\b/i,
-      /\b(\d+(?:\.\d+)?)\s*(?:usdc|usd)\s+(?:for the job|for this|total|escrow|budget)\b/i,
-      /\b(\d+(?:\.\d+)?)\s*(?:usdc|usd)\b/i,
-      /^\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd)?\s*\.?\s*$/i,
+      /\b(?:my\s+)?budget\s*(?:is|:|=)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)?\b/i,
+      /\b(?:i(?:'ll|'d| will| would)?\s*(?:pay|offer|fund|put up|spend|allocate))\s+(?:up to|around|about|exactly|at least)?\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)?\b/i,
+      /\b(?:i\s+)?(?:have|got|only|just)\s+\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)?\b/i,
+      /\b(?:about|around|upto|up to|at most|max|maximum)\s+\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)?\b/i,
+      /\b(?:it'?s|that's|thats)\s+\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)?\b/i,
+      /\b(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)\s+(?:for the job|for this|total|escrow|budget)\b/i,
+      /\b(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)\b/i,
+      /^\s*\$?\s*(\d+(?:\.\d+)?)\s*(?:usdc|usd|dollars?)?\s*\.?\s*$/i,
+      /\b(\d+(?:\.\d+)?)\s*\$/i,
       /\$\s*(\d+(?:\.\d+)?)\b/i,
     ];
 
-    for (const line of userLines) {
+    for (const line of [...userLines].reverse()) {
       const trimmed = line.trim();
       if (!trimmed || feeContext.test(trimmed)) continue;
       for (const pattern of budgetPatterns) {
@@ -304,6 +387,7 @@
       userLines
         .filter(
           (line) =>
+            !isGreetingLine(line) &&
             !isAffirmative(line) &&
             !isDeadlineOnlyLine(line) &&
             !isBudgetOnlyLine(line) &&
@@ -326,8 +410,21 @@
     );
   }
 
+  function lowBudgetWarning(budget) {
+    const value = Number(budget);
+    if (!Number.isFinite(value) || value > 10) return null;
+    return (
+      "That **$" +
+      value +
+      " task budget is very low**. The poster pays a $5 access fee and a worker also pays a $5 claim fee, so a worker would keep only about $" +
+      Math.max(0, value - 5).toFixed(2) +
+      " before their other costs. It may be hard to attract a capable worker. Would you like to raise the task budget?"
+    );
+  }
+
   async function pushPosterReadyAssistant() {
     const raw = extractTaskDraft(chats.poster);
+    const warning = lowBudgetWarning(raw.budget);
     let scope = raw.scope;
     try {
       if (chatOnline) scope = await formatTaskBrief(raw);
@@ -360,12 +457,14 @@
     }
     const briefPreview =
       scope.length > 320 ? scope.slice(0, 317).trim() + "…" : scope;
+    const budgetNote = warning ? warning + "\n\n" : "";
     chats.poster.push({
       role: "assistant",
       content:
-        "You're set — **$" +
+        budgetNote +
+        "Task draft ready — **$" +
         d.budget +
-        " USDC**, due in **" +
+        " USD**, converted to oracle-priced AZL escrow, due in **" +
         formatDeadlineLabel(d.days) +
         "**.\n\n" +
         "**Task brief for agents:**\n" +
@@ -522,19 +621,14 @@
         system += " Scope is clear; ask for deadline next — do not ask about budget yet.";
       } else if (!draft.budget) {
         system +=
-          " Scope and deadline are clear, but the user has NOT stated a job budget in USDC yet — ask for their budget now. You may share a rough market estimate if helpful, but do not assign or assume a number.";
+          " Scope and deadline are clear, but the user has NOT stated a job budget in dollars yet — ask for the dollar budget now. The app converts it to oracle-priced AZL escrow. You may share a rough market estimate if helpful, but do not assign or assume a number.";
       } else {
         system +=
           " All task details are collected. If the user asks a question, answer briefly. Do NOT tell them to visit /post or leave this chat — Deposit and Post buttons appear here automatically when they proceed.";
       }
     }
-    if (walletAddress && role === "poster") {
-      system += " The user is signed in as " + walletAddress + " on Base.";
-    } else if (walletAddress) {
-      system +=
-        " The user connected wallet " +
-        walletAddress +
-        " on Base (chainId 8453). Use it when discussing deposits, posting, or onchain steps — never invent txs.";
+    if (walletAddress || role === "poster") {
+      system += "\n\n" + posterStatePrompt(await readPosterState());
     }
     const body = {
       system,

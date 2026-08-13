@@ -44,10 +44,19 @@ const REGISTRY_ABI = [
 const ESCROW_ABI = [
   {
     type: "function",
-    name: "lockedBalance",
+    name: "escrows",
     stateMutability: "view",
     inputs: [{ name: "taskId", type: "uint256" }],
-    outputs: [{ type: "uint256" }],
+    outputs: [{
+      type: "tuple",
+      components: [
+        { name: "poster", type: "address" },
+        { name: "worker", type: "address" },
+        { name: "deposited", type: "uint256" },
+        { name: "released", type: "uint256" },
+        { name: "state", type: "uint8" },
+      ],
+    }],
   },
 ];
 
@@ -81,7 +90,7 @@ export async function getTaskDetail(taskIdRaw) {
     getClient().readContract({
       address: MANIFEST.escrowVault,
       abi: ESCROW_ABI,
-      functionName: "lockedBalance",
+      functionName: "escrows",
       args: [id],
     }),
   ]);
@@ -93,7 +102,9 @@ export async function getTaskDetail(taskIdRaw) {
   const stateIndex = Number(task.state);
   const state = TASK_STATE[stateIndex] ?? "UNKNOWN";
   const totalAmount = task.totalAmount;
-  const lockedBal = locked ?? 0n;
+  const lockedBal = locked?.deposited > locked?.released
+    ? locked.deposited - locked.released
+    : 0n;
   const budgetAzl = Number(formatUnits(totalAmount, 18));
   const lockedAzl = Number(formatUnits(lockedBal, 18));
   const poster = task.poster;
