@@ -16,8 +16,8 @@ const SCOPE_ABI = [
 ];
 
 export function taskScopeRegistryAddress() {
-  const fromEnv = process.env.NEXT_TASK_SCOPE_ADDRESS?.trim();
-  if (fromEnv) return fromEnv;
+  // The reviewed deployment manifest is authoritative. Do not let a stale
+  // Vercel environment variable redirect reads to a different registry.
   return MANIFEST.taskScopeRegistry?.trim() || null;
 }
 
