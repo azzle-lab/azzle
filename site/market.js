@@ -166,7 +166,15 @@
 
   async function fetchTaskDetail(taskId) {
     if (currentView === "legacy" && legacyTasks.has(taskId)) return legacyTasks.get(taskId);
-    if (v2Tasks.has(taskId)) return v2Tasks.get(taskId);
+    // V2 list rows are abbreviated; fetch the authoritative scope detail.
+    if (v2Tasks.has(taskId)) {
+      const res = await fetch("/api/get-task?id=" + encodeURIComponent(taskId), {
+        cache: "no-store",
+      });
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error(data.error || "Could not load task");
+      return data.task;
+    }
     const res = await fetch("/api/get-task?id=" + encodeURIComponent(taskId), {
       cache: "no-store",
     });

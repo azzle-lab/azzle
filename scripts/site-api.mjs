@@ -179,6 +179,31 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       }
     }
 
+    if (method === "GET" && pathname === "/api/get-open-tasks-v2") {
+      try {
+        const { listV2Tasks } = await import("../api/lib/tasks-rpc-v2.js");
+        const requestedState = searchParams.get("state");
+        const result = await listV2Tasks({
+          limit: searchParams.get("limit") ?? 100,
+          state: requestedState === "ALL" ? undefined : requestedState || "POSTED",
+          cursor: searchParams.get("cursor") ?? undefined,
+          minAmountAzlWei: searchParams.get("minAmountAzlWei") ?? undefined,
+          poster: searchParams.get("poster") ?? undefined,
+          worker: searchParams.get("worker") ?? undefined,
+          taskType: searchParams.get("taskType") ?? undefined,
+          capability: searchParams.getAll("capability"),
+          verificationMode: searchParams.get("verificationMode") ?? undefined,
+          beforeDeadline: searchParams.get("beforeDeadline") ?? undefined,
+          metadataUri: searchParams.get("metadataUri") ?? undefined,
+        });
+        return apiJson(200, result, {
+          "Cache-Control": "no-store",
+        });
+      } catch (e) {
+        return apiJson(503, { error: "v2_unavailable", message: e.message ?? String(e) });
+      }
+    }
+
     if (method === "GET" && (pathname === "/api/get-open-tasks" || pathname === "/api/market/open")) {
       try {
         const { getOpenTasks } = await import("../api/lib/open-tasks.js");
@@ -253,7 +278,17 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       }
     }
 
-    if (method === "POST" && pathname === "/api/posting/check") {
+    if (method === "POST" && pathname === "/api/posting-check") {
+      try {
+        const { assertCanPost } = await postingLimits();
+        const quota = await assertCanPost(body.address);
+        return apiJson(200, quota);
+      } catch (e) {
+        return apiJson(429, { error: e.message, quota: e.quota ?? null });
+      }
+    }
+
+    if (method === "POST" && (pathname === "/api/posting/check" || pathname === "/api/posting-check")) {
       try {
         const { assertCanPost } = await postingLimits();
         const quota = await assertCanPost(body.address);

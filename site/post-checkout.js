@@ -177,7 +177,7 @@
 
   async function fetchQuota(address) {
     if (!address) return null;
-    const res = await fetch("/api/get-posting-quota?address=" + encodeURIComponent(address), {
+    const res = await fetch("/api/posting/quota?address=" + encodeURIComponent(address), {
       cache: "no-store",
     });
     if (!res.ok) return null;
@@ -185,14 +185,18 @@
   }
 
   async function checkCanPost(address) {
-    const res = await fetch("/api/posting-check", {
+    const res = await fetch("/api/posting/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ address }),
     });
     const data = await parseJsonResponse(res);
     if (!res.ok) {
-      const err = new Error(data.error || "Daily posting limit reached");
+      const err = new Error(
+        data.error === "not_found"
+          ? "Posting quota service is unavailable — refresh the site and try again."
+          : data.error || "Daily posting limit reached"
+      );
       err.quota = data.quota ?? null;
       throw err;
     }
@@ -580,14 +584,14 @@
     const fromForm = $("rd-checkout") ? readDraftFromForm() : null;
     const draft = override ?? (fromForm?.scope ? fromForm : null) ?? loadDraft();
     if (!draft?.scope && !draft?.taskPrompt) throw new Error("No task scope — start from the chat first.");
-    const budgetAzl = parseFloat(draft.budget);
+    const budgetUsd = parseFloat(draft.budget);
     const deadlineDays = parseInt(draft.days, 10);
-    if (!Number.isFinite(budgetAzl) || budgetAzl <= 0) throw new Error("Invalid task amount in AZL.");
+    if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) throw new Error("Invalid task budget in USD.");
     if (!Number.isFinite(deadlineDays) || deadlineDays <= 0) throw new Error("Invalid deadline.");
     const description = (draft.taskPrompt || draft.scope || "").trim();
     if (!description) throw new Error("No task description — start from the chat first.");
     const discoveryOpen = draft.discoveryOpen !== false;
-    return { description, taskAmountAzl: budgetAzl, deadlineDays, discoveryOpen };
+    return { description, taskAmountUsd: budgetUsd, deadlineDays, discoveryOpen };
   }
 
   async function runDeposit(onProgress) {
@@ -657,7 +661,7 @@
     saveDraft({
       scope: task.description,
       taskPrompt: task.description,
-      budget: String(task.taskAmountAzl),
+      budget: String(task.taskAmountUsd),
       days: task.deadlineDays,
       discoveryOpen: task.discoveryOpen,
     });

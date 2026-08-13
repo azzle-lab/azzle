@@ -109,7 +109,11 @@
   }
 
   function discoveryBadge(detail) {
-    if (detail?.discoveryOpen) {
+    const isOpen = Boolean(
+      detail?.discoveryOpen === true ||
+      String(detail?.scope ?? detail?.description ?? "").trim()
+    );
+    if (isOpen) {
       return '<span class="rd-mytasks-discovery rd-mytasks-discovery--open">Open discovery</span>';
     }
     if (detail?.discoveryPrivate) {
@@ -122,9 +126,9 @@
   }
 
   function scopeSection(task, detail) {
-    const scope = detail?.description ?? "";
-    const isOpen = Boolean(detail?.discoveryOpen);
-    const isPrivate = Boolean(detail?.discoveryPrivate) && !isOpen;
+    const scope = detail?.description ?? detail?.scope ?? "";
+    const isOpen = Boolean(detail?.discoveryOpen === true || String(scope).trim());
+    const isPrivate = !isOpen && detail?.discoveryPrivate === true;
 
     let hint = "";
     if (isPrivate) {
@@ -244,11 +248,27 @@
   async function enrichTask(api, task) {
     try {
       const detail = await fetchTaskDetail(task.id);
-      taskDetails.set(task.id, detail);
-      const chain = api?.ready ? await api.getTaskDetail(task.id) : null;
-      return { ...detail, ...(chain ?? {}) };
+      const chainTaskId = String(task.id).replace(/^v2:/, "");
+      const chain = api?.ready ? await api.getTaskDetail(chainTaskId) : null;
+      const merged = { ...detail, ...(chain ?? {}) };
+      taskDetails.set(task.id, merged);
+      return merged;
     } catch {
-      return null;
+      try {
+        const chainTaskId = String(task.id).replace(/^v2:/, "");
+        const chain = api?.ready ? await api.getTaskDetail(chainTaskId) : null;
+        if (chain) {
+          taskDetails.set(task.id, chain);
+          return chain;
+        }
+      } catch {
+        /* Keep the card usable if the optional detail reader is unavailable. */
+      }
+      return {
+        ...task,
+        discoveryOpen: task.discoveryOpen === true,
+        discoveryPrivate: task.discoveryPrivate === true && task.discoveryOpen !== true,
+      };
     }
   }
 

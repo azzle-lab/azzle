@@ -23,6 +23,8 @@
 
 
 
+
+
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
     <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
@@ -98,8 +100,8 @@
       </fieldset>
       <div class="rd-checkout-row">
         <label class="rd-field rd-field--inline">
-          <span>Task amount (AZL)</span>
-          <input id="rd-task-budget" type="number" min="1" step="1" value="60" inputmode="decimal"/>
+          <span>Task budget (USD)</span>
+          <input id="rd-task-budget" type="number" min="1" step="1" value="100" inputmode="decimal"/>
         </label>
         <label class="rd-field rd-field--inline">
           <span>Due in (days)</span>
@@ -120,7 +122,7 @@
       </div>
       <p class="rd-checkout-status" id="rd-checkout-status">Sign in to continue.</p>
       <p class="rd-checkout-fine">
-        <span class="rd-checkout-fine-lead">Task payment is held in AZL escrow.</span>
+        <span class="rd-checkout-fine-lead">Task budget is paid in USD and converted to AZL escrow.</span>
         <span>Posting uses the oracle-priced AZL access fee: <strong>the current AZL quote · $5 per task.</strong></span>
         <span>One Action Credit can cover this eligible action.</span>
         Open discovery adds a scope publish step after post ·

@@ -10,6 +10,7 @@ const BATCH_SIZE = 100;
 const STATES = ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", "CANCELLED", "RESOLVED"];
 const ABI = [
   { type: "function", name: "taskCount", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "scopeOf", stateMutability: "view", inputs: [{ name: "taskId", type: "uint256" }], outputs: [{ type: "string" }] },
   { type: "function", name: "tasks", stateMutability: "view", inputs: [{ type: "uint256" }], outputs: [
     { name: "poster", type: "address" }, { name: "worker", type: "address" },
     { name: "totalAmount", type: "uint256" }, { name: "funded", type: "uint256" },
@@ -47,6 +48,24 @@ export async function listV2Tasks({
       totalAmountAzlWei: row[2].toString(), fundedAzlWei: row[3].toString(), releasedAzlWei: row[4].toString(),
       deadline: Number(row[5]), fundingDeadline: Number(row[6]), deliveredAt: Number(row[7]), registry: m.taskRegistry,
     };
+    let scope = null;
+    if (m.taskScopeRegistry) {
+      try {
+        const value = await client.readContract({
+          address: m.taskScopeRegistry,
+          abi: ABI,
+          functionName: "scopeOf",
+          args: [BigInt(id)],
+        });
+        scope = String(value ?? "").trim() || null;
+      } catch {
+        /* Scope publication is optional; preserve task visibility if unavailable. */
+      }
+    }
+    task.description = scope;
+    task.discoveryOpen = Boolean(scope);
+    task.discoveryPrivate = !scope;
+    task.scopeSource = scope ? "onchain" : null;
     if (metadataUri) task.metadata = await resolveMetadata(metadataUri);
     if (task.metadata) task.metadataTrust = metadataTrust(task.metadata);
     if (state && task.state !== state) continue;
