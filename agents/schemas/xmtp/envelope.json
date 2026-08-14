@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/envelope/v1",
+  "$id": "https://azzle.org/schemas/xmtp/envelope/v2",
   "title": "AzzleXmtpEnvelope",
   "type": "object",
   "required": [
@@ -14,7 +14,7 @@
     "payload"
   ],
   "properties": {
-    "schemaVersion": { "const": "azzle-xmtp-v1" },
+    "schemaVersion": { "const": "azzle-xmtp-v2" },
     "type": { "type": "string", "minLength": 1 },
     "negotiationId": { "type": "string", "format": "uuid" },
     "taskId": { "type": "string" },

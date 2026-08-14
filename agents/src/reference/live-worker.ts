@@ -943,7 +943,7 @@ export class LiveWorkerService {
     const key = sender.evmAddress.toLowerCase();
     if (this.identityLinks.has(key)) return;
     this.identityLinks.set(key, {
-      type: "azzle/identity-link/v1",
+      type: "azzle/identity-link/v2",
       evmAddress: key,
       xmtpPublicKey: sender.xmtpPublicKey,
       signature: "0x",
@@ -955,7 +955,7 @@ export class LiveWorkerService {
     return (
       typeof value === "object" &&
       value !== null &&
-      (value as IdentityLink).type === "azzle/identity-link/v1"
+      (value as IdentityLink).type === "azzle/identity-link/v2"
     );
   }
 }

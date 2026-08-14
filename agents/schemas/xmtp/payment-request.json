@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/payment-request/v1",
+  "$id": "https://azzle.org/schemas/xmtp/payment-request/v2",
   "title": "PaymentRequest",
   "type": "object",
   "required": ["type", "taskId", "releaseType"],

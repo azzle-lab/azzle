@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/delivery-notice/v1",
+  "$id": "https://azzle.org/schemas/xmtp/delivery-notice/v2",
   "title": "DeliveryNotice",
   "type": "object",
   "required": ["type", "taskId", "milestoneIndex", "receiptHash"],

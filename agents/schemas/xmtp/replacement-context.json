@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/replacement-context/v1",
+  "$id": "https://azzle.org/schemas/xmtp/replacement-context/v2",
   "title": "ReplacementContext",
   "type": "object",
   "required": ["type", "taskId", "priorWorker", "newWorker"],

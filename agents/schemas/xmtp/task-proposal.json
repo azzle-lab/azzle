@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/task-proposal/v1",
+  "$id": "https://azzle.org/schemas/xmtp/task-proposal/v2",
   "title": "TaskProposal",
   "type": "object",
   "required": ["type", "task", "settlementDigestPreview"],
   "properties": {
     "type": { "const": "azzle/TaskProposal" },
-    "task": { "$ref": "https://azzle.protocol/standards/task-schema/v2" },
+    "task": { "$ref": "https://azzle.org/schemas/standards/task-schema/v2" },
     "settlementDigestPreview": { "type": "string" },
     "expiresAt": { "type": "string", "format": "date-time" }
   }

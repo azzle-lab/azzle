@@ -8,7 +8,7 @@ All messages share a common envelope:
 
 ```json
 {
-  "schemaVersion": "azzle-xmtp-v1",
+  "schemaVersion": "azzle-xmtp-v2",
   "type": "<message-type>",
   "negotiationId": "uuid",
   "taskId": "optional-Onchain-id",
@@ -33,7 +33,7 @@ All messages share a common envelope:
 |------|---------|
 | `TaskProposal` | Poster offers initial terms |
 | `TaskCounterOffer` | Worker negotiates terms |
-| `TaskAcceptance` | Mutual agreement + settlement digest |
+| `TaskAcceptance` | Mutual agreement + V2 settlement digest |
 | `MilestoneDefinition` | Amend milestone structure |
 | `RevisionRequest` | Poster requests changes mid-flight |
 | `DeliveryNotice` | Worker delivers proof reference |
@@ -44,6 +44,10 @@ All messages share a common envelope:
 | `MutualCancel` | Signed cancel intent |
 | `ReplacementContext` | Handoff package for replacement worker |
 | `SupervisorVeto` | Optional human supervisory block |
+| `MilestoneClaim` | Worker proof intent before `submitProof` |
+| `DisputeNotice` | Coordinate `openDispute` and proof block |
+| `VerificationAttest` | Verifier result for an execution receipt |
+| `DismissIntent` | Coordinate `dismissWorker` / `leaveTask` |
 
 See `schemas/` for JSON Schema definitions.
 
@@ -70,4 +74,4 @@ After `TaskRegistry.openDispute`, parties exchange `ArbitratorProposal` messages
 - [`protocol/XMTP_EVM_BRIDGE.md`](../protocol/XMTP_EVM_BRIDGE.md)
 - [`schemas/`](schemas/)
 - [`fixtures/`](fixtures/) — valid envelope examples for CI
-- Validation harness: `cd agents && npm run validate:schemas` (AJV + all 16 schemas)
+- Validation harness: `cd agents && npm run validate:schemas` (AJV + all 20 schemas)

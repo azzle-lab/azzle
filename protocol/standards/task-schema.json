@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/standards/task-schema/v2",
+  "$id": "https://azzle.org/schemas/standards/task-schema/v2",
   "title": "AZZLE Task Schema Standard",
   "description": "Universal machine-readable task format for autonomous labor coordination",
   "type": "object",

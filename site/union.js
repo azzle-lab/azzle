@@ -1,6 +1,13 @@
 (function () {
   const $ = (id) => document.getElementById(id);
   const fmt = (n, unit = "") => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 6 }) + unit;
+  const fmtWei = (n, unit = "") => {
+    try {
+      return fmt(Number(BigInt(n ?? 0) / 10n ** 18n), unit);
+    } catch {
+      return "—";
+    }
+  };
 
   function status(text, kind) {
     const el = $("union-status"); el.textContent = text; el.className = "rd-checkout-status" + (kind ? ` ${kind}` : "");
@@ -12,12 +19,13 @@
   async function refresh() {
     try {
       status("Reading Union state from Base…", "busy");
-      const [overviewRes, bridge] = await Promise.all([
-        fetch("/api/union/overview", { cache: "no-store" }),
-        api().catch(() => null),
+      const [overview, bridge] = await Promise.all([
+        fetch("/api/union/overview", { cache: "no-store" })
+          .then((response) => response.ok ? response.json() : null)
+          .catch(() => null),
+        api().then((wallet) => wallet.getUnionPosition ? wallet : null).catch(() => null),
       ]);
-      const overview = overviewRes.ok ? await overviewRes.json() : null;
-      const position = bridge?.getUnionPosition ? await bridge.getUnionPosition() : null;
+      const position = bridge?.getUnionPosition ? await bridge.getUnionPosition().catch(() => null) : null;
       const active = overview?.stakingActive ?? position?.active ?? false;
       $("union-active").textContent = active ? "Active — AZL staking and rewards are live." : "Activation pending. Staking is owner-activated.";
       $("union-lead").textContent = active
@@ -32,9 +40,9 @@
       $("union-pending").textContent = position ? fmt(position.pendingUnstakeAzl, " AZL") : "—";
       $("union-credits").textContent = position ? fmt(position.credits) : "—";
       $("union-whole").textContent = position?.wholeCredits ?? "—";
-      $("union-remaining").textContent = overview ? fmt(BigInt(overview.creditsRemaining) / 10n ** 18n) : "—";
+      $("union-remaining").textContent = overview ? fmtWei(overview.creditsRemaining) : "—";
       $("union-rewards").textContent = position ? fmt(position.claimableAzl, " AZL") : "—";
-      $("union-total").textContent = overview ? fmt(BigInt(overview.totalStakedAzl) / 10n ** 18n, " AZL") : "—";
+      $("union-total").textContent = overview ? fmtWei(overview.totalStakedAzl, " AZL") : "—";
       status(active ? "Union active. Values are read directly from Base." : "Pre-launch mode. No stake can accrue before activation.", active ? "ok" : "");
     } catch (error) { status(error.message || "Could not load Union state.", "err"); }
   }

@@ -1,5 +1,5 @@
-export const ENVELOPE_SCHEMA_VERSION = "azzle-xmtp-v1" as const;
-export const IDENTITY_LINK_TYPE = "azzle/identity-link/v1" as const;
+export const ENVELOPE_SCHEMA_VERSION = "azzle-xmtp-v2" as const;
+export const IDENTITY_LINK_TYPE = "azzle/identity-link/v2" as const;
 
 export const MESSAGE_TYPES = [
   "TaskProposal",
@@ -17,6 +17,10 @@ export const MESSAGE_TYPES = [
   "SupervisorVeto",
   "AcceptDelivery",
   "IdentityLink",
+  "MilestoneClaim",
+  "DisputeNotice",
+  "VerificationAttest",
+  "DismissIntent",
 ] as const;
 
 export type MessageType = (typeof MESSAGE_TYPES)[number];

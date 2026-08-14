@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/capability-proof/v1",
+  "$id": "https://azzle.org/schemas/xmtp/capability-proof/v2",
   "title": "CapabilityProof",
   "type": "object",
   "required": ["type", "capabilityId", "evidence"],

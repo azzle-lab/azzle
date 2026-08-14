@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/milestone-definition/v1",
+  "$id": "https://azzle.org/schemas/xmtp/milestone-definition/v2",
   "title": "MilestoneDefinition",
   "type": "object",
   "required": ["type", "taskId", "milestones"],

@@ -1,7 +1,12 @@
 export interface TaskTerms {
   poster: string;
   worker: string;
+  token?: string;
   totalAmount: bigint;
+  escrowMode?: number;
+  milestoneAmounts?: bigint[];
+  streamRate?: bigint;
+  hourBlockSize?: bigint;
   deadline: number;
   acceptanceCriteriaHash: string;
   chainId: bigint;

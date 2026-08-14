@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/standards/reputation-export/v1",
+  "$id": "https://azzle.org/schemas/standards/reputation-export/v1",
   "title": "AZZLE Reputation Export Standard",
   "description": "Portable reputation evidence and derived scores across clients",
   "type": "object",

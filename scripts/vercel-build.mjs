@@ -76,6 +76,7 @@ const STATIC = [
   "docs-shell.js",
   "theme-init.js",
   "theme-toggle.js",
+  "docs-bg.js",
 ];
 
 async function copyDirRecursive(srcDir, destDir) {
@@ -115,6 +116,9 @@ async function injectThemeScripts(dir) {
     }
     if (!html.includes('src="/theme-toggle.js"') && !html.includes('src="theme-toggle.js"')) {
       html = html.replace("</body>", '  <script src="/theme-toggle.js"></script>\n</body>');
+    }
+    if (html.includes('class="page-docs"') && !html.includes('src="/docs-bg.js"')) {
+      html = html.replace("</body>", '  <script src="/docs-bg.js"></script>\n</body>');
     }
     await writeFile(path, html, "utf8");
   }

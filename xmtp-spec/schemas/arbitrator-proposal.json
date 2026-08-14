@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/arbitrator-proposal/v1",
+  "$id": "https://azzle.org/schemas/xmtp/arbitrator-proposal/v2",
   "title": "ArbitratorProposal",
   "description": "Off-chain coordination for mutual-consent arbitrator selection (maps to proposeArbitrator Onchain)",
   "type": "object",

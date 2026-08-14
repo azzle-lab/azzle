@@ -231,10 +231,8 @@
     /* Reuse the documentation visual language while preserving the explorer's
        interactive diagrams and code-oriented density. */
     .page-v2-explorer {
-      --bg:#dfff00;
-      --surface:#edff56;
-      --surface-strong:#d4f500;
-      --surface-raised:#f5ff84;
+      --surface-strong:var(--surface);
+      --surface-raised:var(--card);
       --line:rgba(20,28,0,.22);
       --line-strong:rgba(20,28,0,.42);
       --text:#151b00;
@@ -269,7 +267,7 @@
     .page-v2-explorer .fact b { font-family:Inter,system-ui,sans-serif; text-transform:none; }
     .page-v2-explorer header { background:var(--bg); border-color:var(--b); }
     .page-v2-explorer header::after { opacity:.05; }
-    .page-v2-explorer .topbar { background:rgba(223,255,0,.94); border-color:var(--b); }
+    .page-v2-explorer .topbar { background:var(--surface) !important; border-color:var(--b); }
     .page-v2-explorer nav button { border-radius:var(--radius-sm); font-family:Inter,system-ui,sans-serif; }
     .page-v2-explorer nav button.active { color:var(--on-accent); background:var(--accent); box-shadow:0 0 0 1px rgba(220,255,40,.25); }
     .page-v2-explorer .card,
@@ -290,8 +288,8 @@
     .page-v2-explorer .node.selected { border-color:var(--accent); background:var(--accent-dim); box-shadow:0 0 0 1px rgba(220,255,40,.2); }
     .page-v2-explorer .tour-btn { border-radius:var(--radius-sm); background:var(--s2); color:var(--accent); font-family:Inter,system-ui,sans-serif; }
     .page-v2-explorer footer a { color:var(--accent); }
-    body.page-v2-explorer { padding-top: 56px; background: var(--bg); color: var(--text); }
-    .page-v2-explorer > .azzle-nav { position: fixed; z-index: 20; inset: 0 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; margin: 0; padding: 0 20px; overflow: visible; background: var(--bg); border-bottom: 1px solid var(--b); font-family: Inter,system-ui,sans-serif; }
+    body.page-v2-explorer { padding-top: 82px; background: var(--bg); color: var(--text); }
+    .page-v2-explorer > .azzle-nav { position: fixed; z-index: 20; top: 26px; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; height: 56px; margin: 0; padding: 0 20px; overflow: visible; background: var(--bg); border-bottom: 1px solid var(--b); font-family: Inter,system-ui,sans-serif; }
     .page-v2-explorer > .azzle-nav .azzle-nav-logo,
     .page-v2-explorer > .azzle-nav .azzle-nav-center,
     .page-v2-explorer > .azzle-nav .azzle-nav-actions { display: flex; align-items: center; }
@@ -301,9 +299,10 @@
     .page-v2-explorer > .azzle-nav .azzle-nav-app a:hover,
     .page-v2-explorer > .azzle-nav .azzle-nav-app a.azzle-nav-on { color: var(--text); }
     .page-v2-explorer > .azzle-nav .azzle-nav-actions { gap: 10px; }
-.page-v2-explorer > .azzle-nav .azzle-nav-npm { display: inline-flex; align-items: center; }
+    .page-v2-explorer > .azzle-nav .azzle-nav-gh,
+    .page-v2-explorer > .azzle-nav .azzle-nav-npm { display: inline-flex; align-items: center; }
     .page-v2-explorer > .azzle-nav .docs-topnav-cta { display: inline-flex; padding: 8px 12px; border-radius: 6px; color: var(--on-accent); background: var(--accent); font: 600 12px/1 Inter,system-ui,sans-serif; text-decoration: none; }
-    .v2-docs-sidebar { position: fixed; z-index: 6; top: 56px; left: 0; width: 260px; height: calc(100vh - 56px); padding: 28px 20px 32px 24px; border-right: 1px solid var(--b); background: rgba(223,255,0,.95); overflow-y: auto; font-family: Inter,system-ui,sans-serif; }
+    .v2-docs-sidebar { position: fixed; z-index: 6; top: 82px; left: 0; width: 260px; height: calc(100vh - 82px); padding: 28px 20px 32px 24px; border-right: 1px solid var(--b); background: var(--surface) !important; overflow-y: auto; font-family: Inter,system-ui,sans-serif; }
     .v2-docs-sidebar-head { padding: 0 10px 20px; border-bottom: 1px solid var(--b); }
     .v2-docs-sidebar-head span, .v2-docs-sidebar-group small { display:block; color: var(--accent); font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
     .v2-docs-sidebar-head a { display:block; margin-top:6px; color:var(--heading); font-size:15px; font-weight:600; text-decoration:none; }
@@ -328,7 +327,12 @@
   </style>
 </head>
 <body class="page-docs page-v2-explorer" data-docs-page="v2-explorer">
-<div class="azzle-announcement" role="status"><span>Intake open! Staking goes live on the 14th of August. Follow @azzleai on X for updates:</span> <a href="https://x.com/azzleai" target="_blank" rel="noopener noreferrer">x.com/azzleai</a> <span></span></div>
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+
+
+
+
+
 
 
 
@@ -360,9 +364,8 @@
         <li><a href="/wallet">Wallet</a></li>
       </ul>
     </div>
-    <div class="azzle-nav-actions">
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.2" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
       <a href="/docs/quickstart.html" class="docs-topnav-cta">Quickstart</a>
-      <a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.1" class="azzle-nav-npm" target="_blank" rel="noopener" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
     </div>
   </nav>
   <div class="v2-docs-sidebar" aria-label="Documentation">
@@ -1084,5 +1087,6 @@
 
     activate(location.hash.slice(1) in pages ? location.hash.slice(1) : 'overview');
   </script>
+  <script src="/docs-bg.js"></script>
 </body>
 </html>

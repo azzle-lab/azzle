@@ -226,7 +226,7 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
     return (
       typeof value === "object" &&
       value !== null &&
-      (value as IdentityLink).type === "azzle/identity-link/v1"
+      (value as IdentityLink).type === "azzle/identity-link/v2"
     );
   }
 

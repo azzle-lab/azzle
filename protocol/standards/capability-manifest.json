@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/standards/capability-manifest/v2",
+  "$id": "https://azzle.org/schemas/standards/capability-manifest/v2",
   "title": "AZZLE Agent Capability Manifest",
   "description": "Portable description of what an agent can do",
   "type": "object",

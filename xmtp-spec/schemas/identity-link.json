@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/identity-link/v1",
+  "$id": "https://azzle.org/schemas/xmtp/identity-link/v2",
   "title": "IdentityLink",
   "type": "object",
   "required": ["type", "xmtpPublicKey", "evmAddress", "signature", "issuedAt"],
   "properties": {
-    "type": { "const": "azzle/identity-link/v1" },
+    "type": { "const": "azzle/identity-link/v2" },
     "xmtpPublicKey": { "type": "string" },
     "evmAddress": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
     "signature": { "type": "string" },
