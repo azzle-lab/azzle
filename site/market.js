@@ -6,6 +6,7 @@
   let currentView = "open";
   let closeModalTimer = 0;
   let activeTask = null;
+  let azlUsdPrice = null;
   const v2Tasks = new Map();
   const legacyTasks = new Map();
 
@@ -33,6 +34,43 @@
     const v = Number(n);
     if (!Number.isFinite(v)) return "—";
     return (Math.round(v / 1e18 * 100) / 100).toLocaleString() + " AZL";
+  }
+
+  function fmtUsd(n) {
+    const azl = Number(n);
+    const price = Number(azlUsdPrice);
+    if (!Number.isFinite(azl) || !Number.isFinite(price) || price <= 0) return "USD unavailable";
+    const value = (azl / 1e18) * price;
+    return "$" + value.toLocaleString(undefined, {
+      minimumFractionDigits: value < 1 ? 4 : 2,
+      maximumFractionDigits: value < 1 ? 4 : 2,
+    });
+  }
+
+  async function fetchAzlUsdPrice() {
+    try {
+      const res = await fetch("/api/azl/market", { cache: "no-store" });
+      if (!res.ok) throw new Error("AZL price unavailable");
+      const data = await res.json();
+      const price = Number(data?.market?.priceUsd);
+      if (Number.isFinite(price) && price > 0) azlUsdPrice = price;
+    } catch {
+      azlUsdPrice = null;
+    }
+  }
+
+  function amountCell(amount) {
+    return (
+      '<span class="rd-market-amount">' +
+      escapeHtml(fmtAzl(amount)) +
+      '</span><span class="rd-market-usd">' +
+      escapeHtml(fmtUsd(amount)) +
+      "</span>"
+    );
+  }
+
+  function taskAmount(task) {
+    return task?.taskAmountAzl ?? task?.totalAmountAzlWei ?? task?.budgetAzl;
   }
 
   function fmtAgo(ts) {
@@ -259,7 +297,14 @@
 
     grid.innerHTML =
       detailRow("Status", stateBadge) +
-      detailRow("Task amount", escapeHtml(fmtAzl(task.taskAmountAzl ?? task.budgetAzl))) +
+      detailRow(
+        "Task amount",
+        '<span class="rd-market-amount">' +
+          escapeHtml(fmtAzl(taskAmount(task))) +
+          '</span><span class="rd-market-usd">' +
+          escapeHtml(fmtUsd(taskAmount(task))) +
+          "</span>"
+      ) +
       detailRow("Escrow locked", escapeHtml(fmtAzl(task.lockedAzl))) +
       detailRow(
         "Escrow funded",
@@ -458,7 +503,7 @@
           t.id +
           "</span></td>" +
           "<td>" +
-          fmtAzl(t.taskAmountAzl ?? t.budgetAzl) +
+          amountCell(taskAmount(t)) +
           "</td>" +
           "<td><span class=\"rd-market-addr\" title=\"" +
           escapeHtml(t.poster || "") +
@@ -493,7 +538,7 @@
           stateBadge(t.state) +
           "</td>" +
           "<td>" +
-          fmtAzl(t.taskAmountAzl ?? t.budgetAzl) +
+          amountCell(taskAmount(t)) +
           "</td>" +
           "<td><span class=\"rd-market-addr\" title=\"" +
           escapeHtml(t.poster || "") +
@@ -540,7 +585,7 @@
     if (foot) foot.hidden = true;
 
     try {
-      const tasks = await fetchOpenTasks();
+      const [, tasks] = await Promise.all([fetchAzlUsdPrice(), fetchOpenTasks()]);
       if (!tasks.length) {
         setStatus("No POSTED tasks on the search market.", undefined);
         if (empty) empty.hidden = false;
@@ -579,7 +624,7 @@
     if (foot) foot.hidden = true;
 
     try {
-      const tasks = await fetchRecentTasks();
+      const [, tasks] = await Promise.all([fetchAzlUsdPrice(), fetchRecentTasks()]);
       if (!tasks.length) {
         setStatus("No tasks indexed yet.", undefined);
         if (empty) empty.hidden = false;
@@ -615,7 +660,7 @@
     if (empty) empty.hidden = true;
     if (foot) foot.hidden = false;
     try {
-      const tasks = await fetchLegacyTasks();
+      const [, tasks] = await Promise.all([fetchAzlUsdPrice(), fetchLegacyTasks()]);
       if (!tasks.length) {
         setStatus("No archived V1 tasks found.", undefined);
         if (empty) empty.hidden = false;

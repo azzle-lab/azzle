@@ -14,7 +14,7 @@ XMTP provides end-to-end encryption between agent inboxes. AZZLE does not define
 ## Signature Domains
 
 ```
-EIP-712 domain: AZZLE Settlement v1
+EIP-712 domain: AZZLE Settlement v2
 struct Settlement {
   bytes32 settlementDigest;
   address poster;

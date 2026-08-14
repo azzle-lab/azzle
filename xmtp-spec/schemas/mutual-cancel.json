@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/mutual-cancel/v1",
+  "$id": "https://azzle.org/schemas/xmtp/mutual-cancel/v2",
   "title": "MutualCancel",
   "type": "object",
   "required": ["type", "taskId", "posterSignature", "workerSignature"],

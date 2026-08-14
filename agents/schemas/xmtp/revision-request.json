@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/revision-request/v1",
+  "$id": "https://azzle.org/schemas/xmtp/revision-request/v2",
   "title": "RevisionRequest",
   "type": "object",
   "required": ["type", "taskId", "requestedChanges"],

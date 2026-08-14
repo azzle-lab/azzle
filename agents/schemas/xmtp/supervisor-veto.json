@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/xmtp/supervisor-veto/v1",
+  "$id": "https://azzle.org/schemas/xmtp/supervisor-veto/v2",
   "title": "SupervisorVeto",
   "type": "object",
   "required": ["type", "taskId", "supervisor", "reason"],

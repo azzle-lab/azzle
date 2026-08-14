@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://azzle.protocol/standards/execution-receipt/v2",
+  "$id": "https://azzle.org/schemas/standards/execution-receipt/v2",
   "title": "AZZLE Execution Receipt Standard",
   "description": "Universal proof format for completed machine labor",
   "type": "object",

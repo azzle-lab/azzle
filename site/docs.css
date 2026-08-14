@@ -35,14 +35,185 @@ body.page-docs{
   color:var(--text);
 }
 
+/* User-controlled docs canvas. The semantic palette stays contrast-safe:
+   the chosen background only influences the paper tone; foregrounds,
+   borders, accents, and controls are recalculated from its luminance. */
+body.page-docs[data-docs-bg="light"]{
+  --bg:#f7f8f2;
+  --surface:#ffffff;
+  --s2:#eef1e5;
+  --card:#ffffff;
+  --b:rgba(20,28,0,.18);
+  --b2:rgba(20,28,0,.34);
+  --b3:#596500;
+  --text:#151b00;
+  --muted:#3d4800;
+  --dim:#5c6800;
+  --heading:#080c00;
+  --accent:#263300;
+  --accent-hi:#121900;
+  --accent-lo:#465400;
+  --accent-dim:rgba(38,51,0,.12);
+  --accent-glow:rgba(38,51,0,.18);
+  --on-accent:#f3ff9b;
+  --row-hover:rgba(20,28,0,.07);
+  --border-faint:rgba(20,28,0,.18);
+  --shadow:0 10px 28px rgba(38,51,0,.12);
+}
+/* The runtime selector writes the complete palette inline. These fallback
+   blocks remain for first paint before docs-bg.js executes. */
+body.page-docs[data-docs-bg="dark"]{
+  --bg:#101217;
+  --surface:#191c23;
+  --s2:#222631;
+  --card:#1b1f27;
+  --b:rgba(235,245,220,.16);
+  --b2:rgba(235,245,220,.3);
+  --b3:#a8ba72;
+  --text:#edf2df;
+  --muted:#bdc8a5;
+  --dim:#899471;
+  --heading:#ffffff;
+  --accent:#dfff00;
+  --accent-hi:#efff72;
+  --accent-lo:#aac400;
+  --accent-dim:rgba(223,255,0,.13);
+  --accent-glow:rgba(223,255,0,.2);
+  --on-accent:#111500;
+  --row-hover:rgba(235,245,220,.07);
+  --border-faint:rgba(235,245,220,.16);
+  --shadow:0 10px 28px rgba(0,0,0,.3);
+}
+body.page-docs[data-docs-bg="blue"]{
+  --bg:#eaf4ff;
+  --surface:#f7fbff;
+  --s2:#dcecff;
+  --card:#ffffff;
+  --b:rgba(11,48,88,.18);
+  --b2:rgba(11,48,88,.34);
+  --b3:#24527e;
+  --text:#10243a;
+  --muted:#31516d;
+  --dim:#55718a;
+  --heading:#071a2d;
+  --accent:#0c466f;
+  --accent-hi:#083452;
+  --accent-lo:#327da8;
+  --accent-dim:rgba(12,70,111,.12);
+  --accent-glow:rgba(12,70,111,.18);
+  --on-accent:#eaf6ff;
+  --row-hover:rgba(11,48,88,.07);
+  --border-faint:rgba(11,48,88,.18);
+  --shadow:0 10px 28px rgba(11,48,88,.12);
+}
+body.page-docs[data-docs-bg="rose"]{
+  --bg:#fff0f3;
+  --surface:#fff9fa;
+  --s2:#ffe1e7;
+  --card:#ffffff;
+  --b:rgba(86,18,39,.18);
+  --b2:rgba(86,18,39,.34);
+  --b3:#8f4358;
+  --text:#351522;
+  --muted:#6b3b4b;
+  --dim:#966274;
+  --heading:#280b16;
+  --accent:#8f2345;
+  --accent-hi:#6c1733;
+  --accent-lo:#c15e7e;
+  --accent-dim:rgba(143,35,69,.11);
+  --accent-glow:rgba(143,35,69,.18);
+  --on-accent:#fff0f4;
+  --row-hover:rgba(86,18,39,.06);
+  --border-faint:rgba(86,18,39,.18);
+  --shadow:0 10px 28px rgba(86,18,39,.12);
+}
+body.page-docs[data-docs-custom="true"]{
+  --surface:color-mix(in srgb,var(--bg) 88%,white);
+  --s2:color-mix(in srgb,var(--bg) 76%,white);
+  --card:color-mix(in srgb,var(--bg) 92%,white);
+  --b:color-mix(in srgb,var(--heading) 20%,transparent);
+  --b2:color-mix(in srgb,var(--heading) 36%,transparent);
+  --b3:color-mix(in srgb,var(--heading) 62%,transparent);
+  --muted:color-mix(in srgb,var(--heading) 72%,var(--bg));
+  --dim:color-mix(in srgb,var(--heading) 55%,var(--bg));
+  --accent:color-mix(in srgb,var(--heading) 82%,var(--bg));
+  --accent-lo:color-mix(in srgb,var(--heading) 55%,var(--bg));
+  --accent-dim:color-mix(in srgb,var(--accent) 13%,transparent);
+  --accent-glow:color-mix(in srgb,var(--accent) 18%,transparent);
+  --row-hover:color-mix(in srgb,var(--heading) 7%,transparent);
+  --border-faint:color-mix(in srgb,var(--heading) 18%,transparent);
+  --shadow:0 10px 28px color-mix(in srgb,var(--heading) 16%,transparent);
+}
+
+/* Docs keeps all native scrolling, but removes browser scrollbar chrome. */
+body.page-docs,
+body.page-docs *,
+body.page-docs *::before,
+body.page-docs *::after{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+body.page-docs::-webkit-scrollbar,
+body.page-docs *::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
+
 body.page-docs .azzle-nav,
 body.page-docs .rd-subnav{
-  background:rgba(223,255,0,.94);
+  background:var(--surface);
   border-color:var(--b);
 }
 body.page-docs .azzle-nav-logo img,
 body.page-docs .rd-subnav-logo img{filter:invert(1)}
+body.page-docs[data-docs-bg="#101217"] .azzle-nav-logo img,
+body.page-docs[data-docs-bg="#101217"] .rd-subnav-logo img,
+body.page-docs[data-docs-bg="#101217"] .azzle-nav-gh-icon{
+  filter:none !important;
+}
 body.page-docs .azzle-theme-toggle--floating{display:none}
+body.page-docs .azzle-nav-actions .docs-bg-picker{flex:0 0 auto}
+
+.docs-bg-picker{
+  position:relative;
+  right:auto;
+  bottom:auto;
+  z-index:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:4px 9px;
+  border:1px solid var(--b2);
+  border-radius:var(--radius-pill);
+  background:var(--surface);
+}
+.page-v2-explorer .docs-bg-picker{border-color:var(--line-strong);background:var(--surface-raised)}
+.docs-bg-trigger-dot{width:11px;height:11px;flex:none;border-radius:50%;background:var(--bg);border:1px solid var(--b2)}
+.docs-bg-select-label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:128px;
+  color:var(--muted);
+  font:600 10px/1 var(--mono);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.docs-bg-select-label select{
+  width:82px;
+  height:26px;
+  padding:0 5px;
+  border:1px solid var(--b2);
+  border-radius:7px;
+  color:var(--heading);
+  background:var(--surface);
+  font:600 10px/1 var(--mono);
+  text-transform:capitalize;
+  cursor:pointer;
+}
+@media(max-width:620px){.docs-bg-select-label span{display:none}}
 
 /* Top bar extras */
 .docs-topnav-cta{

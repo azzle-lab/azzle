@@ -50,28 +50,36 @@ function ensureValidators(): void {
     "replacement-context.json",
     "supervisor-veto.json",
     "accept-delivery.json",
+    "milestone-claim.json",
+    "dispute-notice.json",
+    "verification-attest.json",
+    "dismiss-intent.json",
   ]) {
     ajv.addSchema(loadJson(join(SPEC_SCHEMAS, file)));
   }
 
-  validateEnvelopeFn = ajv.getSchema("https://azzle.protocol/xmtp/envelope/v1") as ValidateFunction;
+  validateEnvelopeFn = ajv.getSchema("https://azzle.org/schemas/xmtp/envelope/v2") as ValidateFunction;
 
   payloadValidators = {
-    TaskProposal: ajv.getSchema("https://azzle.protocol/xmtp/task-proposal/v1")!,
-    TaskCounterOffer: ajv.getSchema("https://azzle.protocol/xmtp/task-counter-offer/v1")!,
-    TaskAcceptance: ajv.getSchema("https://azzle.protocol/xmtp/task-acceptance/v1")!,
-    MilestoneDefinition: ajv.getSchema("https://azzle.protocol/xmtp/milestone-definition/v1")!,
-    RevisionRequest: ajv.getSchema("https://azzle.protocol/xmtp/revision-request/v1")!,
-    DeliveryNotice: ajv.getSchema("https://azzle.protocol/xmtp/delivery-notice/v1")!,
-    PaymentRequest: ajv.getSchema("https://azzle.protocol/xmtp/payment-request/v1")!,
-    CapabilityProof: ajv.getSchema("https://azzle.protocol/xmtp/capability-proof/v1")!,
-    DisputeEvidence: ajv.getSchema("https://azzle.protocol/xmtp/dispute-evidence/v1")!,
-    ArbitratorProposal: ajv.getSchema("https://azzle.protocol/xmtp/arbitrator-proposal/v1")!,
-    MutualCancel: ajv.getSchema("https://azzle.protocol/xmtp/mutual-cancel/v1")!,
-    ReplacementContext: ajv.getSchema("https://azzle.protocol/xmtp/replacement-context/v1")!,
-    SupervisorVeto: ajv.getSchema("https://azzle.protocol/xmtp/supervisor-veto/v1")!,
-    AcceptDelivery: ajv.getSchema("https://azzle.protocol/xmtp/accept-delivery/v1")!,
-    IdentityLink: ajv.getSchema("https://azzle.protocol/xmtp/identity-link/v1")!,
+    TaskProposal: ajv.getSchema("https://azzle.org/schemas/xmtp/task-proposal/v2")!,
+    TaskCounterOffer: ajv.getSchema("https://azzle.org/schemas/xmtp/task-counter-offer/v2")!,
+    TaskAcceptance: ajv.getSchema("https://azzle.org/schemas/xmtp/task-acceptance/v2")!,
+    MilestoneDefinition: ajv.getSchema("https://azzle.org/schemas/xmtp/milestone-definition/v2")!,
+    RevisionRequest: ajv.getSchema("https://azzle.org/schemas/xmtp/revision-request/v2")!,
+    DeliveryNotice: ajv.getSchema("https://azzle.org/schemas/xmtp/delivery-notice/v2")!,
+    PaymentRequest: ajv.getSchema("https://azzle.org/schemas/xmtp/payment-request/v2")!,
+    CapabilityProof: ajv.getSchema("https://azzle.org/schemas/xmtp/capability-proof/v2")!,
+    DisputeEvidence: ajv.getSchema("https://azzle.org/schemas/xmtp/dispute-evidence/v2")!,
+    ArbitratorProposal: ajv.getSchema("https://azzle.org/schemas/xmtp/arbitrator-proposal/v2")!,
+    MutualCancel: ajv.getSchema("https://azzle.org/schemas/xmtp/mutual-cancel/v2")!,
+    ReplacementContext: ajv.getSchema("https://azzle.org/schemas/xmtp/replacement-context/v2")!,
+    SupervisorVeto: ajv.getSchema("https://azzle.org/schemas/xmtp/supervisor-veto/v2")!,
+    AcceptDelivery: ajv.getSchema("https://azzle.org/schemas/xmtp/accept-delivery/v2")!,
+    IdentityLink: ajv.getSchema("https://azzle.org/schemas/xmtp/identity-link/v2")!,
+    MilestoneClaim: ajv.getSchema("https://azzle.org/schemas/xmtp/milestone-claim/v2")!,
+    DisputeNotice: ajv.getSchema("https://azzle.org/schemas/xmtp/dispute-notice/v2")!,
+    VerificationAttest: ajv.getSchema("https://azzle.org/schemas/xmtp/verification-attest/v2")!,
+    DismissIntent: ajv.getSchema("https://azzle.org/schemas/xmtp/dismiss-intent/v2")!,
   };
 }
 

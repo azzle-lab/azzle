@@ -7,19 +7,19 @@
   right:0;
   z-index:1100;
   width:100%;
-  min-height:34px;
+  min-height:26px;
   display:flex;
   align-items:center;
   justify-content:center;
   flex-wrap:wrap;
   gap:.25em;
-  padding:7px 18px;
-  color:var(--on-accent);
-  background:var(--accent);
-  font:600 12px/1.4 var(--sans);
+  padding:4px 14px;
+  color:#f4fff6;
+  background:#167c3a;
+  font:600 11px/1.25 var(--sans);
   letter-spacing:.01em;
   text-align:center;
-  box-shadow:0 2px 14px rgba(220,255,40,.22);
+  box-shadow:0 2px 14px rgba(22,124,58,.28);
 }
 .azzle-announcement a{
   color:inherit;
@@ -109,6 +109,21 @@ html[data-theme="light"] .rd-subnav-logo img{
 }
 
 html{scroll-behavior:smooth;overflow-x:clip;max-width:100%}
+/* Keep the interface visually clean while preserving wheel, touch, and
+   keyboard scrolling in every scrollable surface. */
+html,
+body,
+*{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar{
+  width:0;
+  height:0;
+  display:none;
+}
 body{
   background:var(--bg);
   color:var(--text);

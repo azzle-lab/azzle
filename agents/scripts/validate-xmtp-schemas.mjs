@@ -68,8 +68,8 @@ for (const { type, payload } of PAYLOAD_FIXTURES) {
 }
 
 console.log("[xmtp-schemas] checking all schema files compile in AJV…");
-// validateEnvelopeShape loads all 16 schemas — if we got here, registry is warm
-console.log("  ✓ 16 schemas registered");
+// validateEnvelopeShape loads all 20 schemas — if we got here, registry is warm
+console.log("  ✓ 20 schemas registered");
 
 if (failed > 0) {
   console.error(`\n[xmtp-schemas] ${failed} validation failure(s)`);

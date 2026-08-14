@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://azzle.org/schemas/xmtp/dismiss-intent/v2",
+  "title": "DismissIntent",
+  "description": "Worker or poster intent to return a V2 task to the posted state.",
+  "type": "object",
+  "required": ["type", "taskId", "actor", "reason"],
+  "properties": {
+    "type": { "const": "azzle/DismissIntent" },
+    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
+    "actor": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "signature": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

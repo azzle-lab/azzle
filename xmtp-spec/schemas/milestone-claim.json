@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://azzle.org/schemas/xmtp/milestone-claim/v2",
+  "title": "MilestoneClaim",
+  "description": "Worker commitment sent before submitting a V2 milestone proof onchain.",
+  "type": "object",
+  "required": ["type", "taskId", "milestoneIndex", "receiptHash", "artifactUris"],
+  "properties": {
+    "type": { "const": "azzle/MilestoneClaim" },
+    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
+    "milestoneIndex": { "type": "integer", "minimum": 0 },
+    "receiptHash": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" },
+    "artifactUris": { "type": "array", "items": { "type": "string", "format": "uri" } },
+    "submittedAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

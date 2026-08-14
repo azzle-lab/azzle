@@ -36,6 +36,46 @@ export interface DeliveryNoticePayload {
   artifactUris?: string[];
 }
 
+export interface MilestoneClaimPayload {
+  type: "azzle/MilestoneClaim";
+  taskId: string;
+  milestoneIndex: number;
+  receiptHash: string;
+  artifactUris: string[];
+  submittedAt?: string;
+}
+
+export interface DisputeNoticePayload {
+  type: "azzle/DisputeNotice";
+  taskId: string;
+  disputeId: string;
+  proofSubmissionBlock: string;
+  evidenceHash: string;
+  claim: "non_delivery" | "quality" | "scope" | "payment" | "other";
+  noticedAt?: string;
+}
+
+export interface VerificationAttestPayload {
+  type: "azzle/VerificationAttest";
+  taskId: string;
+  milestoneIndex: number;
+  receiptHash: string;
+  verifier: string;
+  decision: "pass" | "fail" | "needs_review";
+  evidenceUris?: string[];
+  signature?: string;
+  attestedAt?: string;
+}
+
+export interface DismissIntentPayload {
+  type: "azzle/DismissIntent";
+  taskId: string;
+  actor: string;
+  reason: string;
+  signature?: string;
+  createdAt?: string;
+}
+
 export interface AcceptDeliveryPayload {
   type: "azzle/AcceptDelivery";
   taskId: string;

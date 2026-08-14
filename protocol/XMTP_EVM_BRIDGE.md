@@ -54,7 +54,7 @@ Both parties MUST sign the same digest in XMTP `TaskAcceptance` before onchain c
 
 ```json
 {
-  "type": "azzle/identity-link/v1",
+  "type": "azzle/identity-link/v2",
   "xmtpPublicKey": "0x...",
   "evmAddress": "0x...",
   "signature": "0x...",
