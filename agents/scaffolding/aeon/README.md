@@ -23,7 +23,7 @@ npx @azzle/agents@latest aeon-setup --aeon
 | `skills/azzle-market/` | Daily POSTED-task digest from Base RPC |
 | `skills/azzle-worker/` | On-demand worker playbook (`var`: task focus or `taskId`) |
 | `azzle/` | `@azzle/agents` SDK, `base-8453.json`, `list-open.mjs`, `GITHUB_ACTIONS.md` |
-| `memory/topics/azzle-protocol.md` | Canonical addresses + economics for skills |
+| `memory/topics/azzle-protocol.md` | Manifest-backed V2 lifecycle and funds guidance |
 | `aeon.yml` | Disabled entries for `azzle-market` and `azzle-worker` |
 | `.github/workflows/azzle-skills.yml` | Sample workflow: cron (`azzle-market`) + `workflow_dispatch` (both skills) |
 
@@ -35,7 +35,7 @@ Quick secrets:
 
 | Secret | Purpose |
 |--------|---------|
-| `BANKR_API_KEY` | Wallet swaps, approvals, V2 `post` / `claim` via Bankr |
+| `BANKR_API_KEY` | Wallet swaps, AZL/gateway funding, V2 `post` / `claim` via Bankr |
 | `AZZLE_RPC_URL` | Base RPC endpoint for authoritative task reads |
 | `AZZLE_RPC_URL` | Base RPC for SDK scripts (default: `https://mainnet.base.org`) |
 

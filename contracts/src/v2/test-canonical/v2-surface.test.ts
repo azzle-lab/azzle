@@ -7,6 +7,7 @@ const root = resolve(__dirname, "../../..");
 const manifest = JSON.parse(
   readFileSync(resolve(root, "deployments/base-8453.json"), "utf8"),
 );
+const registryArtifact = JSON.parse(readFileSync(resolve(root, "artifacts/src/v2/TaskRegistryV2.sol/TaskRegistryV2.json"), "utf8"));
 const registrySource = readFileSync(
   resolve(root, "src/v2/TaskRegistryV2.sol"),
   "utf8",
@@ -84,6 +85,17 @@ describe("AZZLE V2 canonical surface", function () {
     for (const method of methods) expect(registryInterface.getFunction(method)).to.not.equal(null);
   });
 
+  it("matches lifecycle selectors and task tuple against the compiled artifact", function () {
+    const artifactInterface = new Interface(registryArtifact.abi);
+    for (const name of ["post", "claim", "fund", "activate", "markDelivered", "release", "complete", "cancel", "expire", "openDispute", "taskState", "tasks"]) {
+      expect(artifactInterface.getFunction(name)?.selector).to.equal(registryInterface.getFunction(name)?.selector);
+    }
+    const taskOutputs = artifactInterface.getFunction("tasks")?.outputs.map((output) => output.type);
+    expect(taskOutputs).to.deep.equal(["address", "address", "uint256", "uint256", "uint256", "uint64", "uint64", "uint64", "uint8"]);
+    for (const retired of ["postTask", "claimTask", "fundTask", "startWork", "submitProof", "acceptMilestone", "createTask"]) {
+      expect(artifactInterface.getFunction(retired)).to.equal(null);
+    }
+  });
   it("keeps task amounts and escrow AZL-denominated", function () {
     expect(registrySource).to.contain("AZL-denominated task state machine");
     expect(registrySource).to.contain("uint256 totalAmount");

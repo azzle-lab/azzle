@@ -13,7 +13,6 @@
   "payload": {
     "type": "azzle/DeliveryNotice",
     "taskId": "42",
-    "milestoneIndex": 0,
     "receiptHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   }
 }

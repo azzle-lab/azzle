@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASCII Shore — top-down waves</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #071219;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+</head>
+<body>
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+
+
+
+
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// ---- grid setup ----
+const CHAR_W = 9;
+const CHAR_H = 15;
+let cols, rows, W, H;
+
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+  cols = Math.ceil(W / CHAR_W) + 1;
+  rows = Math.ceil(H / CHAR_H) + 1;
+  ctx.font = CHAR_H - 2 + 'px monospace';
+  ctx.textBaseline = 'top';
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---- helpers ----
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// cheap deterministic hash noise, stable per cell (no time term)
+function hash(x, y) {
+  let s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+function lerpColor(c1, c2, t) {
+  t = clamp(t, 0, 1);
+  const r = Math.round(lerp(c1[0], c2[0], t));
+  const g = Math.round(lerp(c1[1], c2[1], t));
+  const b = Math.round(lerp(c1[2], c2[2], t));
+  return `rgb(${r},${g},${b})`;
+}
+
+// palettes
+const DEEP   = [6, 26, 46];
+const MID    = [15, 66, 92];
+const SHALLOW= [46, 134, 171];
+const FOAM_LO= [150, 210, 220];
+const FOAM_HI= [255, 255, 255];
+const WET    = [120, 96, 66];
+const DRY    = [222, 199, 150];
+
+const waterChars = [' ', '.', '\'', '`', '-', ':', '~', '='];
+const foamChars  = ['.', ':', '*', 'o', 'x', 'O', '#', '@'];
+const sandChars  = [' ', ' ', '.', '`', '\'', ','];
+
+// static per-cell noise cache (coastline + sand texture depend on column/row, not time)
+let coastCurve = [];
+let sandNoise = [];
+
+function buildStatic() {
+  coastCurve = new Array(cols);
+  for (let c = 0; c < cols; c++) {
+    const xN = c / cols;
+    coastCurve[c] = 0.07 * Math.sin(xN * 3.1 + 0.4)
+                   + 0.035 * Math.sin(xN * 6.7 + 2.1)
+                   + 0.02  * Math.sin(xN * 13.3 + 4.0);
+  }
+  sandNoise = new Array(cols * rows);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      sandNoise[r * cols + c] = hash(c, r);
+    }
+  }
+}
+buildStatic();
+const origResize = resize;
+window.addEventListener('resize', () => { buildStatic(); });
+
+let t = 0;
+const SHORE_BASE = 0.5;
+
+function frame() {
+  t += 0.016;
+
+  // slow overall surge (tide breathing in and out)
+  const surge = 0.045 * Math.sin(t * 0.55);
+  // envelope controlling how "big" the current wave set is
+  const waveEnvelope = 0.5 + 0.5 * Math.sin(t * 0.32 - 0.6);
+  const foamWidthBase = 0.014 + 0.02 * waveEnvelope;
+
+  ctx.fillStyle = '#04121c';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let r = 0; r < rows; r++) {
+    const yN = r / rows;
+    const py = r * CHAR_H;
+    let rowStr = '';
+
+    for (let c = 0; c < cols; c++) {
+      const xN = c / cols;
+
+      const ripple = 0.03 * Math.sin(xN * 9 - t * 1.4)
+                    + 0.016 * Math.sin(xN * 19 + t * 2.1 + 1.2);
+
+      const shoreY = SHORE_BASE + coastCurve[c] + surge + ripple;
+
+      // fine turbulent edge noise for foam roughness
+      const edgeNoise = 0.012 * Math.sin(xN * 46 + t * 3.4)
+                       + 0.007 * Math.sin(xN * 91 - t * 5.7 + r * 0.3);
+
+      const d = (yN - shoreY) - edgeNoise;
+      const foamWidth = foamWidthBase;
+      const foamBack = foamWidth * 2.0;
+
+      let ch, color;
+
+      if (d > -foamWidth * 0.4 && d < foamBack) {
+        // ---- FOAM ZONE ----
+        const center = foamWidth * 0.15;
+        const distC = Math.abs(d - center);
+        let intensity = 1 - clamp(distC / (foamWidth + foamBack * 0.5), 0, 1);
+        const turb = 0.65 + 0.35 * Math.sin(xN * 55 + t * 4.2 + r * 0.9);
+        intensity *= turb;
+        intensity = clamp(intensity, 0, 1);
+
+        const sparkle = hash(c + Math.floor(t * 6), r) > 0.93 ? 1 : 0;
+        const idx = clamp(Math.floor(intensity * (foamChars.length - 1)) + sparkle, 0, foamChars.length - 1);
+        ch = foamChars[idx];
+        color = lerpColor(FOAM_LO, FOAM_HI, intensity);
+      } else if (d <= -foamWidth * 0.4) {
+        // ---- WATER ZONE ----
+        const depth = clamp(-d, 0, 0.5) / 0.5;
+        const flow = Math.sin(d * 55 - t * 2.6 + xN * 6);
+        let idx;
+        if (flow > 0.55) idx = 6;
+        else if (flow > 0.15) idx = 4;
+        else if (flow > -0.3) idx = 1;
+        else idx = 0;
+        ch = waterChars[idx];
+        const colorT = clamp(depth, 0, 1);
+        color = colorT > 0.55
+          ? lerpColor(MID, DEEP, (colorT - 0.55) / 0.45)
+          : lerpColor(SHALLOW, MID, colorT / 0.55);
+      } else {
+        // ---- SAND ZONE ----
+        const wetness = clamp(d - foamBack, 0, 0.25) / 0.25;
+        const n = sandNoise[r * cols + c];
+        const idx = n > 0.93 ? 3 : n > 0.8 ? 4 : n > 0.55 ? 2 : 0;
+        ch = sandChars[idx];
+        color = lerpColor(WET, DRY, wetness);
+      }
+
+      ctx.fillStyle = color;
+      ctx.fillText(ch, c * CHAR_W, py);
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -105,7 +105,7 @@ export async function listRecentTaskRows(limitRaw = 50, predicate = () => true) 
       if (predicate(row)) rows.push(row);
     }
   }
-  return rows.sort((a, b) => b.createdAt - a.createdAt);
+  return rows.sort((a, b) => Number(b.id) - Number(a.id));
 }
 
 export async function getLockedBalance(taskId) {

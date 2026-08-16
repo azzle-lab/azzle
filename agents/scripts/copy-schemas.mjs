@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, existsSync } from "node:fs";
+import { cpSync, mkdirSync, existsSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,6 +18,9 @@ if (!existsSync(XMTP_SRC) || !existsSync(TASK_SCHEMA_SRC)) {
 mkdirSync(XMTP_DEST, { recursive: true });
 mkdirSync(STANDARDS_DEST, { recursive: true });
 
+for (const file of readdirSync(XMTP_DEST)) {
+  rmSync(join(XMTP_DEST, file), { recursive: true, force: true });
+}
 cpSync(XMTP_SRC, XMTP_DEST, { recursive: true });
 cpSync(TASK_SCHEMA_SRC, join(STANDARDS_DEST, "task-schema.json"));
 

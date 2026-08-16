@@ -1,10 +1,5 @@
 import { ethers } from "ethers";
-import {
-  AzzleClient,
-  buildSettlementDigest,
-  checkWorkerPreflight,
-  logPreflightReport,
-} from "@azzle/agents";
+import { AzzleV2Client, checkWorkerPreflight, logPreflightReport } from "@azzle/agents";
 import { loadManifest } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
@@ -12,7 +7,7 @@ loadDotEnv(import.meta.url);
 
 const manifest = loadManifest(import.meta.url, "base-8453.json");
 import { runApprovalScaffold } from "./lib/approvals.mjs";
-import { acceptMilestone, fundTaskEscrow, openDispute, startMarketWorkWhenClaimed } from "./lib/escrow.mjs";
+import { fundTaskEscrow, openDispute, release, waitForWorkerClaim } from "./lib/escrow.mjs";
 
 const rpcUrl = process.env.AZZLE_RPC_URL ?? "https://mainnet.base.org";
 
@@ -23,78 +18,43 @@ function requireSigner() {
 }
 
 function connectClient(signer) {
-  return new AzzleClient({
-    rpcUrl,
-    registryAddress: manifest.taskRegistry,
-    escrowAddress: manifest.escrowVault,
-    arbitrationAddress: manifest.arbitrationModule,
-  }).connect(signer);
+  return new AzzleV2Client(manifest, rpcUrl).connect(signer);
 }
 
-function sampleTerms(poster, worker = ethers.ZeroAddress) {
-  const acceptanceCriteriaHash = ethers.id("azzle-demo-criteria");
+function sampleTerms() {
   return {
-    poster,
-    worker,
-    token: manifest.external.azl,
     totalAmount: 50_000_000_000_000_000_000n, // 50 AZL
     deadline: BigInt(Math.floor(Date.now() / 1000) + 7 * 86400),
-    chainId: 8453n,
-    registryAddress: manifest.taskRegistry,
   };
 }
 
 async function runPreflight() {
   const signer = requireSigner();
   const wallet = await signer.getAddress();
-  await runApprovalScaffold(signer);
+  await runApprovalScaffold(connectClient(signer));
   const report = await checkWorkerPreflight(signer.provider, wallet, {
     agentDepositVault: manifest.depositVault,
-    treasuryRouter: manifest.treasuryRouter,
     azlToken: manifest.external.azl,
-    usdc: manifest.external.usdc,
   });
   logPreflightReport(report);
 }
 
-async function postTaskFlow(mode = "market") {
+async function postTaskFlow() {
   const signer = requireSigner();
-  const wallet = await signer.getAddress();
   const client = connectClient(signer);
-  await runApprovalScaffold(signer);
+  await runApprovalScaffold(client);
 
-  const worker = process.env.WORKER_ADDRESS?.trim();
-  const terms = sampleTerms(wallet, worker ? worker : ethers.ZeroAddress);
-  const digest = buildSettlementDigest(terms);
-  console.log("[poster] settlement digest", digest);
+  const terms = sampleTerms();
+  console.log("[poster] posting public V2 market task");
+  const result = await client.post(terms.totalAmount, Number(terms.deadline));
 
-  let result;
-  if (mode === "direct" || worker) {
-    if (!worker) throw new Error("Direct hire requires WORKER_ADDRESS in .env");
-    terms.worker = worker;
-    console.log("[poster] createTask (direct hire)", worker);
-    result = await client.createTask({ ...terms, worker });
-  } else {
-    console.log("[poster] postTask (search market)");
-    result = await client.postTask(terms);
-  }
+  console.log("[poster] task created", { taskId: result.taskId.toString() });
 
-  console.log("[poster] task created", { taskId: result.taskId.toString(), digest: result.digest });
+  const claimed = await waitForWorkerClaim(client, result.taskId);
+  if (claimed) await fundTaskEscrow(client, signer, result.taskId, terms.totalAmount);
 
-  const fundAmount = terms.totalAmount;
-  await fundTaskEscrow(client, signer, result.taskId, fundAmount);
-
-  if (mode === "direct" || worker) {
-    console.log(
-      "[poster] direct-hire invitation funded; waiting for the invited worker to call acceptDirectHire"
-    );
-  } else {
-    await startMarketWorkWhenClaimed(client, result.taskId);
-  }
-
-  console.log("[poster] handlers wired:");
-  console.log("  acceptMilestone(taskId, 0) — release milestone to worker");
-  console.log("  openDispute(taskId, evidenceHash) — freeze escrow, enter arbitration");
+  console.log("[poster] full funding transitions a CLAIMED V2 task to ACTIVE automatically");
+  console.log("[poster] release(taskId, amountAzlWei) pays the worker; disputes freeze unreleased escrow");
 
   return result;
 }
@@ -105,21 +65,22 @@ async function fundOnly(taskIdArg) {
   const signer = requireSigner();
   const client = connectClient(signer);
   const amount = BigInt(process.env.FUND_AMOUNT ?? "50000000");
+  const claimed = await waitForWorkerClaim(client, taskId);
+  if (!claimed) return;
   await fundTaskEscrow(client, signer, taskId, amount);
   const task = await client.getTask(taskId);
   if (task.worker !== ethers.ZeroAddress && task.state === 2) {
-    console.log(
-      "[poster] task is CLAIMED; for a direct hire, wait for worker acceptDirectHire; " +
-        "for a market claim, run the start command"
-    );
+    console.log("[poster] task is CLAIMED; full funding transitions it to ACTIVE automatically");
   }
 }
 
-async function startOnly(taskIdArg) {
+async function releaseOnly(taskIdArg, amountArg) {
   const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: node agent.mjs start <taskId>");
-  const client = connectClient(requireSigner());
-  await startMarketWorkWhenClaimed(client, taskId);
+  const amountAzlWei = BigInt(amountArg ?? process.env.RELEASE_AMOUNT ?? "0");
+  if (taskId === 0n || amountAzlWei <= 0n) {
+    throw new Error("Usage: node agent.mjs release <taskId> <positiveAmountAzlWei>");
+  }
+  await release(connectClient(requireSigner()), taskId, amountAzlWei);
 }
 
 async function main() {
@@ -131,22 +92,15 @@ async function main() {
     return;
   }
   if (cmd === "post") {
-    const mode = sub === "direct" ? "direct" : "market";
-    await postTaskFlow(mode);
+    await postTaskFlow();
     return;
   }
   if (cmd === "fund") {
     await fundOnly(sub);
     return;
   }
-  if (cmd === "start") {
-    await startOnly(sub);
-    return;
-  }
-  if (cmd === "accept") {
-    const taskId = BigInt(sub ?? process.env.TASK_ID ?? "0");
-    const client = connectClient(requireSigner());
-    await acceptMilestone(client, taskId, 0);
+  if (cmd === "release") {
+    await releaseOnly(sub, process.argv[4]);
     return;
   }
   if (cmd === "dispute") {
@@ -159,12 +113,10 @@ async function main() {
   console.log(`AZZLE poster agent (Base ${manifest.chainId})`);
   console.log("");
   console.log("Commands:");
-  console.log("  npm run preflight          # approvals + deposit checklist");
-  console.log("  npm run post               # postTask (search market)");
-  console.log("  node agent.mjs post direct # createTask (direct hire + WORKER_ADDRESS)");
-  console.log("  npm run fund -- <taskId>   # fundTask → EscrowVault");
-  console.log("  node agent.mjs start <taskId> # market claim only; direct hire waits for worker acceptance");
-  console.log("  node agent.mjs accept <taskId>");
+  console.log("  npm run preflight          # AZL approval + gateway deposit checklist");
+  console.log("  npm run post               # post → wait for claim → fund");
+  console.log("  npm run fund -- <taskId>   # fund AZL escrow after a worker claim");
+  console.log("  node agent.mjs release <taskId> <positiveAmountAzlWei>");
   console.log("  node agent.mjs dispute <taskId>");
 }
 

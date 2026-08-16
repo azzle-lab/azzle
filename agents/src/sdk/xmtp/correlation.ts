@@ -3,17 +3,16 @@ import type { OnChainCorrelationEvent, OnChainEventHandler } from "./types.js";
 import type { XmtpNegotiationTransport } from "./transport.js";
 
 const REGISTRY_EVENTS_ABI = [
-  "event TaskCreated(uint256 indexed taskId, address indexed poster, address indexed worker, bytes32 settlementDigest)",
-  "event ProofSubmitted(uint256 indexed taskId, uint256 milestoneIndex, bytes32 receiptHash)",
-];
-
-const ESCROW_EVENTS_ABI = [
-  "event MilestoneReleased(uint256 indexed taskId, uint256 milestoneIndex, uint256 amount)",
-];
-
-const ARBITRATION_EVENTS_ABI = [
-  "event DisputeOpened(uint256 indexed disputeId, uint256 indexed taskId, address initiator)",
-  "event DisputeResolved(uint256 indexed disputeId, uint256 workerBps)",
+  "event TaskPosted(uint256 indexed taskId, address indexed poster, uint256 totalAmount, uint256 amountUsd6, uint64 deadline)",
+  "event TaskClaimed(uint256 indexed taskId, address indexed worker)",
+  "event TaskFunded(uint256 indexed taskId, uint256 amount)",
+  "event TaskActivated(uint256 indexed taskId)",
+  "event TaskDelivered(uint256 indexed taskId, uint64 deliveredAt)",
+  "event TaskReleased(uint256 indexed taskId, uint256 amount)",
+  "event TaskCompleted(uint256 indexed taskId)",
+  "event TaskCancelled(uint256 indexed taskId)",
+  "event TaskDisputed(uint256 indexed taskId, address indexed opener, bytes32 evidenceHash)",
+  "event TaskResolved(uint256 indexed taskId, uint8 resolution, address defaultingParty)",
 ];
 
 type EventMeta = { blockNumber: number; transactionHash: string };
@@ -29,8 +28,6 @@ function eventMeta(args: unknown[]): EventMeta {
 export interface ChainEventIndexerConfig {
   rpcUrl: string;
   registryAddress: string;
-  escrowAddress: string;
-  arbitrationAddress?: string;
   transport: XmtpNegotiationTransport;
 }
 
@@ -56,88 +53,143 @@ export class ChainEventIndexer {
       REGISTRY_EVENTS_ABI,
       provider
     );
-    const escrow = new Contract(this.config.escrowAddress, ESCROW_EVENTS_ABI, provider);
-    this.contracts.push(registry, escrow);
+    this.contracts.push(registry);
 
-    registry.on("TaskCreated", (...args: unknown[]) => {
-      const [taskId, poster, worker, settlementDigest] = args as [
+    registry.on("TaskPosted", (...args: unknown[]) => {
+      const [taskId, poster, totalAmount, amountUsd6, deadline] = args as [
         bigint,
         string,
-        string,
-        string,
+        bigint,
+        bigint,
+        bigint,
         unknown,
       ];
       const meta = eventMeta(args);
       void this.emit({
-        kind: "TaskCreated",
+        kind: "TaskPosted",
         taskId: taskId.toString(),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
-        data: { poster, worker, settlementDigest },
+        data: {
+          poster,
+          totalAmount: totalAmount.toString(),
+          amountUsd6: amountUsd6.toString(),
+          deadline: deadline.toString(),
+        },
       });
     });
 
-    registry.on("ProofSubmitted", (...args: unknown[]) => {
-      const [taskId, milestoneIndex, receiptHash] = args as [
+    registry.on("TaskClaimed", (...args: unknown[]) => {
+      const [taskId, worker] = args as [bigint, string, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskClaimed",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: { worker },
+      });
+    });
+
+    registry.on("TaskFunded", (...args: unknown[]) => {
+      const [taskId, amount] = args as [bigint, bigint, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskFunded",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: { amount: amount.toString() },
+      });
+    });
+
+    registry.on("TaskActivated", (...args: unknown[]) => {
+      const [taskId] = args as [bigint, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskActivated",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: {},
+      });
+    });
+
+    registry.on("TaskDelivered", (...args: unknown[]) => {
+      const [taskId, deliveredAt] = args as [
         bigint,
         bigint,
-        string,
         unknown,
       ];
       const meta = eventMeta(args);
       void this.emit({
-        kind: "ProofSubmitted",
+        kind: "TaskDelivered",
         taskId: taskId.toString(),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
-        data: { milestoneIndex: Number(milestoneIndex), receiptHash },
+        data: { deliveredAt: deliveredAt.toString() },
       });
     });
 
-    escrow.on("MilestoneReleased", (...args: unknown[]) => {
-      const [taskId, milestoneIndex, amount] = args as [bigint, bigint, bigint, unknown];
+    registry.on("TaskReleased", (...args: unknown[]) => {
+      const [taskId, amount] = args as [bigint, bigint, unknown];
       const meta = eventMeta(args);
       void this.emit({
-        kind: "MilestoneReleased",
+        kind: "TaskReleased",
         taskId: taskId.toString(),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
-        data: { milestoneIndex: Number(milestoneIndex), amount: amount.toString() },
+        data: { amount: amount.toString() },
       });
     });
 
-    if (this.config.arbitrationAddress) {
-      const arbitration = new Contract(
-        this.config.arbitrationAddress,
-        ARBITRATION_EVENTS_ABI,
-        provider
-      );
-      this.contracts.push(arbitration);
-
-      arbitration.on("DisputeOpened", (...args: unknown[]) => {
-        const [disputeId, taskId, initiator] = args as [bigint, bigint, string, unknown];
-        const meta = eventMeta(args);
-        void this.emit({
-          kind: "DisputeOpened",
-          taskId: taskId.toString(),
-          blockNumber: meta.blockNumber,
-          txHash: meta.transactionHash,
-          data: { disputeId: disputeId.toString(), initiator },
-        });
+    registry.on("TaskCompleted", (...args: unknown[]) => {
+      const [taskId] = args as [bigint, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskCompleted",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: {},
       });
+    });
 
-      arbitration.on("DisputeResolved", (...args: unknown[]) => {
-        const [disputeId, workerBps] = args as [bigint, bigint, unknown];
-        const meta = eventMeta(args);
-        void this.emit({
-          kind: "DisputeResolved",
-          taskId: "0",
-          blockNumber: meta.blockNumber,
-          txHash: meta.transactionHash,
-          data: { disputeId: disputeId.toString(), workerBps: Number(workerBps) },
-        });
+    registry.on("TaskCancelled", (...args: unknown[]) => {
+      const [taskId] = args as [bigint, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskCancelled",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: {},
       });
-    }
+    });
+
+    registry.on("TaskDisputed", (...args: unknown[]) => {
+      const [taskId, opener, evidenceHash] = args as [bigint, string, string, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskDisputed",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: { opener, evidenceHash },
+      });
+    });
+
+    registry.on("TaskResolved", (...args: unknown[]) => {
+      const [taskId, resolution, defaultingParty] = args as [bigint, bigint, string, unknown];
+      const meta = eventMeta(args);
+      void this.emit({
+        kind: "TaskResolved",
+        taskId: taskId.toString(),
+        blockNumber: meta.blockNumber,
+        txHash: meta.transactionHash,
+        data: { resolution: Number(resolution), defaultingParty },
+      });
+    });
   }
 
   private async emit(event: OnChainCorrelationEvent): Promise<void> {

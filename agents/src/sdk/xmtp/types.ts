@@ -5,22 +5,14 @@ export const MESSAGE_TYPES = [
   "TaskProposal",
   "TaskCounterOffer",
   "TaskAcceptance",
-  "MilestoneDefinition",
   "RevisionRequest",
   "DeliveryNotice",
   "PaymentRequest",
   "CapabilityProof",
   "DisputeEvidence",
-  "ArbitratorProposal",
-  "MutualCancel",
-  "ReplacementContext",
   "SupervisorVeto",
   "AcceptDelivery",
   "IdentityLink",
-  "MilestoneClaim",
-  "DisputeNotice",
-  "VerificationAttest",
-  "DismissIntent",
 ] as const;
 
 export type MessageType = (typeof MESSAGE_TYPES)[number];
@@ -59,11 +51,16 @@ export interface NegotiationTransport {
 
 export interface OnChainCorrelationEvent {
   kind:
-    | "TaskCreated"
-    | "ProofSubmitted"
-    | "MilestoneReleased"
-    | "DisputeOpened"
-    | "DisputeResolved";
+    | "TaskPosted"
+    | "TaskClaimed"
+    | "TaskFunded"
+    | "TaskActivated"
+    | "TaskDelivered"
+    | "TaskReleased"
+    | "TaskCompleted"
+    | "TaskCancelled"
+    | "TaskDisputed"
+    | "TaskResolved";
   taskId: string;
   negotiationId?: string;
   blockNumber: number;

@@ -1,5 +1,5 @@
 /**
- * Reference poster agent — funds escrow, monitors delivery, accepts milestones.
+ * Reference poster agent — funds escrow, monitors delivery, and completes tasks.
  * Uses NegotiationBus locally; use startAgent() from ../sdk/xmtp for production XMTP.
  */
 import { NegotiationBus } from "../sdk/xmtp-local-bus.js";

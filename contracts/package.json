@@ -5,8 +5,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "size:check": "hardhat run scripts/check-contract-size.ts",
-    "test": "hardhat test --config hardhat.config.ts src/v2/test-canonical",
-    "test:canonical": "hardhat test --config hardhat.config.ts src/v2/test-canonical",
+    "test": "hardhat test --config hardhat.config.ts",
+    "test:canonical": "hardhat test --config hardhat.config.ts",
     "test:v2": "hardhat test --config hardhat.config.ts",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:base:v2:preflight": "set V2_PHASE=preflight&& hardhat run scripts/deploy-v2.ts --network base",

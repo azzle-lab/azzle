@@ -1,12 +1,9 @@
 /**
- * AZZLE HTTP gateway — Base RPC market reads + payment receipts.
+ * AZZLE HTTP gateway — Base RPC V2 market reads.
  *
  * Usage:
  *   cd agents && npm run build && npm run gateway
  *   curl http://localhost:4020/v1/market/open
- *   curl -X POST http://localhost:4020/v1/payment-receipt -H "Content-Type: application/json" -d '{"payer":"0x...","action":"claim","taskId":"1"}'
- *
- * @see docs/X402_PAYMENTS.md
  */
 import { createServer } from "node:http";
 import { existsSync } from "node:fs";
@@ -15,13 +12,6 @@ import { dirname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ethers } from "ethers";
 import { BASE_MAINNET_MANIFEST } from "../dist/sdk/manifest.js";
-import {
-  ACCESS_FEE_AZL_18,
-  build402Response,
-  buildPaymentReceipt,
-  isReceiptValid,
-} from "../dist/sdk/x402-payments.js";
-import { checkWorkerPreflight } from "../dist/sdk/preflight.js";
 import { RpcDiscovery } from "../dist/sdk/rpc-discovery.js";
 
 const PORT = Number(process.env.AZZLE_GATEWAY_PORT ?? "4020");
@@ -29,7 +19,6 @@ const RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 const manifest = BASE_MAINNET_MANIFEST;
 const provider = new ethers.JsonRpcProvider(RPC);
 const indexer = new RpcDiscovery({ rpcUrl: RPC });
-const receipts = new Map();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SURFACES_ROOT = normalize(join(__dirname, "..", "..", "launch-skills"));
@@ -69,46 +58,6 @@ function json(res, status, body, extraHeaders = {}) {
   res.end(payload);
 }
 
-async function readBody(req) {
-  const chunks = [];
-  for await (const c of req) chunks.push(c);
-  const raw = Buffer.concat(chunks).toString("utf8");
-  if (!raw) return {};
-  return JSON.parse(raw);
-}
-
-function routeAction(path) {
-  if (path === "/v1/tasks" || path === "/v1/tasks/post") return "post";
-  const claim = path.match(/^\/v1\/tasks\/(\d+)\/claim$/);
-  if (claim) return { action: "claim", taskId: claim[1] };
-  const dismiss = path.match(/^\/v1\/tasks\/(\d+)\/dismiss$/);
-  if (dismiss) return { action: "dismiss", taskId: dismiss[1] };
-  const leave = path.match(/^\/v1\/tasks\/(\d+)\/leave$/);
-  if (leave) return { action: "leave", taskId: leave[1] };
-  return null;
-}
-
-async function readinessFromPreflight(payer) {
-  const report = await checkWorkerPreflight(provider, payer, {
-    agentDepositVault: manifest.depositVault,
-    treasuryRouter: manifest.treasuryRouter,
-    azlToken: manifest.external.azl,
-    usdc: manifest.external.usdc,
-  });
-  const missing = [];
-  if (report.vaultUsdc < 25_000_000n) missing.push("vault balance < $25 entry collateral target; $45 recommended for post/claim");
-  if (report.azlBalance < ACCESS_FEE_AZL_18) missing.push("AZZLE balance < 1,000");
-  if (!report.azlAllowanceOk) missing.push("AZZLE allowance for TreasuryRouter < 1,000");
-  return {
-    payer,
-    ready: missing.length === 0,
-    usdcVaultBalance: report.vaultUsdc,
-    azlBalance: report.azlBalance,
-    azlAllowance: report.azlAllowance,
-    missing,
-  };
-}
-
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
   const path = url.pathname;
@@ -126,15 +75,6 @@ const server = createServer(async (req, res) => {
   try {
     if (req.method === "GET" && path === "/health") {
       json(res, 200, { ok: true, chainId: 8453, source: "base-rpc" });
-      return;
-    }
-
-    if (req.method === "GET" && path === "/v1/fees") {
-      json(res, 200, {
-        accessFee: { usdc: "5000000", azl: ACCESS_FEE_AZL_18.toString() },
-        manifest,
-        actions: ["post", "claim", "dismiss", "leave"],
-      });
       return;
     }
 
@@ -176,69 +116,6 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "POST" && path === "/v1/payment-receipt") {
-      const body = await readBody(req);
-      const payer = body.payer;
-      const action = body.action;
-      const taskId = body.taskId;
-      if (!payer || !action) {
-        json(res, 400, { error: "payer and action required" });
-        return;
-      }
-      const readiness = await readinessFromPreflight(payer);
-      const receipt = buildPaymentReceipt(payer, action, readiness, taskId);
-      receipts.set(receipt.id, receipt);
-      json(res, readiness.ready ? 200 : 402, { receipt, readiness, manifest });
-      return;
-    }
-
-    const routed = routeAction(path);
-    if (req.method === "POST" && routed) {
-      const action = typeof routed === "string" ? routed : routed.action;
-      const taskId = typeof routed === "object" ? routed.taskId : undefined;
-      const receiptHeader = req.headers["x-azzle-payment-receipt"];
-      const body = await readBody(req);
-      const payer = body.payer;
-
-      if (!receiptHeader || !payer) {
-        const r402 = build402Response(manifest, action, taskId);
-        json(res, r402.status, {
-          error: "payment_required",
-          message: "Pay $5 USDC + 1,000 AZZLE on-chain, or POST /v1/payment-receipt first",
-          payment: r402.body,
-          next: {
-            issueReceipt: "POST /v1/payment-receipt",
-            header: "X-Azzle-Payment-Receipt",
-          },
-        }, r402.headers);
-        return;
-      }
-
-      const receipt = receipts.get(String(receiptHeader));
-      if (!receipt || !isReceiptValid(receipt, payer, action, taskId)) {
-        json(res, 402, { error: "invalid_or_expired_receipt" });
-        return;
-      }
-
-      json(res, 200, {
-        ok: true,
-        message: "Receipt valid — submit the matching on-chain tx from the payer wallet",
-        action,
-        taskId,
-        registry: manifest.taskRegistry,
-        method:
-          action === "post"
-            ? "postTask"
-            : action === "claim"
-              ? "claimTask"
-              : action === "dismiss"
-                ? "dismissWorker"
-                : "leaveTask",
-        receipt,
-      });
-      return;
-    }
-
     if ((req.method === "GET" || req.method === "HEAD") && (await serveStatic(path, res))) {
       return;
     }
@@ -251,18 +128,11 @@ const server = createServer(async (req, res) => {
         "GET /leaderboard.html",
         "GET /treasury-dashboard.html",
         "GET /health",
-        "GET /v1/fees",
         "GET /v1/market/open",
         "GET /v1/market/recent",
-        "POST /v1/graphql",
         "GET /v1/leaderboard/reputation",
         "GET /v1/leaderboard/verifiers",
         "GET /v1/tasks/:id",
-        "POST /v1/payment-receipt",
-        "POST /v1/tasks",
-        "POST /v1/tasks/:id/claim",
-        "POST /v1/tasks/:id/dismiss",
-        "POST /v1/tasks/:id/leave",
       ],
     });
   } catch (err) {
@@ -274,5 +144,4 @@ server.listen(PORT, () => {
   console.log(`[azzle-gateway] http://localhost:${PORT}`);
   console.log("[azzle-gateway] hub     GET /  (launch-skills UI)");
   console.log("[azzle-gateway] market  GET /market.html  ·  GET /v1/market/open");
-  console.log("[azzle-gateway] x402    POST /v1/tasks/:id/claim (no receipt → 402)");
 });

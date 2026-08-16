@@ -24,10 +24,9 @@ import {
 } from "../dist/tools/azzle-tools.js";
 import { termFlagsFromMcpArgs } from "./mcp-term-flags.mjs";
 import {
-  buildTaskTermsBundle,
+  buildTaskPreview,
   buildXmtpProposal,
-  buildXmtpAcceptanceTemplate,
-  verifySettlementDigest,
+  verifyTaskPreviewHash,
 } from "./xmtp-helpers.mjs";
 
 const indexer = new RpcDiscovery();
@@ -100,14 +99,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: [
                 "AZZLE onboarding (Base 8453):",
                 "1. Fund wallet with ETH + USDC on Base",
-                "2. Swap to ≥ 10,000 AZZLE",
-                "3. approve USDC → AgentDepositVault",
-                "4. approve AZZLE → TreasuryRouter when not using an Action Credit",
-                "5. AgentDepositVault.topUp (entry minimum is $25 USDC entry collateral target; $45 recommended posting/claiming balance; bound tasks also reserve $8 + bond)",
-                "6. postTask or claimTask (standard $5 USDC + 1,000 AZZLE; a whole Action Credit covers eligible post/create/claim fees)",
+                "2. Acquire AZL for deposits and task funding",
+                "3. Check paymentGateway.intakePaused() before depositing",
+                "4. Fund the deposit ledger through paymentGateway",
+                "5. Check stakingVault.stakingActive() before staking",
+                "6. Post or claim a task; fund job escrow by approving escrowVault and calling fund",
                 "",
                 "Prepare helpers (agents/): npm run mcp:prepare -- hash-criteria --text \"...\"",
-                "  npm run mcp:prepare -- prepare-receipt --task-id ... --worker ... --artifact-hash ...",
+                "  npm run mcp:prepare -- hash-evidence --text \"...\"",
                 "",
                 "Bankr prompts:",
                 ...BANKR_PROMPTS.map((p) => `  ${p}`),
@@ -170,13 +169,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ],
         };
       }
-      case "azzle_build_task_terms": {
+      case "azzle_build_task_preview": {
         const flags = termFlagsFromMcpArgs(args);
-        const result = buildTaskTermsBundle(
+        const result = buildTaskPreview(
           flags.from ?? String(args?.poster ?? ""),
           flags,
-          manifest,
-          { requireWorker: Boolean(flags.worker) }
+          manifest
         );
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
@@ -185,29 +183,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const result = buildXmtpProposal(
           flags.from ?? String(args?.poster ?? ""),
           flags,
-          manifest,
-          { requireWorker: Boolean(flags.worker) }
+          manifest
         );
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }
-      case "azzle_build_xmtp_acceptance_template": {
+      case "azzle_verify_task_preview_hash": {
         const flags = termFlagsFromMcpArgs(args);
-        const result = buildXmtpAcceptanceTemplate(
+        const result = verifyTaskPreviewHash(
           flags.from ?? String(args?.poster ?? ""),
           flags,
-          manifest,
-          { requireWorker: true }
-        );
-        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-      }
-      case "azzle_verify_settlement_digest": {
-        const flags = termFlagsFromMcpArgs(args);
-        flags.digest = String(args?.settlementDigest ?? flags.digest ?? "");
-        const result = verifySettlementDigest(
-          flags.from ?? String(args?.poster ?? ""),
-          flags,
-          manifest,
-          { requireWorker: Boolean(flags.worker) }
+          manifest
         );
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
       }

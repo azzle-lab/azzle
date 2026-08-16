@@ -212,7 +212,7 @@ function addToProject(): void {
   console.log(`
 Installed @azzle/agents.
 
-  import { AzzleClient, RpcDiscovery } from "@azzle/agents";
+  import { AzzleV2Client, RpcDiscovery } from "@azzle/agents";
   import { BASE_MAINNET_MANIFEST } from "@azzle/agents/manifest";
 
 Docs: https://www.azzle.org/reference/AGENTS.md

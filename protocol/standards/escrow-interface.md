@@ -1,49 +1,7 @@
-# Escrow Interface Standard
+# V2 escrow interface reference
 
-Any escrow provider or chain implements this interface without changing negotiation logic.
+The active interface is defined by [`EscrowVaultV2.sol`](../../contracts/src/v2/EscrowVaultV2.sol), not by a portable multi-mode standard.
 
-## Interface (Solidity)
+Registry-authorized methods are `create`, `fund`, `release`, `close`, and `refund`. Arbitration-authorized methods are `freeze` and `settle(taskId, workerBps)`. Escrow states are `NONE, FUNDED, FROZEN, SETTLED`. All amounts are AZL wei; failed exact payouts may be deferred for pull claim.
 
-```solidity
-interface IEscrowVault {
-    enum EscrowMode { UPFRONT, MILESTONE, STREAMING, HOUR_BLOCKS } // UPFRONT is legacy-only and rejected for new tasks
-    enum EscrowState { UNFUNDED, LOCKED, PARTIAL_RELEASE, RELEASED, FROZEN, REFUNDED }
-
-    // Registry-gated deposit only — no public deposit() ([H-2 fix])
-    function depositFor(uint256 taskId, uint256 amount) external;
-    function activateTask(uint256 taskId) external;
-    function releaseMilestone(uint256 taskId, uint256 milestoneIndex) external;
-    function streamRelease(uint256 taskId, uint256 amount) external;
-    function freeze(uint256 taskId) external;
-    function refund(uint256 taskId, address to, uint256 amount) external;
-    function split(uint256 taskId, address worker, address poster, uint256 workerBps) external;
-
-    function getEscrowState(uint256 taskId) external view returns (EscrowState);
-    function lockedBalance(uint256 taskId) external view returns (uint256);
-    function isFrozen(uint256 taskId) external view returns (bool);
-}
-```
-
-Reference flow: poster approves escrow token **to `EscrowVault`** (not `AgentDepositVault`) → `TaskRegistry.fundTask(taskId, amount)` → `EscrowVault.depositFor`. See [`../TASK_STATE_MACHINE.md`](../TASK_STATE_MACHINE.md#funding-escrow).
-
-## Mode Semantics
-
-| Mode | Behavior |
-|------|----------|
-| UPFRONT | Legacy enum value; rejected for new tasks |
-| MILESTONE | Partial amounts per index; independent release |
-| STREAMING | Continuous release by `rate × elapsed` beginning only when the task becomes ACTIVE; top-ups vest from their deposit checkpoint |
-| HOUR_BLOCKS | One prepaid discrete unit becomes claimable per full hour elapsed after ACTIVE |
-
-## Swap Requirements
-
-Alternate implementations MUST:
-
-1. Emit standard events (`Deposited`, `MilestoneReleased`, `StreamReleased`, `Frozen`, `Refunded`, `Split`)
-2. Honor `taskId` as primary key from `ITaskRegistry`
-3. Respect arbitration module freeze signals
-4. Reject poster refunds while `FROZEN` (disputed)
-5. Support same `EscrowMode` enum values
-6. Route all deposits through registry-gated entry (no bypass of balance health checks)
-
-Negotiation layer references mode by string in task schema; clients map to enum on settlement.
+Poster flow: approve the manifest's `escrowVault`, then call `taskRegistry.fund`. Do not call the vault directly. V2 has no escrow modes, milestones, streaming, or hour blocks.

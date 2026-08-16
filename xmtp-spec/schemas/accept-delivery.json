@@ -3,12 +3,13 @@
   "$id": "https://azzle.org/schemas/xmtp/accept-delivery/v2",
   "title": "AcceptDelivery",
   "type": "object",
-  "required": ["type", "taskId", "milestoneIndex"],
+  "description": "Off-chain notice sent after the poster calls TaskRegistry.complete(taskId).",
+  "required": ["type", "taskId"],
   "properties": {
     "type": { "const": "azzle/AcceptDelivery" },
-    "taskId": { "type": "string" },
-    "milestoneIndex": { "type": "integer", "minimum": 0 },
+    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
     "receiptHash": { "type": "string" },
     "acceptedAt": { "type": "string", "format": "date-time" }
-  }
+  },
+  "additionalProperties": false
 }
