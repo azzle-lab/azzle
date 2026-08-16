@@ -1,13 +1,9 @@
 export { AzzleV2Client, V2_TASK_STATE_NAMES } from "./client-v2.js";
-export { AzzleClient, TASK_STATE_NAMES } from "./client.js";
-export type { OnChainTask } from "./client.js";
+export type { OnChainTask } from "./client-v2.js";
 export {
   checkWorkerPreflight,
-  ensureAzlAllowance,
   logPreflightReport,
-  MIN_VAULT_USDC,
-  MIN_AZL_ALLOWANCE,
-  RECOMMENDED_AZL_BALANCE,
+  MIN_VAULT_AZL,
 } from "./preflight.js";
 export type { PreflightAddresses, PreflightReport } from "./preflight.js";
 export { buildSettlementDigest } from "./settlement.js";
@@ -39,25 +35,6 @@ export type {
 } from "./xmtp/index.js";
 export { RpcDiscovery } from "./rpc-discovery.js";
 export {
-  build402Response,
-  buildPaymentReceipt,
-  buildPaymentRequired,
-  createReceiptId,
-  isReceiptValid,
-  paymentRequiredHeaders,
-  ACCESS_FEE_AZL_18,
-  ACCESS_FEE_USDC_6,
-  HEADER_AZZLE_RECEIPT,
-  HEADER_PAYMENT_REQUIRED,
-  X402_STATUS,
-} from "./x402-payments.js";
-export type {
-  AccessFeeAction,
-  AzzlePaymentReceipt,
-  PaymentReadiness,
-  X402PaymentRequired,
-} from "./x402-payments.js";
-export {
   AZZLE_TOOLS,
   BANKR_PROMPTS,
   formatOpenTasksForAgent,
@@ -65,7 +42,7 @@ export {
 export type { AzzleToolDefinition } from "../tools/azzle-tools.js";
 export { ChainEventRpcDiscovery } from "./xmtp/chain-event-indexer.js";
 export type { RpcDiscoveryConfig, RpcDiscoveryTask } from "./rpc-discovery.js";
-export type { TaskTerms, ExecutionReceipt, AzzleClientConfig } from "./types.js";
+export type { TaskTerms, ExecutionReceipt } from "./types.js";
 export {
   BASE_MAINNET_MANIFEST,
   default as baseMainnetManifest,

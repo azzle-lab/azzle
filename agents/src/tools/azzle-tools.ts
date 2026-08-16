@@ -18,7 +18,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
   {
     name: "azzle_list_open_tasks",
     description:
-      "List claimable POSTED tasks on AZZLE (Base mainnet). Each claim costs $5 USDC + 1,000 AZZLE.",
+      "List claimable POSTED tasks on AZZLE (Base mainnet). V2 collateral and task payment are AZL; USD policy values are quoted dynamically.",
     parameters: {
       type: "object",
       properties: {
@@ -50,7 +50,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        address: { type: "string", description: "EVM address (0x…)" },
+        address: { type: "string", description: "EVM address (0xâ€¦)" },
       },
       required: ["address"],
     },
@@ -58,7 +58,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
   {
     name: "azzle_onboarding_checklist",
     description:
-      "Return the ordered AZZLE onboarding steps: wallet → acquire AZZLE → approve → topUp → post/claim.",
+      "Return the ordered AZZLE onboarding steps: wallet â†’ acquire AZL â†’ fund deposit through paymentGateway â†’ post or claim.",
     parameters: { type: "object", properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },}, required: [] },
   },
@@ -69,7 +69,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        address: { type: "string", description: "Poster EVM address (0x…)" },
+        address: { type: "string", description: "Poster EVM address (0xâ€¦)" },
         limit: { type: "number", description: "Max tasks (default 25)" },
       },
       required: ["address"],
@@ -82,7 +82,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        address: { type: "string", description: "Worker EVM address (0x…)" },
+        address: { type: "string", description: "Worker EVM address (0xâ€¦)" },
         limit: { type: "number", description: "Max tasks (default 25)" },
       },
       required: ["address"],
@@ -114,44 +114,34 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
     },
   },
   {
-    name: "azzle_build_task_terms",
+    name: "azzle_build_task_preview",
     description:
-      "Build canonical AZZLE task terms JSON and settlement digest for XMTP/on-chain posting.",
+      "Build a V2 task preview and nonbinding off-chain preview hash for XMTP coordination before posting.",
     parameters: {
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        poster: { type: "string", description: "Poster EVM address (0x…)" },
-        worker: { type: "string", description: "Worker address (direct hire; omit for search post)" },
-        totalAmount: { type: "string", description: "Total USDC 6 decimals" },
+        poster: { type: "string", description: "Poster EVM address (0xâ€¦)" },
+        totalAmount: { type: "string", description: "Total AZL amount in wei" },
         deadline: { type: "number", description: "Unix deadline" },
-        criteriaText: { type: "string", description: "Acceptance criteria (hashed)" },
-        acceptanceCriteriaHash: { type: "string", description: "bytes32 criteria hash" },
-        escrowMode: { type: "string", description: "milestone | streaming | hour_blocks" },
-        milestoneAmounts: { type: "string", description: "Comma-separated milestone USDC amounts" },
-        streamRate: { type: "string", description: "Streaming rate (USDC 6dp/sec)" },
-        hourBlockSize: { type: "string", description: "Hour block size (USDC 6dp)" },
+        criteriaText: { type: "string", description: "Acceptance criteria text; retained as off-chain context" },
+        acceptanceCriteriaHash: { type: "string", description: "Precomputed off-chain bytes32 criteria hash" },
       },
       required: ["poster", "totalAmount", "deadline"],
     },
   },
   {
     name: "azzle_build_xmtp_proposal",
-    description: "Build XMTP TaskProposal envelope JSON with settlementDigestPreview.",
+    description: "Build an XMTP TaskProposal with V2 task fields and a nonbinding off-chain preview hash.",
     parameters: {
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
         poster: { type: "string", description: "Poster EVM address" },
-        worker: { type: "string", description: "Intended worker (optional)" },
-        totalAmount: { type: "string", description: "Total USDC 6 decimals" },
+        totalAmount: { type: "string", description: "Total AZL amount in wei" },
         deadline: { type: "number", description: "Unix deadline" },
-        criteriaText: { type: "string", description: "Acceptance criteria text" },
-        acceptanceCriteriaHash: { type: "string", description: "bytes32 criteria hash" },
-        escrowMode: { type: "string", description: "Escrow mode" },
-        milestoneAmounts: { type: "string", description: "Comma-separated milestone amounts" },
-        streamRate: { type: "string", description: "Streaming rate USDC 6dp/sec" },
-        hourBlockSize: { type: "string", description: "Hour block size USDC 6dp" },
+        criteriaText: { type: "string", description: "Acceptance criteria text; retained as off-chain context" },
+        acceptanceCriteriaHash: { type: "string", description: "Precomputed off-chain bytes32 criteria hash" },
         title: { type: "string", description: "Short task title" },
         description: { type: "string", description: "Task description" },
         negotiationId: { type: "string", description: "Optional UUID; generated if omitted" },
@@ -160,64 +150,36 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
     },
   },
   {
-    name: "azzle_build_xmtp_acceptance_template",
-    description:
-      "Build EIP-712 typed data and TaskAcceptance envelope template for both parties to sign.",
+    name: "azzle_verify_task_preview_hash",
+    description: "Verify a nonbinding off-chain task-preview hash matches the supplied V2 task fields.",
     parameters: {
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
         poster: { type: "string", description: "Poster EVM address" },
-        worker: { type: "string", description: "Worker EVM address" },
-        totalAmount: { type: "string", description: "Total USDC 6 decimals" },
+        previewHash: { type: "string", description: "Expected nonbinding bytes32 task-preview hash" },
+        totalAmount: { type: "string", description: "Total AZL amount in wei" },
         deadline: { type: "number", description: "Unix deadline" },
-        criteriaText: { type: "string", description: "Acceptance criteria text" },
-        acceptanceCriteriaHash: { type: "string", description: "bytes32 criteria hash" },
-        escrowMode: { type: "string", description: "Escrow mode" },
-        milestoneAmounts: { type: "string", description: "Comma-separated milestone amounts" },
-        streamRate: { type: "string", description: "Streaming rate USDC 6dp/sec" },
-        hourBlockSize: { type: "string", description: "Hour block size USDC 6dp" },
-        negotiationId: { type: "string", description: "Negotiation UUID" },
+        criteriaText: { type: "string", description: "Acceptance criteria text; retained as off-chain context" },
+        acceptanceCriteriaHash: { type: "string", description: "Precomputed off-chain bytes32 criteria hash" },
       },
-      required: ["poster", "worker", "totalAmount", "deadline"],
-    },
-  },
-  {
-    name: "azzle_verify_settlement_digest",
-    description: "Verify a settlement digest matches the given task terms.",
-    parameters: {
-      type: "object",
-      properties: {
-          protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        poster: { type: "string", description: "Poster EVM address" },
-        worker: { type: "string", description: "Worker address (zero/open if omitted)" },
-        settlementDigest: { type: "string", description: "Expected bytes32 digest" },
-        totalAmount: { type: "string", description: "Total USDC 6 decimals" },
-        deadline: { type: "number", description: "Unix deadline" },
-        criteriaText: { type: "string", description: "Acceptance criteria text" },
-        acceptanceCriteriaHash: { type: "string", description: "bytes32 criteria hash" },
-        escrowMode: { type: "string", description: "Escrow mode" },
-        milestoneAmounts: { type: "string", description: "Comma-separated milestone amounts" },
-        streamRate: { type: "string", description: "Streaming rate USDC 6dp/sec" },
-        hourBlockSize: { type: "string", description: "Hour block size USDC 6dp" },
-      },
-      required: ["poster", "settlementDigest", "totalAmount", "deadline"],
+      required: ["poster", "previewHash", "totalAmount", "deadline"],
     },
   },
 ];
 
 export function formatOpenTasksForAgent(tasks: RpcDiscoveryTask[]): string {
   if (!tasks.length) {
-    return "No POSTED tasks on the search market. Check again later or post work via postTask.";
+    return "No POSTED tasks on the search market. Check again later or post work via post.";
   }
   const lines = tasks.map((t) => formatTaskLine(t));
-  return `${tasks.length} open task(s) — read scope via TaskScopeRegistry.scopeOf(id); empty scope → private listing (XMTP):\n${lines.join("\n")}`;
+  return `${tasks.length} open task(s) â€” read scope via TaskScopeRegistry.scopeOf(id); empty scope â†’ private listing (XMTP):\n${lines.join("\n")}`;
 }
 
 export function formatTaskLine(t: RpcDiscoveryTask): string {
-  const escrow = (Number(t.escrowAmount) / 1e6).toFixed(2);
+  const escrow = (Number(t.escrowAmount) / 1e18).toFixed(4);
   const worker = t.worker?.id ?? "none";
-  return `task ${t.id} · ${t.state} · $${escrow} USDC · poster ${t.poster.id} · worker ${worker}`;
+  return `task ${t.id} Â· ${t.state} Â· ${escrow} AZL Â· poster ${t.poster.id} Â· worker ${worker}`;
 }
 
 export function formatTaskListForAgent(tasks: RpcDiscoveryTask[], label: string): string {
@@ -226,43 +188,13 @@ export function formatTaskListForAgent(tasks: RpcDiscoveryTask[], label: string)
 }
 
 const TASK_STATE_GUIDE: Record<string, { meaning: string; poster: string[]; worker: string[] }> = {
-  POSTED: {
-    meaning: "Search listing — no worker assigned.",
-    poster: ["Wait for claim", "dismiss not available until CLAIMED"],
-    worker: ["claim-task ($5 USDC + 1k AZZLE)", "Check vault preflight first"],
-  },
-  CLAIMED: {
-    meaning: "Worker assigned or invited; work not started.",
-    poster: [
-      "fund-task (USDC approve → EscrowVault)",
-      "For market claims: start-work after fund",
-      "For direct hire: wait for worker accept-direct-hire",
-    ],
-    worker: [
-      "Market claim: wait for startWork or leave-task",
-      "Direct hire: accept-direct-hire or decline-direct-hire (terminal EXPIRED)",
-    ],
-  },
-  ACTIVE: {
-    meaning: "Work started (on-chain state index 3). Escrow may still be empty if startWork ran before fund.",
-    poster: ["fund-task if escrow empty (still allowed)", "Wait for proof", "open-dispute if needed"],
-    worker: ["submit-proof only when EscrowVault.lockedBalance > 0"],
-  },
-  IN_REVIEW: {
-    meaning: "Proof submitted; acceptance window open.",
-    poster: ["accept-milestone", "complete-task (final close)", "open-dispute"],
-    worker: ["Wait for poster accept/complete", "Any caller may resolve-stale-review after the review timeout"],
-  },
-  COMPLETED: {
-    meaning: "Task closed; escrow released.",
-    poster: ["None"],
-    worker: ["None"],
-  },
-  DISPUTED: {
-    meaning: "Funds frozen; arbitration in progress.",
-    poster: ["propose-arbitrator", "escalate", "provide dispute evidence"],
-    worker: ["propose-arbitrator", "escalate", "provide dispute evidence"],
-  },
+  POSTED: { meaning: "Public listing; no worker assigned.", poster: ["Wait for claim", "cancel while unfunded"], worker: ["claim"] },
+  CLAIMED: { meaning: "Worker assigned; awaiting AZL funding.", poster: ["approve AZL to EscrowVault", "fund"], worker: ["Wait for full funding"] },
+  ACTIVE: { meaning: "Fully funded AZL escrow; work may proceed.", poster: ["release AZL", "complete", "openDispute"], worker: ["markDelivered", "openDispute"] },
+  DISPUTED: { meaning: "Escrow frozen pending V2 arbitration.", poster: ["Await ruling or timeout"], worker: ["Await ruling or timeout"] },
+  COMPLETED: { meaning: "Task completed and escrow settled.", poster: ["None"], worker: ["None"] },
+  CANCELLED: { meaning: "Unfunded task cancelled.", poster: ["None"], worker: ["None"] },
+  RESOLVED: { meaning: "Dispute resolved and escrow settled.", poster: ["None"], worker: ["None"] },
 };
 
 export function formatTaskStateGuide(task: RpcDiscoveryTask): string {
@@ -272,11 +204,11 @@ export function formatTaskStateGuide(task: RpcDiscoveryTask): string {
     worker: ["See protocol/TASK_STATE_MACHINE.md"],
   };
   return [
-    `Task ${task.id} · ${task.state}`,
+    `Task ${task.id} Â· ${task.state}`,
     guide.meaning,
     `Poster next: ${guide.poster.join("; ")}`,
     `Worker next: ${guide.worker.join("; ")}`,
-    `Escrow: $${(Number(task.escrowAmount) / 1e6).toFixed(2)} USDC`,
+    `Total: ${(Number(task.escrowAmount) / 1e18).toFixed(4)} AZL`,
     `Poster: ${task.poster.id}`,
     `Worker: ${task.worker?.id ?? "none"}`,
   ].join("\n");
@@ -287,7 +219,5 @@ export const BANKR_PROMPTS = [
   "what is my wallet address on base?",
   "swap $45 of ETH to AZZLE on base",
   "what is my AZZLE balance on base?",
-  "approve USDC for AgentDepositVault on base",
-  "approve AZZLE for TreasuryRouter on base",
-  "post a task on AZZLE protocol",
+  "fund the AZL deposit through AzlPaymentGateway, then post a task on AZZLE protocol",
 ] as const;

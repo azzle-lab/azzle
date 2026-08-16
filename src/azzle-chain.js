@@ -313,6 +313,13 @@ const STAKING_ABI = [
   { type: "function", name: "stakeOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "creditsOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "creditsRemaining", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "accrued", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "totalStaked", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "accRewardPerShare", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "rewardRate", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "rewardFinish", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "lastUpdate", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "rewardDebt", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "pendingPayouts", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "stake", stateMutability: "nonpayable", inputs: [{ name: "amount", type: "uint256" }], outputs: [] },
   { type: "function", name: "unstake", stateMutability: "nonpayable", inputs: [{ name: "amount", type: "uint256" }, { name: "recipient", type: "address" }], outputs: [] },
@@ -1788,16 +1795,36 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       const cfg = await loadSiteConfig();
       const c = cfg.contracts;
       const publicClient = getPublicClient(cfg);
-      const [active, walletAzl, staked, credits, remaining, pending] = await publicClient.multicall({
+      const [active, walletAzl, staked, credits, remaining, accrued, totalStaked, accRewardPerShare, rewardRate, rewardFinish, lastUpdate, rewardDebt, pending] = await publicClient.multicall({
         contracts: [
           { address: c.stakingVault, abi: STAKING_ABI, functionName: "stakingActive" },
           { address: c.azlToken, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
           { address: c.stakingVault, abi: STAKING_ABI, functionName: "stakeOf", args: [address] },
           { address: c.stakingVault, abi: STAKING_ABI, functionName: "creditsOf", args: [address] },
           { address: c.stakingVault, abi: STAKING_ABI, functionName: "creditsRemaining" },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "accrued", args: [address] },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "totalStaked" },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "accRewardPerShare" },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "rewardRate" },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "rewardFinish" },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "lastUpdate" },
+          { address: c.stakingVault, abi: STAKING_ABI, functionName: "rewardDebt", args: [address] },
           { address: c.stakingVault, abi: STAKING_ABI, functionName: "pendingPayouts", args: [address] },
         ],
       });
+      const ACC = 10n ** 27n;
+      const now = BigInt(Math.floor(Date.now() / 1000));
+      const last = lastUpdate.result ?? 0n;
+      const finish = rewardFinish.result ?? 0n;
+      const total = totalStaked.result ?? 0n;
+      const until = now < finish ? now : finish;
+      const emission = until > last ? (until - last) * (rewardRate.result ?? 0n) : 0n;
+      const projectedAcc = total > 0n
+        ? (accRewardPerShare.result ?? 0n) + (emission * ACC) / total
+        : (accRewardPerShare.result ?? 0n);
+      const liveAccrued = (accrued.result ?? 0n)
+        + ((staked.result ?? 0n) * projectedAcc) / ACC
+        - (rewardDebt.result ?? 0n);
       return {
         signedIn: true,
         active: Boolean(active.result),
@@ -1806,7 +1833,8 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         credits: formatUnits(credits.result ?? 0n, 18),
         wholeCredits: formatUnits(credits.result ?? 0n, 18),
         creditsRemaining: formatUnits(remaining.result ?? 0n, 18),
-        claimableAzl: formatUnits(pending.result ?? 0n, 18),
+        claimableAzl: formatUnits(liveAccrued > 0n ? liveAccrued : 0n, 18),
+        pendingPayoutAzl: formatUnits(pending.result ?? 0n, 18),
       };
     },
 

@@ -1,54 +1,5 @@
-# Verifier Interface Standard
+# V2 bonded arbitrator interface reference
 
-Enables independent verifier markets without protocol forks.
+V2 does not implement verifier registration, attestation quorums, domains, confidence scores, or auto-release. The active bond surface is [`VerifierBondVaultV2.sol`](../../contracts/src/v2/VerifierBondVaultV2.sol): `bond`, `scheduleWithdrawal`, `withdraw`, eligibility views, and arbitration-only assignment/release/slash methods.
 
-## Onchain Registration
-
-```solidity
-interface IVerifierRegistry {
-    function registerVerifier(
-        bytes32[] calldata domains,
-        uint256 bond
-    ) external;
-
-    function attest(
-        uint256 taskId,
-        uint256 milestoneIndex,
-        bytes32 receiptHash,
-        bool valid,
-        bytes calldata metadata
-    ) external;
-}
-```
-
-## Off-Chain Adapter
-
-Verifiers implement `VerifierAdapter`:
-
-```typescript
-interface VerifierAdapter {
-  domain: string;
-  evaluate(receipt: ExecutionReceipt, criteria: AcceptanceCriteria): Promise<VerificationResult>;
-}
-
-interface VerificationResult {
-  valid: boolean;
-  confidence: number; // 0-1
-  evidenceHash: string;
-  notes?: string;
-}
-```
-
-## Domain Tags
-
-Examples: `software.deterministic`, `software.semi`, `legal.subjective`, `media.creative`
-
-Reputation for domain A MUST NOT automatically apply to domain B.
-
-## Quorum Mode
-
-Posters may require `minVerifiers` attestations with `minConfidence` aggregate before auto-release.
-
-## Economic Alignment
-
-Verifier bond slashed on proven false attestation (collusion with worker against poster).
+Verification may exist as offchain application policy. It must not be represented as V2 contract enforcement. See [the bond specification](../../arbitration/VERIFIER_SPEC.md).

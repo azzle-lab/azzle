@@ -3,31 +3,13 @@ export interface TaskTerms {
   worker: string;
   token?: string;
   totalAmount: bigint;
-  escrowMode?: number;
-  milestoneAmounts?: bigint[];
-  streamRate?: bigint;
-  hourBlockSize?: bigint;
   deadline: number;
   acceptanceCriteriaHash: string;
   chainId: bigint;
   registryAddress: string;
 }
 
-export interface AzzleClientConfig {
-  rpcUrl: string;
-  /** Settlement domain chain id; defaults to Base mainnet (8453). */
-  chainId?: bigint;
-  registryAddress: string;
-  escrowAddress: string;
-  arbitrationAddress?: string;
-  agentVaultAddress?: string;
-  /** UnionStakingVault address; defaults to the Base mainnet manifest entry. */
-  stakingVaultAddress?: string;
-  /** TaskScopeRegistry address; defaults to the Base mainnet manifest entry. */
-  taskScopeAddress?: string;
-  signer?: { address: string; signMessage: (msg: string) => Promise<string> };
-}
-
+/** Optional offchain delivery evidence. V2 does not submit or verify this onchain. */
 export interface ExecutionReceipt {
   schemaVersion: "azzle-receipt-v2";
   taskId: string;

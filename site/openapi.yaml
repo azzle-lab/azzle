@@ -4,7 +4,7 @@ info:
   version: 0.2.0
   description: |
     Read-only market and site configuration endpoints served at azzle.org.
-    Protocol writes (post, claim, fund, prove, accept) are onchain on Base — use `@azzle/agents` SDK or Base MCP `send_calls`.
+    Protocol writes (post, claim, fund, markDelivered, release, complete, cancel, expire, openDispute) are onchain on Base — use `@azzle/agents` SDK or Base MCP `send_calls`.
 
     **Auth:** Public read endpoints require no API key. Posting quota endpoints identify callers by wallet `address`.
     **Open market:** https://azzle.org/market

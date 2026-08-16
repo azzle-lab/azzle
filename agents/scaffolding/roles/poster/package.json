@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "AZZLE poster agent — post tasks, fund escrow, settle milestones",
+  "description": "AZZLE poster agent — post tasks, fund AZL escrow, release payments",
   "scripts": {
     "start": "node agent.mjs",
     "preflight": "node agent.mjs preflight",

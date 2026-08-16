@@ -161,6 +161,36 @@ body::after{
 }
 
 #ascii{display:none}
+body.page-home .ascii-wave-bg{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  width:100vw;
+  height:100vh;
+  pointer-events:none;
+  opacity:.3;
+  mix-blend-mode:multiply;
+}
+html:not([data-theme="light"]) body.page-home .ascii-wave-bg{
+  mix-blend-mode:screen;
+}
+body.page-home #parallax-bg{
+  display:none;
+}
+body.page-home .ascii-wave-bg{
+  filter:saturate(.7) brightness(.72);
+}
+html:not([data-theme="light"]) body.page-home{
+  --text:#f4f4f5;
+  --muted:#d4d4d8;
+  --dim:#a1a1aa;
+}
+html:not([data-theme="light"]) body.page-home .sb,
+html:not([data-theme="light"]) body.page-home .build-strip-text,
+html:not([data-theme="light"]) body.page-home .rd-how-lede,
+html:not([data-theme="light"]) body.page-home .rd-how-note{
+  text-shadow:0 1px 10px rgba(0,0,0,.72);
+}
 #ascii-light-bg{display:none}
 html[data-theme="light"] #ascii-light-bg{
   display:block;

@@ -3,13 +3,14 @@
   "$id": "https://azzle.org/schemas/xmtp/delivery-notice/v2",
   "title": "DeliveryNotice",
   "type": "object",
-  "required": ["type", "taskId", "milestoneIndex", "receiptHash"],
+  "description": "Off-chain delivery metadata sent after the worker calls TaskRegistry.markDelivered(taskId).",
+  "required": ["type", "taskId", "receiptHash"],
   "properties": {
     "type": { "const": "azzle/DeliveryNotice" },
-    "taskId": { "type": "string" },
-    "milestoneIndex": { "type": "integer", "minimum": 0 },
+    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
     "receiptHash": { "type": "string" },
     "receiptUri": { "type": "string", "format": "uri" },
     "artifactUris": { "type": "array", "items": { "type": "string" } }
-  }
+  },
+  "additionalProperties": false
 }

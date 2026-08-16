@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 export interface BaseMainnetV2Manifest {
   version: "2.0.0";
   chainId: "8453";
-  deploymentBlock: number;
+  deploymentBlock?: number;
   deployer: string;
   governance: string;
   factory: string;

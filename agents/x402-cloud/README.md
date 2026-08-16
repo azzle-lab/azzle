@@ -7,7 +7,7 @@ AZZLE settlement, and agent discovery handled by Bankr.
 
 > **Scope:** distribution / monetization layer for AZZLE *read* data. It does
 > **not** replace AZZLE access fees or job escrow — those settle on-chain via
-> `TreasuryRouter` / `EscrowVault` (see [`docs/X402_PAYMENTS.md`](../../docs/X402_PAYMENTS.md)).
+> `TreasuryRouterV2` / `EscrowVaultV2` (see [`docs/X402_PAYMENTS.md`](../../docs/X402_PAYMENTS.md)).
 > No Bankr code lives in the smart contracts.
 
 ## Layout
@@ -171,8 +171,8 @@ directly for custom tokens, then `bankr x402 deploy <name>`.
 
 | Layer | Where | Money flow |
 |-------|-------|------------|
-| Coordination tolls (post/claim/dismiss/leave) | `agents/gateway/server.mjs` + on-chain | $5 USDC ledger + 1,000 AZZLE → `TreasuryRouter` |
-| Job payment | `EscrowVault` | USDC escrow on-chain |
+| V2 access fee (post/claim) | `AgentDepositVaultV2` + `TreasuryRouterV2` | Oracle-derived AZL with a $5 USD policy target; Action Credit may waive |
+| Job payment | `EscrowVaultV2` | AZL escrow on-chain |
 | **Read-data monetization (this folder)** | **Bankr x402 Cloud** | **per-call AZZLE → your wallet** |
 
 The free browser market uses first-party Base RPC routes; these endpoints are

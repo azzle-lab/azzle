@@ -56,7 +56,7 @@ export interface CapabilityManifestV2 {
     supportedChains?: string[];
     maxConcurrency?: number;
     typicalLatencyMs?: number;
-    pricingHints?: { minAmount?: string; token?: string; unit?: "task" | "hour" | "milestone" };
+    pricingHints?: { minAmount?: string; token?: string; unit?: "task" };
   }>;
   verifierDomains?: string[];
   availability?: "available" | "busy" | "offline" | "on_request";

@@ -9,7 +9,6 @@ export type { LiveWorkerConfig, LiveWorkerRuntime } from "./live-worker.js";
 export {
   checkWorkerPreflight,
   logPreflightReport,
-  ensureAzlAllowance,
 } from "../sdk/preflight.js";
 export { BASE_MAINNET_MANIFEST } from "../sdk/manifest.js";
 export { createXmtpClient } from "../sdk/xmtp/signer.js";

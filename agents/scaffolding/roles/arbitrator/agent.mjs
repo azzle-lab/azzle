@@ -1,12 +1,11 @@
 import { Contract, ethers } from "ethers";
-import { AzzleClient, checkWorkerPreflight, logPreflightReport } from "@azzle/agents";
+import { AzzleV2Client, checkWorkerPreflight, logPreflightReport } from "@azzle/agents";
 import { loadManifest } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
 loadDotEnv(import.meta.url);
 
 const manifest = loadManifest(import.meta.url, "base-8453.json");
-import { guardRegistrationCooldown } from "./lib/cooldown.mjs";
 import { checkTierEligibility, tierForAmountUsdc6, workerBpsSplit } from "./lib/tiers.mjs";
 import { runResolutionWatchdog } from "./lib/watchdog.mjs";
 
@@ -24,12 +23,7 @@ function requireSigner() {
 }
 
 function connectClient(signer) {
-  return new AzzleClient({
-    rpcUrl,
-    registryAddress: manifest.taskRegistry,
-    escrowAddress: manifest.escrowVault,
-    arbitrationAddress: manifest.arbitrationModule,
-  }).connect(signer);
+  return new AzzleV2Client(manifest, rpcUrl).connect(signer);
 }
 
 async function readArbitratorStats(provider, wallet) {
@@ -46,9 +40,7 @@ async function runPreflight() {
   const wallet = await signer.getAddress();
   const report = await checkWorkerPreflight(signer.provider, wallet, {
     agentDepositVault: manifest.depositVault,
-    treasuryRouter: manifest.treasuryRouter,
     azlToken: manifest.external.azl,
-    usdc: manifest.external.usdc,
   });
   logPreflightReport(report);
   const stats = await readArbitratorStats(signer.provider, wallet);
@@ -63,49 +55,38 @@ async function runPreflight() {
   }
 }
 
-async function registerStandby(taskIdArg) {
+async function assignArbitrator(taskIdArg) {
   const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: npm run register -- <taskId>");
-
-  const signer = requireSigner();
-  const wallet = await signer.getAddress();
-  await guardRegistrationCooldown(signer.provider, wallet);
-
-  const client = connectClient(signer);
-  console.log("[arbitrator] registerArbitrator (standby +10 rep)", taskId.toString());
-  const tx = await client.registerArbitrator(taskId);
-  await tx.wait();
-}
-
-async function proposeFlow(disputeIdArg, arbitratorArg) {
-  const disputeId = BigInt(disputeIdArg ?? process.env.DISPUTE_ID ?? "0");
-  const arbitrator = arbitratorArg ?? process.env.ARBITRATOR_ADDRESS ?? (await requireSigner().getAddress());
-  if (disputeId === 0n) throw new Error("Usage: node agent.mjs propose <disputeId> [arbitrator]");
+  if (taskId === 0n) throw new Error("Usage: npm run assign -- <taskId>");
 
   const client = connectClient(requireSigner());
-  console.log("[arbitrator] proposeArbitrator — both parties must call with same address");
-  const tx = await client.proposeArbitrator(disputeId, arbitrator);
+  console.log("[arbitrator] assigning a bonded panel member", taskId.toString());
+  const tx = await client.assignArbitrator(taskId);
   await tx.wait();
 }
 
-async function resolveFlow(disputeIdArg, workerPercentArg) {
-  const disputeId = BigInt(disputeIdArg ?? process.env.DISPUTE_ID ?? "0");
+async function ruleFlow(taskIdArg, workerPercentArg) {
+  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
   const workerPercent = Number(workerPercentArg ?? process.env.WORKER_PERCENT ?? "50");
-  if (disputeId === 0n) throw new Error("Usage: npm run resolve -- <disputeId> [workerPercent]");
+  const outcome = Number(process.env.DISPUTE_OUTCOME ?? "3");
+  if (taskId === 0n) throw new Error("Usage: npm run rule -- <taskId> [workerPercent]");
+  if (!Number.isInteger(outcome) || outcome < 1 || outcome > 4) {
+    throw new Error("DISPUTE_OUTCOME must be a V2 outcome from 1 to 4");
+  }
 
   const client = connectClient(requireSigner());
   const workerBps = workerBpsSplit(workerPercent);
-  console.log("[arbitrator] resolveDispute", { disputeId: disputeId.toString(), workerBps });
-  const tx = await client.resolveDispute(disputeId, workerBps);
+  console.log("[arbitrator] ruling on V2 dispute", { taskId: taskId.toString(), outcome, workerBps });
+  const tx = await client.rule(taskId, outcome, workerBps);
   await tx.wait();
 }
 
-async function watchdogFlow(disputeIdArg) {
-  const disputeId = BigInt(disputeIdArg ?? process.env.DISPUTE_ID ?? "0");
-  if (disputeId === 0n) throw new Error("Usage: npm run watchdog -- <disputeId>");
+async function watchdogFlow(taskIdArg) {
+  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
+  if (taskId === 0n) throw new Error("Usage: npm run watchdog -- <taskId>");
   const signer = requireSigner();
   const client = connectClient(signer);
-  await runResolutionWatchdog(client, signer.provider, disputeId);
+  await runResolutionWatchdog(client, signer.provider, taskId);
 }
 
 async function tierCheck(amountArg) {
@@ -116,9 +97,7 @@ async function tierCheck(amountArg) {
   const stats = await readArbitratorStats(signer.provider, wallet);
   const report = await checkWorkerPreflight(signer.provider, wallet, {
     agentDepositVault: manifest.depositVault,
-    treasuryRouter: manifest.treasuryRouter,
     azlToken: manifest.external.azl,
-    usdc: manifest.external.usdc,
   });
   const result = checkTierEligibility(tier, {
     rep: stats.rep,
@@ -137,16 +116,12 @@ async function main() {
     await runPreflight();
     return;
   }
-  if (cmd === "register") {
-    await registerStandby(a);
+  if (cmd === "assign") {
+    await assignArbitrator(a);
     return;
   }
-  if (cmd === "propose") {
-    await proposeFlow(a, b);
-    return;
-  }
-  if (cmd === "resolve") {
-    await resolveFlow(a, b);
+  if (cmd === "rule") {
+    await ruleFlow(a, b);
     return;
   }
   if (cmd === "watchdog") {
@@ -162,11 +137,10 @@ async function main() {
   console.log("");
   console.log("Commands:");
   console.log("  npm run preflight              # deposit + tier eligibility");
-  console.log("  npm run register -- <taskId>   # standby farming (+10 rep)");
-  console.log("  node agent.mjs propose <disputeId> [arbitrator]");
-  console.log("  npm run resolve -- <disputeId> [workerPercent]");
-  console.log("  npm run watchdog -- <disputeId> # 7-day RESOLUTION_TIMEOUT");
-  console.log("  node agent.mjs tier-check [amountUsdc6]");
+  console.log("  node agent.mjs assign <taskId> # permissionless capacity fallback");
+  console.log("  node agent.mjs rule <taskId> [workerPercent] # set DISPUTE_OUTCOME=1..4");
+  console.log("  npm run watchdog -- <taskId>   # calls V2 timeout after deadlines");
+  console.log("  node agent.mjs tier-check [amountUsd6]");
 }
 
 main().catch((err) => {

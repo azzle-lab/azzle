@@ -10,10 +10,10 @@
  */
 
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const REPUTATION = "0xa35Ca46926DD319fD47cA1b2b77835EDb7404de";
-const ARBITRATOR_REPUTATION = "0xcb1f3217";
-const VERIFIER_BOND = "0xc13c5e2a";
-const SUBJECT_SIGNAL_COUNT = "0x04a68640";
+const REPUTATION = "0xb5827Bb3bb9760Ed72eA1416818188a8e71851B6";
+const VERIFIER_BOND_VAULT = "0xFeF0722d2f3ba0FEb59b3fd5dCAaF49e69BD5387";
+const REPUTATION_OF = "0xb9f79451"; // reputation(address)
+const BONDS = "0xfe10d774"; // bonds(address)
 
 async function rpc<T>(method: string, params: unknown[]): Promise<T> {
   const res = await fetch(RPC_URL, {
@@ -46,21 +46,20 @@ export default async function handler(req: Request) {
   }
 
   const arg = addressArg(address);
-  const [reputationScore, verifierBondEth, signalCount] = await Promise.all([
-    rpc<string>("eth_call", [{ to: REPUTATION, data: `${ARBITRATOR_REPUTATION}${arg}` }, "latest"]),
-    rpc<string>("eth_call", [{ to: REPUTATION, data: `${VERIFIER_BOND}${arg}` }, "latest"]),
-    rpc<string>("eth_call", [{ to: REPUTATION, data: `${SUBJECT_SIGNAL_COUNT}${arg}` }, "latest"]),
+  const [reputationRow, verifierBondAzl] = await Promise.all([
+    rpc<string>("eth_call", [{ to: REPUTATION, data: `${REPUTATION_OF}${arg}` }, "latest"]),
+    rpc<string>("eth_call", [{ to: VERIFIER_BOND_VAULT, data: `${BONDS}${arg}` }, "latest"]),
   ]);
+  const words = reputationRow.slice(2).match(/.{64}/g) ?? [];
+  const [completed, wins, losses] = words.map((word) => BigInt(`0x${word}`).toString());
   return {
     protocol: "azzle",
     chainId: 8453,
     address: address.toLowerCase(),
     found: true,
-    reputationScore: BigInt(reputationScore).toString(),
-    verifierBondEth: BigInt(verifierBondEth).toString(),
-    signalCount: BigInt(signalCount).toString(),
-    signals: [],
-    note: "On-chain aggregate values; event history is intentionally not indexed by this RPC endpoint.",
+    completed, wins, losses,
+    verifierBondAzl: BigInt(verifierBondAzl).toString(),
+    note: "Canonical V2 counters and AZL verifier bond; event history is not indexed by this endpoint.",
     generatedAt: Math.floor(Date.now() / 1000),
   };
 }

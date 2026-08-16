@@ -77,6 +77,7 @@ const STATIC = [
   "theme-init.js",
   "theme-toggle.js",
   "docs-bg.js",
+  "ascii-beach-waves.js",
 ];
 
 async function copyDirRecursive(srcDir, destDir) {

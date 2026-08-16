@@ -8,26 +8,25 @@ const ERC20_ABI = [
   "function allowance(address owner, address spender) external view returns (uint256)",
 ];
 
-const ESCROW_ABI = ["function depositFor(uint256 taskId, uint256 amount) external"];
-
 /**
- * fundTask pulls USDC from poster wallet into EscrowVault via TaskRegistry.fundTask.
- * Ensure USDC allowance → EscrowVault before calling.
+ * fund pulls AZL from the poster wallet into EscrowVault through TaskRegistryV2.
+ * Ensure AZL allowance → EscrowVault before calling.
  */
-export async function fundTaskEscrow(client, signer, taskId, amountUsdc6) {
+export async function fundTaskEscrow(client, signer, taskId, amountAzlWei) {
+  if (amountAzlWei <= 0n) throw new Error("Escrow funding amount must be positive AZL wei");
   const escrow = manifest.escrowVault;
-  const usdc = new Contract(manifest.external.usdc, ERC20_ABI, signer);
-  const allowance = await usdc.allowance(await signer.getAddress(), escrow);
-  if (allowance < amountUsdc6) {
-    console.log("[escrow] approving USDC for EscrowVault");
-    const tx = await usdc.approve(escrow, ethers.MaxUint256);
+  const azl = new Contract(manifest.external.azl, ERC20_ABI, signer);
+  const allowance = await azl.allowance(await signer.getAddress(), escrow);
+  if (allowance < amountAzlWei) {
+    console.log("[escrow] approving AZL for EscrowVault");
+    const tx = await azl.approve(escrow, ethers.MaxUint256);
     await tx.wait();
   }
 
-  console.log("[escrow] fundTask", { taskId: taskId.toString(), amount: amountUsdc6.toString() });
-  const tx = await client.fundTask(taskId, amountUsdc6);
+  console.log("[escrow] funding AZL", { taskId: taskId.toString(), amountAzlWei: amountAzlWei.toString() });
+  const tx = await client.fund(taskId, amountAzlWei);
   await tx.wait();
-  console.log("[escrow] EscrowVault.depositFor complete via fundTask");
+  console.log("[escrow] task escrow funded");
 }
 
 const TASK_STATE = { POSTED: 1, CLAIMED: 2, ACTIVE: 3 };
@@ -36,13 +35,9 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Search-market start: poll for a claim, then let the poster activate the task.
- * Direct-hire invitations must instead be activated by the invited worker via
- * acceptDirectHire; the poster cannot start them.
- */
-export async function startMarketWorkWhenClaimed(client, taskId, options = {}) {
-  const timeoutMs = options.timeoutMs ?? Number(process.env.START_WORK_TIMEOUT_MS ?? 300_000);
+/** Wait for a worker claim before funding the V2 task escrow. */
+export async function waitForWorkerClaim(client, taskId, options = {}) {
+  const timeoutMs = options.timeoutMs ?? Number(process.env.CLAIM_TIMEOUT_MS ?? 300_000);
   const pollMs = options.pollMs ?? 3_000;
   const deadline = Date.now() + timeoutMs;
 
@@ -53,14 +48,11 @@ export async function startMarketWorkWhenClaimed(client, taskId, options = {}) {
       return true;
     }
     if (state === TASK_STATE.CLAIMED) {
-      console.log("[escrow] startWork", { taskId: taskId.toString() });
-      const tx = await client.startWork(taskId);
-      await tx.wait();
-      console.log("[escrow] task ACTIVE — worker can now submitProof");
+      console.log("[escrow] worker claimed task; ready to fund", { taskId: taskId.toString() });
       return true;
     }
     if (state !== TASK_STATE.POSTED) {
-      console.warn("[escrow] unexpected task state — skipping market startWork", {
+      console.warn("[escrow] unexpected task state — skipping funding", {
         taskId: taskId.toString(),
         state,
       });
@@ -69,7 +61,7 @@ export async function startMarketWorkWhenClaimed(client, taskId, options = {}) {
     if (Date.now() >= deadline) {
       console.warn(
         `[escrow] no worker claimed task ${taskId} within ${Math.round(timeoutMs / 1000)}s — ` +
-          `run \`node agent.mjs start ${taskId}\` after a claim to activate it`
+          "fund it after a worker claims"
       );
       return false;
     }
@@ -77,9 +69,10 @@ export async function startMarketWorkWhenClaimed(client, taskId, options = {}) {
   }
 }
 
-export async function acceptMilestone(client, taskId, milestoneIndex = 0) {
-  console.log("[escrow] acceptMilestone", { taskId: taskId.toString(), milestoneIndex });
-  const tx = await client.acceptMilestone(taskId, milestoneIndex);
+export async function release(client, taskId, amountAzlWei) {
+  if (amountAzlWei <= 0n) throw new Error("Release amount must be positive AZL wei");
+  console.log("[escrow] release", { taskId: taskId.toString(), amountAzlWei: amountAzlWei.toString() });
+  const tx = await client.release(taskId, amountAzlWei);
   await tx.wait();
 }
 

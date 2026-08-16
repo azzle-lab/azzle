@@ -5,18 +5,14 @@
  * Prerequisite: cd agents && npm run build
  *
  *   npm run mcp:prepare -- read --from 0x...
- *   npm run mcp:prepare -- onboarding --from 0x... --top-up-amount 50000000
- *   npm run mcp:prepare -- claim-task --from 0x... --task-id 42
+ *   npm run mcp:prepare -- claim --from 0x... --task-id 42
  */
 import { ethers } from "ethers";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  parseTaskTerms,
-} from "./terms-utils.mjs";
-import { buildExecutionReceipt } from "../dist/sdk/receipt.js";
-import { buildTaskTermsBundle } from "./xmtp-helpers.mjs";
+import { parseTaskPreview } from "./terms-utils.mjs";
+import { buildTaskPreview } from "./xmtp-helpers.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(
@@ -25,8 +21,7 @@ const manifest = JSON.parse(
 
 const CHAIN_ID = 8453;
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
-const MIN_VAULT_USDC = 25_000_000n; // $25 entry collateral target
-const MIN_AZL_ALLOWANCE = 1_000n * 10n ** 18n;
+const MIN_VAULT_AZL = 1n;
 const MAX_UINT256 = ethers.MaxUint256;
 
 const ERC20_IFACE = new ethers.Interface([
@@ -35,16 +30,12 @@ const ERC20_IFACE = new ethers.Interface([
   "function balanceOf(address account) view returns (uint256)",
 ]);
 const VAULT_IFACE = new ethers.Interface([
-  "function topUp(uint256 amount)",
-  "function balanceOf(address agent) view returns (uint256)",
-  "function availableBalance(address agent) view returns (uint256)",
-  "function withdrawTo(address to, uint256 amount)",
-  "function claimPayout(address to)",
+  "function deposits(address agent) view returns (uint256)",
+  "function available(address agent) view returns (uint256)",
 ]);
 const REGISTRY_IFACE = new ethers.Interface([
   "function post(uint256 totalAmount, uint64 deadline) returns (uint256)",
   "function claim(uint256 taskId)",
-  "function activate(uint256 taskId)",
   "function fund(uint256 taskId, uint256 amount)",
   "function markDelivered(uint256 taskId)",
   "function release(uint256 taskId, uint256 amount)",
@@ -55,23 +46,18 @@ const REGISTRY_IFACE = new ethers.Interface([
 ]);
 
 const ARBITRATION_IFACE = new ethers.Interface([
-  "function registerArbitrator(uint256 taskId)",
-  "function registerArbitratorGlobal()",
-  "function proposeArbitrator(uint256 disputeId, address arbitrator)",
-  "function resolveDispute(uint256 disputeId, uint256 workerBps)",
-  "function resolveTimedOut(uint256 disputeId)",
-  "function assignFallbackResolver(uint256 disputeId)",
-  "function retrySideEffects(uint256 disputeId)",
-  "function claimBondPayout(address to)",
-  "function escalate(uint256 disputeId)",
+  "function assignArbitrator(uint256 taskId) returns (address)",
+  "function submitEvidence(uint256 taskId, bytes32 evidenceHash)",
+  "function beginRuling(uint256 taskId)",
+  "function rule(uint256 taskId, uint8 outcome, uint16 workerBps)",
+  "function timeout(uint256 taskId)",
 ]);
 
 const SCOPE_IFACE = new ethers.Interface([
-  "function setScope(uint256 taskId, string scope)",
+  "function publish(uint256 taskId, string scope)",
   "function scopeOf(uint256 taskId) view returns (string)",
 ]);
 
-const ESCROW_MODE = { milestone: 1, streaming: 2, hour_blocks: 3 };
 
 function parseArgs(argv) {
   const positional = [];
@@ -121,50 +107,31 @@ function requireFrom(flags) {
 
 async function readAllowances(from) {
   const provider = new ethers.JsonRpcProvider(RPC_URL);
-  const usdc = new ethers.Contract(manifest.external.usdc, ERC20_IFACE, provider);
   const azl = new ethers.Contract(manifest.external.azl, ERC20_IFACE, provider);
   const vault = new ethers.Contract(manifest.depositVault, VAULT_IFACE, provider);
 
-  const [vaultUsdc, walletUsdc, azlBalance, azlAllowance, usdcAllowanceVault, usdcAllowanceEscrow] =
+  const [vaultAzl, azlBalance, escrowAllowance] =
     await Promise.all([
-      vault.balanceOf(from),
-      usdc.balanceOf(from),
+      vault.deposits(from),
       azl.balanceOf(from),
-      azl.allowance(from, manifest.treasuryRouter),
-      usdc.allowance(from, manifest.depositVault),
-      usdc.allowance(from, manifest.escrowVault),
+      azl.allowance(from, manifest.escrowVault),
     ]);
 
   return {
-    vaultUsdc,
-    walletUsdc,
+    vaultAzl,
     azlBalance,
-    azlAllowance,
-    usdcAllowanceVault,
-    usdcAllowanceEscrow,
+    escrowAllowance,
   };
 }
 
-async function maybeAzlApprove(from, transactions) {
-  const { azlAllowance } = await readAllowances(from);
-  if (azlAllowance >= MIN_AZL_ALLOWANCE) return;
+async function maybeEscrowApprove(from, amount, transactions) {
+  const { escrowAllowance } = await readAllowances(from);
+  if (escrowAllowance >= amount) return;
   transactions.push(
     tx(
       "approve-azl",
       manifest.external.azl,
-      encodeApprove(manifest.external.azl, manifest.treasuryRouter, MAX_UINT256)
-    )
-  );
-}
-
-async function maybeUsdcApproveEscrow(from, amount, transactions) {
-  const { usdcAllowanceEscrow } = await readAllowances(from);
-  if (usdcAllowanceEscrow >= BigInt(amount)) return;
-  transactions.push(
-    tx(
-      "approve-usdc-escrow",
-      manifest.external.usdc,
-      encodeApprove(manifest.external.usdc, manifest.escrowVault, MAX_UINT256)
+      encodeApprove(manifest.external.azl, manifest.escrowVault, MAX_UINT256)
     )
   );
 }
@@ -176,18 +143,6 @@ function encodeDisputeEvidence(raw) {
   return ethers.getBytes(ethers.id(raw));
 }
 
-async function maybeUsdcApproveVault(from, amount, transactions) {
-  const { usdcAllowanceVault } = await readAllowances(from);
-  if (usdcAllowanceVault >= BigInt(amount)) return;
-  transactions.push(
-    tx(
-      "approve-usdc-vault",
-      manifest.external.usdc,
-      encodeApprove(manifest.external.usdc, manifest.depositVault, MAX_UINT256)
-    )
-  );
-}
-
 function batchResponse(action, transactions) {
   return { ok: true, action, chainId: CHAIN_ID, transactions };
 }
@@ -195,18 +150,11 @@ function batchResponse(action, transactions) {
 async function cmdRead(from) {
   const state = await readAllowances(from);
   const warnings = [];
-  if (state.vaultUsdc < MIN_VAULT_USDC) {
+  if (state.vaultAzl < MIN_VAULT_AZL) {
     warnings.push(
-      `AgentDepositVault ${state.vaultUsdc} < ${MIN_VAULT_USDC} ($25 entry collateral target); $45 is the recommended posting/claiming balance with reserve, fee, and buffer.`
+      `AgentDepositVault ${state.vaultAzl} AZL; fund the deposit via AzlPaymentGateway.`
     );
   }
-  if (state.azlBalance < MIN_AZL_ALLOWANCE) {
-    warnings.push(`Wallet AZL ${state.azlBalance} < 1000 AZZLE for access fees.`);
-  }
-  if (state.azlAllowance < MIN_AZL_ALLOWANCE) {
-    warnings.push("AZL not approved for TreasuryRouter.");
-  }
-
   output({
     ok: true,
     action: "read",
@@ -216,132 +164,55 @@ async function cmdRead(from) {
       taskRegistry: manifest.taskRegistry,
       depositVault: manifest.depositVault,
       escrowVault: manifest.escrowVault,
-      treasuryRouter: manifest.treasuryRouter,
-      usdc: manifest.external.usdc,
       azl: manifest.external.azl,
     },
     balances: {
-      vaultUsdc: state.vaultUsdc.toString(),
-      walletUsdc: state.walletUsdc.toString(),
+      vaultAzlWei: state.vaultAzl.toString(),
       azlBalanceWei: state.azlBalance.toString(),
-      azlAllowanceRouter: state.azlAllowance.toString(),
-      usdcAllowanceVault: state.usdcAllowanceVault.toString(),
-      usdcAllowanceEscrow: state.usdcAllowanceEscrow.toString(),
+      azlAllowanceEscrowVault: state.escrowAllowance.toString(),
     },
     warnings,
     readyForFeeActions:
-      state.vaultUsdc >= MIN_VAULT_USDC &&
-      state.azlBalance >= MIN_AZL_ALLOWANCE &&
-      state.azlAllowance >= MIN_AZL_ALLOWANCE,
+      state.vaultAzl >= MIN_VAULT_AZL &&
+      state.azlBalance > 0n,
   });
 }
 
-async function cmdOnboarding(from, flags) {
-  const topUpAmount = BigInt(flags.top_up_amount ?? "50000000");
-  const transactions = [];
-  await maybeUsdcApproveVault(from, topUpAmount, transactions);
-  await maybeAzlApprove(from, transactions);
-  transactions.push(
-    tx(
-      "top-up",
-      manifest.depositVault,
-      VAULT_IFACE.encodeFunctionData("topUp", [topUpAmount])
-    )
-  );
-  output(batchResponse("onboarding", transactions));
-}
-
-async function cmdApproveUsdcEscrow(from) {
+async function cmdApproveAzlEscrow() {
   output(
-    batchResponse("approve-usdc-escrow", [
+    batchResponse("approve-azl-escrow", [
       tx(
-        "approve-usdc-escrow",
-        manifest.external.usdc,
-        encodeApprove(manifest.external.usdc, manifest.escrowVault, MAX_UINT256)
-      ),
-    ])
-  );
-}
-
-async function cmdApproveUsdcVault(from) {
-  output(
-    batchResponse("approve-usdc-vault", [
-      tx(
-        "approve-usdc-vault",
-        manifest.external.usdc,
-        encodeApprove(manifest.external.usdc, manifest.depositVault, MAX_UINT256)
-      ),
-    ])
-  );
-}
-
-async function cmdApproveAzlRouter(from) {
-  output(
-    batchResponse("approve-azl-router", [
-      tx(
-        "approve-azl-router",
+        "approve-azl-escrow",
         manifest.external.azl,
-        encodeApprove(manifest.external.azl, manifest.treasuryRouter, MAX_UINT256)
+        encodeApprove(manifest.external.azl, manifest.escrowVault, MAX_UINT256)
       ),
     ])
   );
 }
 
-async function cmdTopUp(from, flags) {
-  const amount = BigInt(flags.amount ?? fail("--amount required (USDC 6 decimals)"));
-  const transactions = [];
-  await maybeUsdcApproveVault(from, amount, transactions);
-  transactions.push(
-    tx(
-      "top-up",
-      manifest.depositVault,
-      VAULT_IFACE.encodeFunctionData("topUp", [amount])
-    )
-  );
-  output(batchResponse("top-up", transactions));
-}
-
-async function cmdClaimTask(from, flags) {
+async function cmdClaim(flags) {
   const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
-  const transactions = [];
-  if (flags.skip_approvals !== "true") {
-    await maybeAzlApprove(from, transactions);
-  }
-  transactions.push(
+  output(batchResponse("claim", [
     tx(
-      "claim-task",
+      "claim",
       manifest.taskRegistry,
       REGISTRY_IFACE.encodeFunctionData("claim", [taskId])
-    )
-  );
-  output(batchResponse("claim-task", transactions));
-}
-
-function parseTaskTermsFromFlags(from, flags, options = {}) {
-  return parseTaskTerms(from, flags, manifest, { ...options, fail });
-}
-
-async function cmdCreateTask(from, flags) {
-  const parsed = parseTaskTermsFromFlags(from, flags, { requireWorker: true });
-  if (parsed.terms.worker !== ethers.ZeroAddress) fail("V2 public posts cannot specify a worker");
-  output(batchResponse("create-task", [
-    tx("create-task", manifest.taskRegistry, REGISTRY_IFACE.encodeFunctionData("post", [
-      parsed.terms.totalAmount, parsed.terms.deadline,
-    ])),
+    ),
   ]));
 }
 
-async function cmdPostTask(from, flags) {
-  const parsed = parseTaskTermsFromFlags(from, flags);
+function parseTaskPreviewFromFlags(from, flags) {
+  return parseTaskPreview(from, flags, manifest, { fail });
+}
+
+async function cmdPost(from, flags) {
+  const parsed = parseTaskPreviewFromFlags(from, flags);
   const transactions = [];
-  if (flags.skip_approvals !== "true") {
-    await maybeAzlApprove(from, transactions);
-  }
   transactions.push(
     tx(
-      "post-task",
+      "post",
       manifest.taskRegistry,
-      REGISTRY_IFACE.encodeFunctionData("post", [parsed.terms.totalAmount, parsed.terms.deadline])
+      REGISTRY_IFACE.encodeFunctionData("post", [parsed.totalAmount, parsed.deadline])
     )
   );
 
@@ -358,26 +229,26 @@ async function cmdPostTask(from, flags) {
     const nextTaskId = BigInt(taskCount) + 1n;
     transactions.push(
       tx(
-        "set-scope",
+        "publish-scope",
         scopeRegistry,
-        SCOPE_IFACE.encodeFunctionData("setScope", [nextTaskId, scopeText])
+        SCOPE_IFACE.encodeFunctionData("publish", [nextTaskId, scopeText])
       )
     );
   }
 
-  output({ ...batchResponse("post-task", transactions), warnings: parsed.warnings });
+  output(batchResponse("post", transactions));
 }
 
-async function cmdSetScope(from, flags) {
+async function cmdSetScope(flags) {
   const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
   const scope = (flags.scope_text ?? flags.scope ?? fail("--scope-text required")).trim();
   if (!manifest.taskScopeRegistry) fail("taskScopeRegistry not in manifest");
   output(
-    batchResponse("set-scope", [
+    batchResponse("publish-scope", [
       tx(
-        "set-scope",
+        "publish-scope",
         manifest.taskScopeRegistry,
-        SCOPE_IFACE.encodeFunctionData("setScope", [taskId, scope])
+        SCOPE_IFACE.encodeFunctionData("publish", [taskId, scope])
       ),
     ])
   );
@@ -391,24 +262,24 @@ function cmdArbitration(action, fn, extraArgs) {
   );
 }
 
-async function cmdFundTask(from, flags) {
+async function cmdFund(from, flags) {
   const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
   const amount = BigInt(flags.amount ?? fail("--amount required"));
   const transactions = [];
   if (flags.skip_approvals !== "true") {
-    await maybeUsdcApproveEscrow(from, amount, transactions);
+    await maybeEscrowApprove(from, amount, transactions);
   }
   transactions.push(
     tx(
-      "fund-task",
+      "fund",
       manifest.taskRegistry,
       REGISTRY_IFACE.encodeFunctionData("fund", [taskId, amount])
     )
   );
-  output(batchResponse("fund-task", transactions));
+  output(batchResponse("fund", transactions));
 }
 
-async function cmdOpenDispute(from, flags) {
+async function cmdOpenDispute(flags) {
   const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
   const evidence = flags.evidence ?? flags.evidence_hash ?? "dispute-evidence";
   output(
@@ -432,32 +303,21 @@ function cmdHashCriteria(flags) {
   });
 }
 
-function cmdPrepareReceipt(flags) {
-  const taskId = String(flags.task_id ?? fail("--task-id required"));
-  const worker = flags.worker ?? fail("--worker required");
-  if (!ethers.isAddress(worker)) fail("--worker must be a valid address");
-  const milestoneIndex = Number(flags.milestone_index ?? "0");
-  const artifactType = flags.artifact_type ?? "deliverable";
-  const artifactHash = flags.artifact_hash ?? fail("--artifact-hash required");
-  const artifact = { type: artifactType, hash: artifactHash };
-  if (flags.artifact_uri) artifact.uri = flags.artifact_uri;
-  const receipt = buildExecutionReceipt({
-    taskId,
-    milestoneIndex,
-    worker: ethers.getAddress(worker),
-    artifacts: [artifact],
+function cmdHashEvidence(flags) {
+  const text = flags.text ?? flags.evidence ?? fail("--text required");
+  output({
+    ok: true,
+    action: "hash-evidence",
+    nonbindingEvidenceHash: ethers.id(text),
+    note: "Nonbinding off-chain evidence hash. Pass it to open-dispute only when appropriate.",
   });
-  output({ ok: true, action: "prepare-receipt", receipt });
 }
 
-async function cmdRegistryCall(action, fn, flags, extraArgs = [], { accessFee = false } = {}) {
-  const from = requireFrom(flags);
-  const transactions = [];
-  if (accessFee && flags.skip_approvals !== "true") {
-    await maybeAzlApprove(from, transactions);
-  }
-  transactions.push(tx(action, manifest.taskRegistry, REGISTRY_IFACE.encodeFunctionData(fn, extraArgs)));
-  output(batchResponse(action, transactions));
+async function cmdRegistryCall(action, fn, flags, extraArgs = []) {
+  requireFrom(flags);
+  output(batchResponse(action, [
+    tx(action, manifest.taskRegistry, REGISTRY_IFACE.encodeFunctionData(fn, extraArgs)),
+  ]));
 }
 
 function usage() {
@@ -466,67 +326,47 @@ function usage() {
 
 Actions:
   read                         Wallet + vault preflight (read-only JSON)
-  onboarding                   approve USDC/AZL (if needed) + topUp
-  approve-usdc-vault           ERC20 approve USDC → AgentDepositVault (deposits / access fees)
-  approve-usdc-escrow          ERC20 approve USDC → EscrowVault (job funding)
-  approve-azl-router           ERC20 approve AZZLE → TreasuryRouter
-  top-up                       AgentDepositVault.topUp
-  claim-task                   TaskRegistryV2.claim (+ AZL approve if needed)
-  post-task                    TaskRegistryV2.post — AZL-denominated market task
-  create-task                  Alias for V2 post (direct hire unsupported)
-  fund-task                    TaskRegistryV2.fund (+ USDC approve → EscrowVault if needed)
-  start-work                   TaskRegistryV2.activate
+  approve-azl-escrow           ERC20 approve AZL → escrowVault
+  post                         TaskRegistryV2.post
+  claim                        TaskRegistryV2.claim
+  fund                         TaskRegistryV2.fund (+ AZL approval when needed)
   mark-delivered               TaskRegistryV2.markDelivered
   release                      TaskRegistryV2.release
-  complete-task                TaskRegistryV2.complete
-  expire-task                  TaskRegistryV2.expire (permissionless after deadline)
+  complete                     TaskRegistryV2.complete
+  cancel                       TaskRegistryV2.cancel
+  expire                       TaskRegistryV2.expire (permissionless after deadline)
   open-dispute                 TaskRegistry.openDispute
-  cancel-task                  TaskRegistryV2.cancel (+ AZL approve if needed)
-  register-arbitrator          ArbitrationModule.registerArbitrator
-  register-arbitrator-global   ArbitrationModule.registerArbitratorGlobal
-  propose-arbitrator           ArbitrationModule.proposeArbitrator
-  resolve-dispute              ArbitrationModule.resolveDispute
-  resolve-timed-out            ArbitrationModule.resolveTimedOut
-  assign-fallback-resolver     ArbitrationModule.assignFallbackResolver
-  retry-dispute-side-effects   ArbitrationModule.retrySideEffects
-  claim-bond-payout            ArbitrationModule.claimBondPayout
-  escalate                     ArbitrationModule.escalate
-  build-task-terms             Terms JSON + settlement digest (read-only)
-  hash-criteria                Hash acceptance criteria text → bytes32 (read-only)
-  prepare-receipt              Build execution receipt + receiptHash (read-only)
+  assign-arbitrator            ArbitrationModule.assignArbitrator
+  submit-evidence              ArbitrationModule.submitEvidence
+  begin-ruling                 ArbitrationModule.beginRuling
+  rule-dispute                 ArbitrationModule.rule
+  timeout-dispute              ArbitrationModule.timeout
+  build-task-preview           V2 task preview + nonbinding off-chain hash (read-only)
+  hash-criteria                Hash acceptance criteria text (read-only)
+  hash-evidence                Hash nonbinding off-chain evidence text (read-only)
 
 Common flags:
-  --from <0x>                  Required for on-chain prepare actions (not hash-criteria / prepare-receipt)
+  --from <0x>                  Required for on-chain prepare actions
   --skip-approvals             Omit automatic ERC20 approve steps in batches
 
 Action-specific:
-  onboarding    --top-up-amount <usdc6>   default 50000000 ($50)
-  top-up        --amount <usdc6>
-  claim-task    --task-id <id>
-  post-task     --total-amount <azl18> --deadline
-  create-task   --total-amount <azl18> --deadline (public V2 post alias)
-  fund-task     --task-id --amount <azl18>  (auto USDC approve → EscrowVault if needed; poster only)
-  start-work    --task-id
-  accept-direct-hire --task-id
-  decline-direct-hire --task-id
+  post          --total-amount <azl-wei> --deadline [--criteria-text | --acceptance-criteria-hash]
+  claim         --task-id <id>
+  fund          --task-id --amount <azl-wei> (poster only)
   mark-delivered --task-id
-  release       --task-id --amount <azl18>
-  complete-task --task-id
-  expire-task --task-id
+  release       --task-id --amount <azl-wei>
+  complete      --task-id
+  cancel        --task-id
+  expire        --task-id
   open-dispute  --task-id [--evidence <text|bytes32>]
-  cancel-task   --task-id
-  register-arbitrator --task-id
-  register-arbitrator-global
-  propose-arbitrator --dispute-id --arbitrator <0x>
-  resolve-dispute --dispute-id --worker-bps <0-10000>
-  resolve-timed-out --dispute-id
-  assign-fallback-resolver --dispute-id
-  retry-dispute-side-effects --dispute-id
-  claim-bond-payout --to <0x>
-  escalate --dispute-id
-  build-task-terms --from <0x> + same term flags as post-task [--worker]
+  assign-arbitrator --task-id
+  submit-evidence --task-id --evidence <text|bytes32>
+  begin-ruling --task-id
+  rule-dispute --task-id --outcome <1-4> --worker-bps <0-10000>
+  timeout-dispute --task-id
+  build-task-preview --from <0x> + same task flags as post
   hash-criteria --text <acceptance criteria>
-  prepare-receipt --task-id --worker --artifact-hash [--milestone-index] [--artifact-type] [--artifact-uri]`;
+  hash-evidence --text <evidence>`;
 }
 
 async function main() {
@@ -548,164 +388,90 @@ async function main() {
     return;
   }
 
-  if (action === "prepare-receipt") {
-    cmdPrepareReceipt(flags);
+  if (action === "hash-evidence") {
+    cmdHashEvidence(flags);
     return;
   }
 
-  if (action === "build-task-terms") {
+  if (action === "build-task-preview") {
     const from = requireFrom(flags);
-    output(
-      buildTaskTermsBundle(from, flags, manifest, {
-        requireWorker: Boolean(flags.worker),
-      })
-    );
+    output(buildTaskPreview(from, flags, manifest));
     return;
   }
 
   const from = requireFrom(flags);
 
   switch (action) {
-    case "onboarding":
-      await cmdOnboarding(from, flags);
+    case "approve-azl-escrow":
+      await cmdApproveAzlEscrow();
       break;
-    case "approve-usdc-vault":
-      await cmdApproveUsdcVault(from);
+    case "claim":
+      await cmdClaim(flags);
       break;
-    case "approve-usdc-escrow":
-      await cmdApproveUsdcEscrow(from);
+    case "post":
+      await cmdPost(from, flags);
       break;
-    case "approve-azl-router":
-      await cmdApproveAzlRouter(from);
+    case "publish-scope":
+      await cmdSetScope(flags);
       break;
-    case "top-up":
-      await cmdTopUp(from, flags);
+    case "fund":
+      await cmdFund(from, flags);
       break;
-    case "claim-task":
-      await cmdClaimTask(from, flags);
-      break;
-    case "post-task":
-      await cmdPostTask(from, flags);
-      break;
-    case "set-scope":
-      await cmdSetScope(from, flags);
-      break;
-    case "create-task":
-      await cmdCreateTask(from, flags);
-      break;
-    case "fund-task":
-      await cmdFundTask(from, flags);
-      break;
-    case "start-work":
-      await cmdRegistryCall("start-work", "startWork", flags, [
+    case "complete":
+      await cmdRegistryCall("complete", "complete", flags, [
         BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
-    case "accept-direct-hire":
-      await cmdRegistryCall("accept-direct-hire", "acceptDirectHire", flags, [
+    case "cancel":
+      await cmdRegistryCall("cancel", "cancel", flags, [
         BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
-    case "decline-direct-hire":
-      await cmdRegistryCall("decline-direct-hire", "declineDirectHire", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-      ]);
-      break;
-    case "submit-proof":
-      await cmdRegistryCall("submit-proof", "submitProof", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-        Number(flags.milestone_index ?? "0"),
-        flags.receipt_hash ?? fail("--receipt-hash required"),
-      ]);
-      break;
-    case "accept-milestone":
-      await cmdRegistryCall("accept-milestone", "acceptMilestone", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-        Number(flags.milestone_index ?? "0"),
-      ]);
-      break;
-    case "claim-stream":
-      await cmdRegistryCall("claim-stream", "claimStream", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-        BigInt(flags.max_amount ?? fail("--max-amount required")),
-      ]);
-      break;
-    case "claim-hour-block":
-      await cmdRegistryCall("claim-hour-block", "claimHourBlock", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-      ]);
-      break;
-    case "resolve-stale-review":
-      await cmdRegistryCall("resolve-stale-review", "resolveStaleReview", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-      ]);
-      break;
-    case "complete-task":
-      await cmdRegistryCall("complete-task", "completeTask", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-      ]);
-      break;
-    case "expire-task":
-      await cmdRegistryCall("expire-task", "expireTask", flags, [
+    case "expire":
+      await cmdRegistryCall("expire", "expire", flags, [
         BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
     case "open-dispute":
-      await cmdOpenDispute(from, flags);
+      await cmdOpenDispute(flags);
       break;
-    case "leave-task":
-      await cmdRegistryCall("leave-task", "leaveTask", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-      ], { accessFee: true });
-      break;
-    case "dismiss-worker":
-      await cmdRegistryCall("dismiss-worker", "dismissWorker", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
-      ], { accessFee: true });
-      break;
-    case "register-arbitrator":
-      cmdArbitration("register-arbitrator", "registerArbitrator", [
+    case "mark-delivered":
+      await cmdRegistryCall("mark-delivered", "markDelivered", flags, [
         BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
-    case "register-arbitrator-global":
-      cmdArbitration("register-arbitrator-global", "registerArbitratorGlobal", []);
-      break;
-    case "propose-arbitrator":
-      cmdArbitration("propose-arbitrator", "proposeArbitrator", [
-        BigInt(flags.dispute_id ?? fail("--dispute-id required")),
-        ethers.getAddress(flags.arbitrator ?? fail("--arbitrator required")),
+    case "release":
+      await cmdRegistryCall("release", "release", flags, [
+        BigInt(flags.task_id ?? fail("--task-id required")),
+        BigInt(flags.amount ?? fail("--amount required")),
       ]);
       break;
-    case "resolve-dispute":
-      cmdArbitration("resolve-dispute", "resolveDispute", [
-        BigInt(flags.dispute_id ?? fail("--dispute-id required")),
-        BigInt(flags.worker_bps ?? fail("--worker-bps required (0-10000)")),
+    case "assign-arbitrator":
+      cmdArbitration("assign-arbitrator", "assignArbitrator", [
+        BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
-    case "resolve-timed-out":
-      cmdArbitration("resolve-timed-out", "resolveTimedOut", [
-        BigInt(flags.dispute_id ?? fail("--dispute-id required")),
+    case "submit-evidence":
+      cmdArbitration("submit-evidence", "submitEvidence", [
+        BigInt(flags.task_id ?? fail("--task-id required")),
+        ethers.hexlify(encodeDisputeEvidence(flags.evidence ?? flags.evidence_hash ?? fail("--evidence required"))),
       ]);
       break;
-    case "assign-fallback-resolver":
-      cmdArbitration("assign-fallback-resolver", "assignFallbackResolver", [
-        BigInt(flags.dispute_id ?? fail("--dispute-id required")),
+    case "begin-ruling":
+      cmdArbitration("begin-ruling", "beginRuling", [
+        BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
-    case "retry-dispute-side-effects":
-      cmdArbitration("retry-dispute-side-effects", "retrySideEffects", [
-        BigInt(flags.dispute_id ?? fail("--dispute-id required")),
+    case "rule-dispute":
+      cmdArbitration("rule-dispute", "rule", [
+        BigInt(flags.task_id ?? fail("--task-id required")),
+        Number(flags.outcome ?? fail("--outcome required (1-4)")),
+        Number(flags.worker_bps ?? fail("--worker-bps required (0-10000)")),
       ]);
       break;
-    case "claim-bond-payout":
-      cmdArbitration("claim-bond-payout", "claimBondPayout", [
-        ethers.getAddress(flags.to ?? fail("--to required")),
-      ]);
-      break;
-    case "escalate":
-      cmdArbitration("escalate", "escalate", [
-        BigInt(flags.dispute_id ?? fail("--dispute-id required")),
+    case "timeout-dispute":
+      cmdArbitration("timeout-dispute", "timeout", [
+        BigInt(flags.task_id ?? fail("--task-id required")),
       ]);
       break;
     default:

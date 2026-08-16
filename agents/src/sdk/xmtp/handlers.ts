@@ -1,4 +1,4 @@
-import type { AzzleClient } from "../client.js";
+import type { AzzleV2Client } from "../client-v2.js";
 import { buildSettlementDigest } from "../settlement.js";
 import type { TaskTerms } from "../types.js";
 import type { AzzleEnvelope } from "./types.js";
@@ -12,13 +12,6 @@ export type AgentRole = "poster" | "worker";
 
 /* Typed payloads for inbound messages (mirror agents/schemas/xmtp). */
 
-export interface MilestoneDefinitionPayload {
-  type: "azzle/MilestoneDefinition";
-  taskId: string;
-  milestones: Array<{ amount: string; description: string; deadline?: string }>;
-  amendedAt?: string;
-}
-
 export interface RevisionRequestPayload {
   type: "azzle/RevisionRequest";
   taskId: string;
@@ -30,56 +23,14 @@ export interface RevisionRequestPayload {
 export interface DeliveryNoticePayload {
   type: "azzle/DeliveryNotice";
   taskId: string;
-  milestoneIndex: number;
   receiptHash: string;
   receiptUri?: string;
   artifactUris?: string[];
 }
 
-export interface MilestoneClaimPayload {
-  type: "azzle/MilestoneClaim";
-  taskId: string;
-  milestoneIndex: number;
-  receiptHash: string;
-  artifactUris: string[];
-  submittedAt?: string;
-}
-
-export interface DisputeNoticePayload {
-  type: "azzle/DisputeNotice";
-  taskId: string;
-  disputeId: string;
-  proofSubmissionBlock: string;
-  evidenceHash: string;
-  claim: "non_delivery" | "quality" | "scope" | "payment" | "other";
-  noticedAt?: string;
-}
-
-export interface VerificationAttestPayload {
-  type: "azzle/VerificationAttest";
-  taskId: string;
-  milestoneIndex: number;
-  receiptHash: string;
-  verifier: string;
-  decision: "pass" | "fail" | "needs_review";
-  evidenceUris?: string[];
-  signature?: string;
-  attestedAt?: string;
-}
-
-export interface DismissIntentPayload {
-  type: "azzle/DismissIntent";
-  taskId: string;
-  actor: string;
-  reason: string;
-  signature?: string;
-  createdAt?: string;
-}
-
 export interface AcceptDeliveryPayload {
   type: "azzle/AcceptDelivery";
   taskId: string;
-  milestoneIndex: number;
   receiptHash?: string;
   acceptedAt?: string;
 }
@@ -87,8 +38,7 @@ export interface AcceptDeliveryPayload {
 export interface PaymentRequestPayload {
   type: "azzle/PaymentRequest";
   taskId: string;
-  releaseType: "stream" | "hour_block" | "milestone";
-  milestoneIndex?: number;
+  releaseType: "full" | "partial";
   amount?: string;
   periodStart?: string;
   periodEnd?: string;
@@ -111,25 +61,6 @@ export interface DisputeEvidencePayload {
   counterReceiptHash?: string;
 }
 
-export interface MutualCancelPayload {
-  type: "azzle/MutualCancel";
-  taskId: string;
-  reason?: string;
-  posterSignature: string;
-  workerSignature: string;
-  cancelledAt?: string;
-}
-
-export interface ReplacementContextPayload {
-  type: "azzle/ReplacementContext";
-  taskId: string;
-  priorWorker: string;
-  newWorker: string;
-  handoffPackageUri?: string;
-  handoffPackageHash?: string;
-  remainingMilestones?: number[];
-}
-
 export interface SupervisorVetoPayload {
   type: "azzle/SupervisorVeto";
   taskId: string;
@@ -143,8 +74,8 @@ export interface DeliveryDecision {
   envelope: AzzleEnvelope;
   payload: DeliveryNoticePayload;
   /** V2 delivery verification is represented by the task state and settlement digest. */
-  onChainProofSubmitted: boolean;
-  /** V2 does not expose the legacy milestone proof mapping. */
+  onChainDelivered: boolean;
+  /** V2 does not store the off-chain receipt hash on-chain. */
   onChainReceiptHash: string;
   /** true when the V2 task is in the delivery/settlement state expected by the envelope */
   verified: boolean;
@@ -156,10 +87,10 @@ export interface DeliveryDecision {
 export interface PaymentDecision {
   envelope: AzzleEnvelope;
   payload: PaymentRequestPayload;
-  /** For milestone release requests: whether a matching on-chain proof exists. */
-  onChainProofSubmitted: boolean;
+  /** Whether the worker has marked the V2 task delivered on-chain. */
+  onChainDelivered: boolean;
   verified: boolean;
-  /** Release the requested milestone on-chain (acceptMilestone). */
+  /** Release the requested amount, or complete the task for a full request. */
   approve: () => Promise<void>;
 }
 
@@ -167,8 +98,8 @@ export interface TaskAcceptedInfo {
   envelope: AzzleEnvelope;
   settlementDigest: string;
   taskId: string;
-  /** true when this handler created the task on-chain (direct-hire poster flow) */
-  createdOnChain: boolean;
+  /** V2 requires the negotiation to be bound to an already-posted task. */
+  createdOnChain: false;
 }
 
 /**
@@ -177,17 +108,13 @@ export interface TaskAcceptedInfo {
  */
 export interface NegotiationCallbacks {
   onTaskAccepted?: (info: TaskAcceptedInfo) => void | Promise<void>;
-  onMilestoneDefinition?: (
-    payload: MilestoneDefinitionPayload,
-    envelope: AzzleEnvelope
-  ) => void | Promise<void>;
   onRevisionRequested?: (
     payload: RevisionRequestPayload,
     envelope: AzzleEnvelope
   ) => void | Promise<void>;
   /** Poster side: worker delivered — decide whether to accept (decision.accept()). */
   onDeliveryNotice?: (decision: DeliveryDecision) => void | Promise<void>;
-  /** Worker side: poster accepted a delivery — escrow milestone released (payment notice). */
+  /** Worker side: poster accepted delivery and completed settlement. */
   onPaymentNotice?: (
     payload: AcceptDeliveryPayload,
     envelope: AzzleEnvelope
@@ -202,14 +129,6 @@ export interface NegotiationCallbacks {
     payload: DisputeEvidencePayload,
     envelope: AzzleEnvelope
   ) => void | Promise<void>;
-  onTaskCancelled?: (
-    payload: MutualCancelPayload,
-    envelope: AzzleEnvelope
-  ) => void | Promise<void>;
-  onReplacementContext?: (
-    payload: ReplacementContextPayload,
-    envelope: AzzleEnvelope
-  ) => void | Promise<void>;
   onSupervisorVeto?: (
     payload: SupervisorVetoPayload,
     envelope: AzzleEnvelope
@@ -220,21 +139,18 @@ export interface NegotiationCallbacks {
 export interface NegotiationState {
   taskId?: string;
   accepted?: TaskAcceptedInfo;
-  milestones?: MilestoneDefinitionPayload["milestones"];
   revisionRequests: RevisionRequestPayload[];
   deliveries: DeliveryNoticePayload[];
   acceptedDeliveries: AcceptDeliveryPayload[];
   paymentRequests: PaymentRequestPayload[];
   disputeEvidence: DisputeEvidencePayload[];
   capabilityProofs: CapabilityProofPayload[];
-  cancellation?: MutualCancelPayload;
-  replacement?: ReplacementContextPayload;
   veto?: SupervisorVetoPayload;
 }
 
 export interface NegotiationHandlersConfig {
   transport: XmtpNegotiationTransport;
-  azzle: AzzleClient;
+  azzle: AzzleV2Client;
   evmSigner: import("ethers").Signer;
   role: AgentRole;
   terms: TaskTerms;
@@ -243,8 +159,8 @@ export interface NegotiationHandlersConfig {
   /** Optional consumer hooks for inbound messages. */
   callbacks?: NegotiationCallbacks;
   /**
-   * Opt-in: automatically release escrow (acceptMilestone) when an inbound
-   * DeliveryNotice / PaymentRequest is verified against on-chain proof state.
+   * Opt-in: automatically settle escrow when an inbound DeliveryNotice /
+   * PaymentRequest is verified against the V2 delivered state.
    * Default false — settlements always require an explicit decision.
    */
   autoAccept?: boolean;
@@ -346,8 +262,6 @@ export class NegotiationHandlers {
         return this.onTaskCounterOffer(envelope);
       case "TaskAcceptance":
         return this.onTaskAcceptance(envelope);
-      case "MilestoneDefinition":
-        return this.onMilestoneDefinition(envelope);
       case "RevisionRequest":
         return this.onRevisionRequest(envelope);
       case "DeliveryNotice":
@@ -358,12 +272,6 @@ export class NegotiationHandlers {
         return this.onCapabilityProof(envelope);
       case "DisputeEvidence":
         return this.onDisputeEvidence(envelope);
-      case "ArbitratorProposal":
-        return this.onArbitratorProposal(envelope);
-      case "MutualCancel":
-        return this.onMutualCancel(envelope);
-      case "ReplacementContext":
-        return this.onReplacementContext(envelope);
       case "SupervisorVeto":
         return this.onSupervisorVeto(envelope);
       case "AcceptDelivery":
@@ -445,7 +353,6 @@ export class NegotiationHandlers {
     negotiationId: string,
     params: {
       taskId: string;
-      milestoneIndex: number;
       receiptHash: string;
       receiptUri?: string;
       artifactUris?: string[];
@@ -454,11 +361,7 @@ export class NegotiationHandlers {
     if (this.config.role !== "worker") {
       throw new Error("Only the worker may send DeliveryNotice");
     }
-    await this.config.azzle.submitProof(
-      BigInt(params.taskId),
-      params.milestoneIndex,
-      params.receiptHash
-    );
+    await this.config.azzle.markDelivered(BigInt(params.taskId));
     await this.transport.send({
       type: "DeliveryNotice",
       negotiationId,
@@ -467,19 +370,6 @@ export class NegotiationHandlers {
         type: "azzle/DeliveryNotice",
         ...params,
       },
-    });
-  }
-
-  async sendMilestoneDefinition(
-    negotiationId: string,
-    taskId: string,
-    milestones: Array<{ amount: string; description: string; deadline?: string }>
-  ): Promise<void> {
-    await this.transport.send({
-      type: "MilestoneDefinition",
-      negotiationId,
-      taskId,
-      payload: { type: "azzle/MilestoneDefinition", taskId, milestones },
     });
   }
 
@@ -500,8 +390,7 @@ export class NegotiationHandlers {
     negotiationId: string,
     payload: {
       taskId: string;
-      releaseType: "stream" | "hour_block" | "milestone";
-      milestoneIndex?: number;
+      releaseType: "full" | "partial";
       amount?: string;
     }
   ): Promise<void> {
@@ -542,57 +431,6 @@ export class NegotiationHandlers {
     });
   }
 
-  async sendArbitratorProposal(
-    negotiationId: string,
-    payload: {
-      disputeId: string;
-      taskId: string;
-      proposedArbitrator: string;
-      proposer: string;
-    }
-  ): Promise<void> {
-    await this.transport.send({
-      type: "ArbitratorProposal",
-      negotiationId,
-      taskId: payload.taskId,
-      payload: { type: "azzle/ArbitratorProposal", ...payload },
-    });
-  }
-
-  async sendMutualCancel(
-    negotiationId: string,
-    payload: {
-      taskId: string;
-      posterSignature: string;
-      workerSignature: string;
-      reason?: string;
-    }
-  ): Promise<void> {
-    await this.transport.send({
-      type: "MutualCancel",
-      negotiationId,
-      taskId: payload.taskId,
-      payload: { type: "azzle/MutualCancel", ...payload, cancelledAt: new Date().toISOString() },
-    });
-  }
-
-  async sendReplacementContext(
-    negotiationId: string,
-    payload: {
-      taskId: string;
-      priorWorker: string;
-      newWorker: string;
-      handoffPackageHash: string;
-    }
-  ): Promise<void> {
-    await this.transport.send({
-      type: "ReplacementContext",
-      negotiationId,
-      taskId: payload.taskId,
-      payload: { type: "azzle/ReplacementContext", ...payload },
-    });
-  }
-
   async sendSupervisorVeto(
     negotiationId: string,
     payload: { taskId: string; supervisor: string; reason: string }
@@ -607,15 +445,12 @@ export class NegotiationHandlers {
 
   async sendAcceptDelivery(
     negotiationId: string,
-    params: { taskId: string; milestoneIndex: number; receiptHash?: string }
+    params: { taskId: string; receiptHash?: string }
   ): Promise<void> {
     if (this.config.role !== "poster") {
       throw new Error("Only the poster may send AcceptDelivery");
     }
-    await this.config.azzle.acceptMilestone(
-      BigInt(params.taskId),
-      params.milestoneIndex
-    );
+    await this.config.azzle.complete(BigInt(params.taskId));
     await this.transport.send({
       type: "AcceptDelivery",
       negotiationId,
@@ -623,7 +458,6 @@ export class NegotiationHandlers {
       payload: {
         type: "azzle/AcceptDelivery",
         taskId: params.taskId,
-        milestoneIndex: params.milestoneIndex,
         receiptHash: params.receiptHash,
         acceptedAt: new Date().toISOString(),
       },
@@ -701,63 +535,30 @@ export class NegotiationHandlers {
     const existingTaskId =
       this.transport.negotiationToTaskId.get(envelope.negotiationId);
 
-    let accepted: TaskAcceptedInfo;
-    if (existingTaskId !== undefined) {
-      // Search-market flow: the task was already posted (postTask) and claimed.
-      // Verify the negotiated digest against the on-chain settlementDigest
-      // instead of creating a second task.
-      const onChain = await this.config.azzle.getTask(BigInt(existingTaskId));
-      if (
-        (envelope.taskId !== undefined && envelope.taskId !== existingTaskId) ||
-        onChain.poster.toLowerCase() !== poster ||
-        onChain.worker.toLowerCase() !== worker ||
-        buildSettlementDigest(this.terms).toLowerCase() !== payload.settlementDigest.toLowerCase()
-      ) {
-        throw new Error(
-          `TaskAcceptance does not match bound on-chain task ${existingTaskId}`
-        );
-      }
-      this.transport.bindTaskId(envelope.negotiationId, existingTaskId);
-      accepted = {
-        envelope,
-        settlementDigest: payload.settlementDigest,
-        taskId: existingTaskId,
-        createdOnChain: false,
-      };
-    } else if (this.config.role === "poster") {
-      // Direct-hire flow: no on-chain task yet — poster creates it now.
-      const { taskId } = await this.config.azzle.createTask(this.terms);
-      this.transport.bindTaskId(envelope.negotiationId, taskId);
-      accepted = {
-        envelope,
-        settlementDigest: payload.settlementDigest,
-        taskId: taskId.toString(),
-        createdOnChain: true,
-      };
-    } else {
-      // Worker without a bound taskId: nothing to do on-chain yet; the poster
-      // will create the task and bind it via TaskCreated correlation.
-      return;
+    if (existingTaskId === undefined) {
+      throw new Error("TaskAcceptance requires a bound, already-posted V2 task");
     }
 
+    const onChain = await this.config.azzle.getTask(BigInt(existingTaskId));
+    if (
+      (envelope.taskId !== undefined && envelope.taskId !== existingTaskId) ||
+      onChain.poster.toLowerCase() !== poster ||
+      onChain.worker.toLowerCase() !== worker
+    ) {
+      throw new Error(
+        `TaskAcceptance does not match bound on-chain task ${existingTaskId}`
+      );
+    }
+    this.transport.bindTaskId(envelope.negotiationId, existingTaskId);
+    const accepted: TaskAcceptedInfo = {
+      envelope,
+      settlementDigest: payload.settlementDigest,
+      taskId: existingTaskId,
+      createdOnChain: false,
+    };
     state.taskId = accepted.taskId;
     state.accepted = accepted;
     await this.callbacks.onTaskAccepted?.(accepted);
-  }
-
-  private async onMilestoneDefinition(envelope: AzzleEnvelope): Promise<void> {
-    const payload = envelope.payload as unknown as MilestoneDefinitionPayload;
-    const state = this.negotiationState(envelope.negotiationId);
-    const boundTaskId = this.transport.negotiationToTaskId.get(envelope.negotiationId);
-    if (
-      !boundTaskId ||
-      payload.taskId !== boundTaskId ||
-      (envelope.taskId !== undefined && envelope.taskId !== boundTaskId)
-    ) {
-      throw new Error("MilestoneDefinition task does not match negotiation binding");
-    }
-    state.milestones = payload.milestones;
-    await this.callbacks.onMilestoneDefinition?.(payload, envelope);
   }
 
   private async onRevisionRequest(envelope: AzzleEnvelope): Promise<void> {
@@ -776,12 +577,12 @@ export class NegotiationHandlers {
 
     const taskId = BigInt(boundTaskId);
     const task = await this.config.azzle.getTask(taskId);
-    const verified = task.stateName === "ACTIVE" || task.stateName === "COMPLETED";
+    const verified = task.stateName === "ACTIVE" && task.deliveredAt > 0n;
 
     const decision: DeliveryDecision = {
       envelope,
       payload,
-      onChainProofSubmitted: verified,
+      onChainDelivered: verified,
       onChainReceiptHash: ZERO_HASH,
       verified,
       accept: async () => {
@@ -789,16 +590,14 @@ export class NegotiationHandlers {
         await this.requireSettlementParties(boundTaskId);
         await this.sendAcceptDelivery(envelope.negotiationId, {
           taskId: payload.taskId,
-          milestoneIndex: payload.milestoneIndex,
           receiptHash: payload.receiptHash,
         });
       },
     };
 
     if (!verified) {
-      console.warn("[negotiation] DeliveryNotice receiptHash does not match on-chain proof", {
+      console.warn("[negotiation] DeliveryNotice is not backed by an on-chain V2 delivery assertion", {
         taskId: payload.taskId,
-        milestoneIndex: payload.milestoneIndex,
         announced: payload.receiptHash,
         state: task.stateName,
       });
@@ -825,18 +624,25 @@ export class NegotiationHandlers {
     await this.requireSettlementParties(boundTaskId);
 
     const task = await this.config.azzle.getTask(BigInt(boundTaskId));
-    const onChainProofSubmitted = task.stateName === "ACTIVE" || task.stateName === "COMPLETED";
-    const verified = onChainProofSubmitted;
+    const onChainDelivered = task.stateName === "ACTIVE" && task.deliveredAt > 0n;
+    const verified = onChainDelivered;
 
     const decision: PaymentDecision = {
       envelope,
       payload,
-      onChainProofSubmitted,
+      onChainDelivered,
       verified,
       approve: async () => {
         this.requireBoundSettlementTask(envelope, payload.taskId);
         await this.requireSettlementParties(boundTaskId);
-        await this.config.azzle.release(BigInt(boundTaskId), 0n);
+        if (payload.releaseType === "full") {
+          await this.config.azzle.complete(BigInt(boundTaskId));
+          return;
+        }
+        if (payload.amount === undefined || BigInt(payload.amount) <= 0n) {
+          throw new Error("Partial PaymentRequest requires a positive AZL wei amount");
+        }
+        await this.config.azzle.release(BigInt(boundTaskId), BigInt(payload.amount));
       },
     };
 
@@ -856,38 +662,6 @@ export class NegotiationHandlers {
     const payload = envelope.payload as unknown as DisputeEvidencePayload;
     this.negotiationState(envelope.negotiationId).disputeEvidence.push(payload);
     await this.callbacks.onDisputeEvidence?.(payload, envelope);
-  }
-
-  private async onArbitratorProposal(envelope: AzzleEnvelope): Promise<void> {
-    const payload = envelope.payload as {
-      disputeId: string;
-      proposedArbitrator: string;
-      proposer: string;
-    };
-    if (payload.proposer.toLowerCase() !== this.config.counterpartyEvm.toLowerCase()) {
-      throw new Error("ArbitratorProposal proposer does not match linked counterparty");
-    }
-    await this.config.azzle.proposeArbitrator(
-      BigInt(payload.disputeId),
-      payload.proposedArbitrator
-    );
-  }
-
-  private async onMutualCancel(envelope: AzzleEnvelope): Promise<void> {
-    const payload = envelope.payload as unknown as MutualCancelPayload;
-    if (payload.posterSignature.length <= 2 || payload.workerSignature.length <= 2) {
-      throw new Error("MutualCancel requires both poster and worker signatures");
-    }
-    this.negotiationState(envelope.negotiationId).cancellation = payload;
-    // No default on-chain reaction: unwinding a task (leaveTask / dismissWorker)
-    // debits access fees, so the consumer must decide via onTaskCancelled.
-    await this.callbacks.onTaskCancelled?.(payload, envelope);
-  }
-
-  private async onReplacementContext(envelope: AzzleEnvelope): Promise<void> {
-    const payload = envelope.payload as unknown as ReplacementContextPayload;
-    this.negotiationState(envelope.negotiationId).replacement = payload;
-    await this.callbacks.onReplacementContext?.(payload, envelope);
   }
 
   private async onSupervisorVeto(envelope: AzzleEnvelope): Promise<void> {

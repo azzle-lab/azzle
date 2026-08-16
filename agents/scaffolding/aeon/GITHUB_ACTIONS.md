@@ -68,9 +68,8 @@ Add these under **Settings → Secrets and variables → Actions** on your Aeon 
 
 | Secret | Required | Used by | Purpose |
 |--------|----------|---------|---------|
-| `AZZLE_RPC_URL` | No | `azzle-market`, `azzle-worker` | Base RPC endpoint for authoritative task reads |
-| `AZZLE_RPC_URL` | No | `azzle-worker`, SDK scripts | Base RPC (default: `https://mainnet.base.org`) |
-| `BANKR_API_KEY` | For on-chain worker steps | `azzle-worker` | Wallet swaps, approvals, `claimTask` via [Bankr skill](https://github.com/BankrBot/skills) |
+| `AZZLE_RPC_URL` | No | `azzle-market`, `azzle-worker`, SDK scripts | Base RPC for authoritative V2 reads (default: `https://mainnet.base.org`) |
+| `BANKR_API_KEY` | For on-chain worker steps | `azzle-worker` | Wallet swaps, AZL/gateway funding, and V2 `claim` via [Bankr skill](https://github.com/BankrBot/skills) |
 
 `azzle-market` is read-only — no wallet secrets required.
 
@@ -105,7 +104,6 @@ GitHub delivers only a fraction of `*/5` ticks; Aeon’s debt/catch-up model (`s
 ## Verify without wallet
 
 ```bash
-cd azzle && npm run list-open
 cd azzle && npm run list-open
 ```
 

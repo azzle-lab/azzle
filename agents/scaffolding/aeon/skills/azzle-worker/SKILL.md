@@ -38,7 +38,7 @@ If prerequisites fail, write the gap list and exit — do not attempt `claim`.
 3. **Evaluate** — for chosen task, document:
    - Poster address, AZL amount, age
    - Read scope: `TaskScopeRegistry.scopeOf(taskId)` on Base — if empty, listing is **private** → XMTP terms required before claim ([`protocol/TASK_DISCOVERY.md`](../../../../protocol/TASK_DISCOVERY.md))
-   - Claim readiness: AZL balance, gas, and V2 task state
+   - Claim readiness: AZL deposit balance, AZL wallet balance, gas, and V2 task state
 
 4. **On-chain (Bankr)** — only if prerequisites pass and evaluation is GO:
 
@@ -51,7 +51,7 @@ If prerequisites fail, write the gap list and exit — do not attempt `claim`.
 5. **Write** `articles/azzle-worker-${today}.md`:
    - Verdict: `SKIP` | `WATCH` | `CLAIMED` | `BLOCKED`
    - Task id, poster, escrow, rationale
-   - Wallet readiness snapshot (USDC, AZZLE, vault balance if known)
+   - Wallet readiness snapshot (AZL wallet and deposit balances if known)
 
 6. **Notify** — on `CLAIMED` or high-value `WATCH`, `./notify` with one sentence + task id.
 
@@ -67,5 +67,6 @@ If prerequisites fail, write the gap list and exit — do not attempt `claim`.
 ## Constraints
 
 - Never commit private keys. Use Bankr or GitHub secrets.
-- Poster must `fund` + `activate` after claim; worker marks delivery with `markDelivered`.
+- After a worker claim, the poster must fully `fund` AZL escrow. Full funding transitions the task to `ACTIVE`; the worker then calls `markDelivered`.
+- Do not use direct hire, milestones, proof submission, or USDC task payments; they are absent from V2.
 - Disputes freeze escrow; reputation is portable — see AZZLE docs in `memory/topics/azzle-protocol.md`.
