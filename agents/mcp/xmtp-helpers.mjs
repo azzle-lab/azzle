@@ -1,55 +1,56 @@
 import { randomUUID } from "node:crypto";
-import { buildSettlementDigest } from "../dist/sdk/settlement.js";
+import { ethers } from "ethers";
 import { buildEnvelope } from "../dist/sdk/xmtp/envelope.js";
-import { buildSettlementTypedData } from "../dist/sdk/xmtp/settlement-verify.js";
-import { parseTaskTerms, serializeTerms } from "./terms-utils.mjs";
+import { parseTaskPreview, serializeTaskPreview } from "./terms-utils.mjs";
 
 const CHAIN_ID = 8453n;
 
-export function buildTaskTermsBundle(from, flags, manifest, options = {}) {
+function nonbindingPreviewHash(preview) {
+  return ethers.id(JSON.stringify(preview));
+}
+
+export function buildTaskPreview(from, flags, manifest) {
   const fail = (msg) => {
     throw new Error(msg);
   };
-  const parsed = parseTaskTerms(from, flags, manifest, { ...options, fail });
+  const preview = serializeTaskPreview(parseTaskPreview(from, flags, manifest, { fail }));
   return {
     ok: true,
-    action: "build-task-terms",
+    action: "build-task-preview",
     chainId: Number(CHAIN_ID),
-    terms: serializeTerms(parsed.terms),
-    settlementDigest: parsed.digest,
-    streamRate: parsed.streamRate.toString(),
-    hourBlockSize: parsed.hourBlockSize.toString(),
-    warnings: parsed.warnings,
+    task: preview,
+    nonbindingPreviewHash: nonbindingPreviewHash(preview),
+    note: "Off-chain preview only. The V2 task contract binds totalAmount and deadline; publish acceptance criteria separately as scope or retain it off-chain.",
   };
 }
 
-export function verifySettlementDigest(from, flags, manifest, options = {}) {
-  const bundle = buildTaskTermsBundle(from, flags, manifest, options);
-  const expected = flags.digest ?? flags.settlement_digest;
+export function verifyTaskPreviewHash(from, flags, manifest) {
+  const bundle = buildTaskPreview(from, flags, manifest);
+  const expected = flags.preview_hash;
   if (!expected) {
-    throw new Error("--digest required to verify");
+    throw new Error("--preview-hash required to verify");
   }
-  const match = bundle.settlementDigest.toLowerCase() === expected.toLowerCase();
+  const match = bundle.nonbindingPreviewHash.toLowerCase() === expected.toLowerCase();
   return {
     ok: true,
-    action: "verify-settlement-digest",
+    action: "verify-task-preview-hash",
     match,
-    computed: bundle.settlementDigest,
+    computed: bundle.nonbindingPreviewHash,
     expected,
-    terms: bundle.terms,
+    task: bundle.task,
+    note: "This compares nonbinding off-chain task-preview hashes only.",
   };
 }
 
-export function buildXmtpProposal(from, flags, manifest, options = {}) {
-  const bundle = buildTaskTermsBundle(from, flags, manifest, options);
+export function buildXmtpProposal(from, flags, manifest) {
+  const bundle = buildTaskPreview(from, flags, manifest);
   const negotiationId = flags.negotiation_id ?? randomUUID();
   const taskSummary = {
     title: flags.title ?? "AZZLE task",
     description: flags.description ?? "",
-    acceptanceCriteriaHash: bundle.terms.acceptanceCriteriaHash,
-    totalAmountUsdc6: bundle.terms.totalAmount,
-    escrowMode: bundle.terms.escrowMode,
-    deadline: bundle.terms.deadline,
+    acceptanceCriteriaHash: bundle.task.acceptanceCriteriaHash,
+    totalAmountAzlWei: bundle.task.totalAmountAzlWei,
+    deadline: bundle.task.deadline,
   };
 
   const envelope = buildEnvelope({
@@ -64,8 +65,8 @@ export function buildXmtpProposal(from, flags, manifest, options = {}) {
     payload: {
       type: "azzle/TaskProposal",
       task: taskSummary,
-      settlementDigestPreview: bundle.settlementDigest,
-      terms: bundle.terms,
+      nonbindingPreviewHash: bundle.nonbindingPreviewHash,
+      taskPreview: bundle.task,
     },
   });
 
@@ -73,66 +74,13 @@ export function buildXmtpProposal(from, flags, manifest, options = {}) {
     ok: true,
     action: "build-xmtp-proposal",
     negotiationId,
-    settlementDigest: bundle.settlementDigest,
-    terms: bundle.terms,
+    nonbindingPreviewHash: bundle.nonbindingPreviewHash,
+    task: bundle.task,
     envelope,
-    warnings: bundle.warnings,
     nextSteps: [
-      "Counterparty reviews terms and settlementDigestPreview",
-      "Both parties sign TaskAcceptance typed data (see build-xmtp-acceptance-template)",
-      "Poster runs create-task or post-task with matching terms, then fund-task",
+      "Counterparty reviews the nonbinding task preview",
+      "Poster posts the V2 task, worker claims it, then poster funds it",
+      "Use the V2 lifecycle: mark-delivered, release or complete; cancel, expire, or open-dispute when applicable",
     ],
   };
-}
-
-export function buildXmtpAcceptanceTemplate(from, flags, manifest, options = {}) {
-  const bundle = buildTaskTermsBundle(from, flags, manifest, options);
-  const typed = buildSettlementTypedData({
-    settlementDigest: bundle.settlementDigest,
-    poster: bundle.terms.poster,
-    worker: bundle.terms.worker,
-    chainId: CHAIN_ID,
-  });
-
-  return {
-    ok: true,
-    action: "build-xmtp-acceptance-template",
-    settlementDigest: bundle.settlementDigest,
-    terms: bundle.terms,
-    typedData: typed,
-    envelopeTemplate: {
-      type: "TaskAcceptance",
-      negotiationId: flags.negotiation_id ?? "<negotiation-uuid>",
-      payload: {
-        type: "azzle/TaskAcceptance",
-        settlementDigest: bundle.settlementDigest,
-        posterSignature: "<from Base MCP sign typed data>",
-        workerSignature: "<from Base MCP sign typed data>",
-        terms: bundle.terms,
-      },
-    },
-    signFlow: [
-      "Poster: Base MCP sign typed data with typedData below (poster wallet)",
-      "Worker: Base MCP sign typed data with same typedData (worker wallet)",
-      "Exchange signatures over XMTP TaskAcceptance or proceed to on-chain create/post",
-    ],
-  };
-}
-
-/** Recompute digest from serialized terms object. */
-export function digestFromSerializedTerms(terms) {
-  return buildSettlementDigest({
-    poster: terms.poster,
-    worker: terms.worker,
-    token: terms.token,
-    totalAmount: BigInt(terms.totalAmount),
-    escrowMode: terms.escrowMode,
-    milestoneAmounts: terms.milestoneAmounts.map((m) => BigInt(m)),
-    streamRate: BigInt(terms.streamRate ?? 0),
-    hourBlockSize: BigInt(terms.hourBlockSize ?? 0),
-    deadline: Number(terms.deadline),
-    acceptanceCriteriaHash: terms.acceptanceCriteriaHash,
-    chainId: BigInt(terms.chainId ?? 8453),
-    registryAddress: terms.registryAddress,
-  });
 }

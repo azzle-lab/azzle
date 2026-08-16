@@ -61,6 +61,17 @@
   box-shadow:var(--shadow);
   min-height:0;
 }
+html:not([data-theme="light"]) .page-home .rd-how,
+html:not([data-theme="light"]) .page-home .rd,
+html:not([data-theme="light"]) .page-home .rd-shell{
+  background:rgba(8,8,14,.72);
+}
+html:not([data-theme="light"]) .page-home .rd-how-title,
+html:not([data-theme="light"]) .page-home .rd-hero h3,
+html:not([data-theme="light"]) .page-home .rd-bubble{
+  color:#fff;
+  text-shadow:0 1px 12px rgba(0,0,0,.8);
+}
 .rd-how-kicker{
   font-size:11px;
   font-weight:600;
@@ -1645,20 +1656,43 @@ body.page-docs .azzle-nav-gh-icon{
 .rd-subpage-inner--wide{max-width:920px}
 .rd-subpage-inner .rd-checkout{margin:0}
 
+.rd-pricing{
+  position:relative;
+  z-index:1;
+  padding:26px;
+  border:1px solid var(--b);
+  border-radius:var(--radius);
+  background:color-mix(in srgb,var(--surface) 92%,transparent);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.rd-pricing .rd-checkout-head{
+  margin-bottom:20px;
+}
+.rd-pricing .rd-checkout-head h4{
+  font-size:clamp(22px,3vw,30px);
+  letter-spacing:-.03em;
+}
+.rd-pricing .rd-checkout-head p{
+  max-width:680px;
+}
+
 .rd-pricing-head{margin-bottom:18px}
 .rd-pricing-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:12px;
+  gap:14px;
   margin-bottom:16px;
 }
 .rd-pricing-card{
   display:flex;
   flex-direction:column;
   gap:8px;
-  padding:16px;
+  padding:18px;
   border:1px solid var(--b2);
-  background:var(--surface);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  border-radius:var(--radius-sm);
   min-height:100%;
 }
 .rd-pricing-card--current{
@@ -1747,6 +1781,15 @@ body.page-docs .azzle-nav-gh-icon{
 }
 .rd-pricing-foot a:hover{color:var(--accent);border-color:var(--accent)}
 .rd-pricing-foot a:hover{color:var(--accent);border-color:var(--accent)}
+
+@media(max-width:620px){
+  .rd-pricing{
+    padding:18px 14px;
+  }
+  .rd-pricing-grid{
+    grid-template-columns:1fr;
+  }
+}
 
 .rd-mytasks-head{
   display:flex;
@@ -2461,7 +2504,17 @@ html[data-theme="light"] .rd-market-detail-panel{
 .rd-market-foot code{font-family:var(--mono);font-size:10px;color:var(--text)}
 
 /* Union staking */
-.rd-union-page{max-width:1120px;margin:0 auto}
+.rd-union-page{
+  max-width:1120px;
+  margin:0 auto;
+  padding:26px;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:color-mix(in srgb,var(--panel) 96%,transparent);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
 .rd-union-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:4px 2px 26px;border-bottom:1px solid var(--line)}
 .rd-union-eyebrow{margin:0 0 8px;color:var(--accent);font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
 .rd-union-hero h4{margin:0;color:var(--heading);font-size:32px;line-height:1.05;letter-spacing:-.04em}
@@ -2469,7 +2522,7 @@ html[data-theme="light"] .rd-market-detail-panel{
 .rd-union-hero-actions{display:flex;align-items:center;gap:10px}
 .rd-union-status-pill,.rd-union-card-tag{display:inline-flex;align-items:center;border:1px solid rgba(235,255,130,.28);border-radius:999px;background:var(--accent-dim);color:var(--accent);font:600 10px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;white-space:nowrap}
 .rd-union-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0}
-.rd-union-stat,.rd-union-card{border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow)}
+.rd-union-stat,.rd-union-card{border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 99%,transparent);border-radius:var(--radius);box-shadow:var(--shadow)}
 .rd-union-stat{padding:18px}
 .rd-union-stat>span,.rd-union-metric span{display:block;color:var(--muted);font:600 10px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase}
 .rd-union-stat strong{display:block;margin:10px 0 7px;color:var(--heading);font-size:22px;letter-spacing:-.035em;overflow-wrap:anywhere}
@@ -2484,7 +2537,7 @@ html[data-theme="light"] .rd-market-detail-panel{
 .rd-union-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.rd-union-actions .rd-action{flex:1;min-width:112px}
 .rd-union-info{display:grid;grid-template-columns:1fr 1fr auto;align-items:center;gap:20px;margin-top:13px;padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(255,255,255,.015);color:var(--muted);font-size:11px;line-height:1.5}.rd-union-info strong{display:block;margin-bottom:3px;color:var(--heading);font-size:11px}.rd-union-info a{color:var(--accent);white-space:nowrap;font-size:11px}
 @media(max-width:900px){.rd-union-stats{grid-template-columns:repeat(2,1fr)}.rd-union-layout{grid-template-columns:1fr 1fr}.rd-union-card--main{grid-column:1/-1}.rd-union-info{grid-template-columns:1fr 1fr}.rd-union-info a{grid-column:1/-1}}
-@media(max-width:620px){.rd-union-hero{display:block}.rd-union-hero-actions{margin-top:16px}.rd-union-stats,.rd-union-layout,.rd-union-info{grid-template-columns:1fr}.rd-union-card--main,.rd-union-info a{grid-column:auto}.rd-union-input-row{grid-template-columns:1fr auto}.rd-union-input-row label{grid-column:1/-1}.rd-union-hero h4{font-size:27px}}
+@media(max-width:620px){.rd-union-page{padding:18px 14px}.rd-union-hero{display:block}.rd-union-hero-actions{margin-top:16px}.rd-union-stats,.rd-union-layout,.rd-union-info{grid-template-columns:1fr}.rd-union-card--main,.rd-union-info a{grid-column:auto}.rd-union-input-row{grid-template-columns:1fr auto}.rd-union-input-row label{grid-column:1/-1}.rd-union-hero h4{font-size:27px}}
 
 /* ── $AZL token page ────────────────────────────────────────────── */
 .rd-azl-page{max-width:1120px;margin:0 auto}
@@ -2508,6 +2561,17 @@ html[data-theme="light"] .rd-market-detail-panel{
 .rd-market-foot a:hover{border-color:var(--accent)}
 
 .rd-wallet-page .rd-checkout-head{margin-bottom:14px}
+.rd-wallet-page{
+  position:relative;
+  z-index:1;
+  padding:26px;
+  border:1px solid var(--b);
+  border-radius:var(--radius);
+  background:color-mix(in srgb,var(--surface) 96%,transparent);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
 .rd-wallet-receive{
   display:flex;
   flex-wrap:wrap;
@@ -2682,7 +2746,7 @@ html[data-theme="light"] .rd-market-detail-panel{
 .rd-wallet-asset{
   padding:16px;
   border:1px solid var(--b2);
-  background:var(--surface);
+  background:color-mix(in srgb,var(--surface) 99%,transparent);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
   display:flex;
@@ -2888,6 +2952,11 @@ a.rd-wallet-btn{text-decoration:none;display:inline-flex;align-items:center}
   .rd-subnav-links{width:100%}
   .azzle-nav-label-long{display:none}
   .azzle-nav-label-short{display:inline}
+}
+@media(max-width:620px){
+  .rd-wallet-page{
+    padding:18px 14px;
+  }
 }
 @media(max-width:640px){
   .azzle-nav-app a,

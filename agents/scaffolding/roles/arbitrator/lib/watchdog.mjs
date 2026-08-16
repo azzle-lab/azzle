@@ -3,41 +3,37 @@ import { loadManifest } from "./manifest.mjs";
 
 const manifest = loadManifest(import.meta.url, "..", "base-8453.json");
 
-/** 7 days — arbitration/ESCALATION.md RESOLUTION_TIMEOUT */
-export const RESOLUTION_TIMEOUT_SEC = 7 * 86_400;
-
 const ARBITRATION_ABI = [
-  "function disputes(uint256 disputeId) external view returns (tuple(uint256 taskId, address opener, address assignedArbitrator, uint8 state, uint256 openedAt, uint256 evidenceDeadline, uint256 tier, uint256 workerBps))",
+  "function disputes(uint256 taskId) view returns (uint256 taskId,address opener,address arbitrator,bytes32 posterEvidence,bytes32 workerEvidence,uint64 evidenceDeadline,uint64 rulingDeadline,uint8 status,uint8 outcome,uint256 slashed)",
 ];
 
-export async function readDispute(provider, disputeId) {
+export async function readDispute(provider, taskId) {
   const mod = new Contract(manifest.arbitrationModule, ARBITRATION_ABI, provider);
-  return mod.disputes(disputeId);
+  return mod.disputes(taskId);
 }
 
-export async function isResolutionTimedOut(provider, disputeId, nowSec = BigInt(Math.floor(Date.now() / 1000))) {
-  const d = await readDispute(provider, disputeId);
-  const openedAt = d.openedAt ?? d[4];
-  if (!openedAt) return { timedOut: false, openedAt: 0n };
-  const elapsed = nowSec - BigInt(openedAt);
+export async function isResolutionTimedOut(provider, taskId, nowSec = BigInt(Math.floor(Date.now() / 1000))) {
+  const d = await readDispute(provider, taskId);
+  const evidenceDeadline = BigInt(d.evidenceDeadline ?? d[5]);
+  const rulingDeadline = BigInt(d.rulingDeadline ?? d[6]);
+  const deadline = rulingDeadline || evidenceDeadline;
+  if (!deadline) return { timedOut: false, deadline: 0n };
   return {
-    timedOut: elapsed >= BigInt(RESOLUTION_TIMEOUT_SEC),
-    openedAt: BigInt(openedAt),
-    elapsedSec: elapsed,
-    timeoutSec: RESOLUTION_TIMEOUT_SEC,
+    timedOut: nowSec > deadline,
+    deadline,
+    remainingSec: deadline > nowSec ? deadline - nowSec : 0n,
   };
 }
 
-export async function runResolutionWatchdog(client, provider, disputeId) {
-  const status = await isResolutionTimedOut(provider, disputeId);
-  console.log("[watchdog] dispute", disputeId.toString(), status);
+export async function runResolutionWatchdog(client, provider, taskId) {
+  const status = await isResolutionTimedOut(provider, taskId);
+  console.log("[watchdog] task dispute", taskId.toString(), status);
   if (status.timedOut) {
-    console.log("[watchdog] RESOLUTION_TIMEOUT exceeded — calling resolveTimedOut (50/50 fallback)");
-    const tx = await client.resolveTimedOut(disputeId);
+    console.log("[watchdog] V2 ruling deadline exceeded — calling timeout");
+    const tx = await client.timeout(taskId);
     await tx.wait();
-    return { action: "resolveTimedOut", status };
+    return { action: "timeout", status };
   }
-  const remaining = BigInt(RESOLUTION_TIMEOUT_SEC) - status.elapsedSec;
-  console.log("[watchdog] time remaining (sec)", remaining.toString());
+  console.log("[watchdog] time remaining (sec)", status.remainingSec.toString());
   return { action: "wait", status };
 }

@@ -1,10 +1,8 @@
 import { ethers } from "ethers";
 import {
-  AzzleClient,
+  AzzleV2Client,
   RpcDiscovery,
-  buildExecutionReceipt,
   checkWorkerPreflight,
-  ensureAzlAllowance,
   logPreflightReport,
 } from "@azzle/agents";
 import { loadManifest } from "./lib/manifest.mjs";
@@ -17,46 +15,36 @@ import { warnIfBelowFloor } from "./lib/solvency.mjs";
 
 const rpcUrl = process.env.AZZLE_RPC_URL ?? "https://mainnet.base.org";
 
-const TASK_STATE = { ACTIVE: 3, IN_REVIEW: 4 };
+const TASK_STATE = { ACTIVE: 3 };
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * submitProof reverts until the poster funds escrow (lockedBalance > 0) and
- * calls startWork (state ACTIVE). Poll for both with a bounded timeout.
- */
-async function waitForFundedActive(client, taskId, options = {}) {
+/** Wait until full poster funding transitions the claimed task to ACTIVE. */
+async function waitForActive(client, taskId, options = {}) {
   const timeoutMs = options.timeoutMs ?? Number(process.env.WORKER_FUND_TIMEOUT_MS ?? 600_000);
   const pollMs = options.pollMs ?? 3_000;
   const deadline = Date.now() + timeoutMs;
   let announced = false;
 
   for (;;) {
-    const [state, locked] = await Promise.all([
-      client.taskState(taskId),
-      client.lockedBalance(taskId),
-    ]);
-    const funded = locked > 0n;
-    if (funded && (state === TASK_STATE.ACTIVE || state === TASK_STATE.IN_REVIEW)) {
-      console.log("[worker] task funded + ACTIVE", {
-        taskId: taskId.toString(),
-        lockedBalance: locked.toString(),
-      });
+    const state = await client.taskState(taskId);
+    if (state === TASK_STATE.ACTIVE) {
+      console.log("[worker] task ACTIVE", { taskId: taskId.toString() });
       return true;
     }
     if (!announced) {
       announced = true;
       console.log(
-        `[worker] waiting for poster to fundTask(${taskId}) and startWork(${taskId}) ` +
-          `(state ${state}, locked ${locked}) — timeout ${Math.round(timeoutMs / 1000)}s`
+        `[worker] waiting for full poster funding to transition task ${taskId} to ACTIVE ` +
+          `(state ${state}) — timeout ${Math.round(timeoutMs / 1000)}s`
       );
     }
     if (Date.now() >= deadline) {
       console.error(
-        `[worker] task ${taskId} not funded/ACTIVE within ${Math.round(timeoutMs / 1000)}s — ` +
-          `ask the poster to call fundTask + startWork, then run: node agent.mjs prove ${taskId}`
+        `[worker] task ${taskId} did not become ACTIVE within ${Math.round(timeoutMs / 1000)}s — ` +
+          "ask the poster to fully fund escrow, then retry delivery"
       );
       return false;
     }
@@ -72,12 +60,7 @@ function requireSigner() {
 }
 
 function connectClient(signer) {
-  return new AzzleClient({
-    rpcUrl,
-    registryAddress: manifest.taskRegistry,
-    escrowAddress: manifest.escrowVault,
-    arbitrationAddress: manifest.arbitrationModule,
-  }).connect(signer);
+  return new AzzleV2Client(manifest, rpcUrl).connect(signer);
 }
 
 async function runPreflight() {
@@ -85,9 +68,7 @@ async function runPreflight() {
   const wallet = await signer.getAddress();
   const report = await checkWorkerPreflight(signer.provider, wallet, {
     agentDepositVault: manifest.depositVault,
-    treasuryRouter: manifest.treasuryRouter,
     azlToken: manifest.external.azl,
-    usdc: manifest.external.usdc,
   });
   logPreflightReport(report);
   await warnIfBelowFloor(signer.provider, wallet);
@@ -115,76 +96,35 @@ async function claimFlow(taskIdArg) {
   transport.subscribe?.((msg) => console.log("[xmtp] envelope", msg.type, msg.taskId));
 
   console.log("[worker] claiming task", taskId.toString());
-  const claimTx = await client.claimTask(taskId);
+  const claimTx = await client.claim(taskId);
   await claimTx.wait();
 
-  return submitProofFlow(client, taskId, wallet);
+  return markDeliveredFlow(client, taskId);
 }
 
-async function acceptDirectHireFlow(taskIdArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: node agent.mjs accept-direct <taskId>");
-  const signer = requireSigner();
-  const wallet = await signer.getAddress();
-  const client = connectClient(signer);
-  await runPreflightChecks(signer, wallet);
-  console.log("[worker] accepting direct-hire invitation", taskId.toString());
-  const tx = await client.acceptDirectHire(taskId);
-  await tx.wait();
-  return submitProofFlow(client, taskId, wallet);
-}
-
-async function declineDirectHireFlow(taskIdArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: node agent.mjs decline-direct <taskId>");
-  const client = connectClient(requireSigner());
-  console.log("[worker] declining direct-hire invitation", taskId.toString());
-  const tx = await client.declineDirectHire(taskId);
-  await tx.wait();
-  console.log("[worker] invitation terminated as EXPIRED; poster must create a new task to re-invite");
-}
-
-async function submitProofFlow(client, taskId, wallet) {
-  const ready = await waitForFundedActive(client, taskId);
+async function markDeliveredFlow(client, taskId) {
+  const ready = await waitForActive(client, taskId);
   if (!ready) return null;
 
-  const deliverableHash = ethers.keccak256(
-    ethers.toUtf8Bytes(`azzle-worker:${taskId}:${Date.now()}`)
-  );
-  const receipt = buildExecutionReceipt({
-    taskId: taskId.toString(),
-    milestoneIndex: 0,
-    worker: wallet,
-    artifacts: [{ type: "deterministic_output", hash: deliverableHash }],
-  });
-
-  console.log("[worker] submitting proof", receipt.receiptHash);
-  const proofTx = await client.submitProof(taskId, 0, receipt.receiptHash);
-  await proofTx.wait();
-
-  console.log("[worker] awaiting poster release — monitor via Base RPC or XMTP DeliveryNotice ack");
-  return receipt;
+  console.log("[worker] marking task delivered", taskId.toString());
+  const tx = await client.markDelivered(taskId);
+  await tx.wait();
+  console.log("[worker] delivery recorded; await poster release or completion");
+  return taskId;
 }
 
-async function proveFlow(taskIdArg) {
+async function deliverFlow(taskIdArg) {
   const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: node agent.mjs prove <taskId>");
+  if (taskId === 0n) throw new Error("Usage: node agent.mjs deliver <taskId>");
   const signer = requireSigner();
-  const wallet = await signer.getAddress();
   const client = connectClient(signer);
-  return submitProofFlow(client, taskId, wallet);
+  return markDeliveredFlow(client, taskId);
 }
 
 async function runPreflightChecks(signer, wallet) {
-  await ensureAzlAllowance(signer, {
-    azlToken: manifest.external.azl,
-    treasuryRouter: manifest.treasuryRouter,
-  });
   const report = await checkWorkerPreflight(signer.provider, wallet, {
     agentDepositVault: manifest.depositVault,
-    treasuryRouter: manifest.treasuryRouter,
     azlToken: manifest.external.azl,
-    usdc: manifest.external.usdc,
   });
   if (report.warnings.length) {
     for (const w of report.warnings) console.warn("[preflight]", w);
@@ -206,30 +146,20 @@ async function main() {
     await claimFlow(process.argv[3]);
     return;
   }
-  if (cmd === "accept-direct") {
-    await acceptDirectHireFlow(process.argv[3]);
-    return;
-  }
-  if (cmd === "decline-direct") {
-    await declineDirectHireFlow(process.argv[3]);
-    return;
-  }
-  if (cmd === "prove") {
-    await proveFlow(process.argv[3]);
+  if (cmd === "deliver") {
+    await deliverFlow(process.argv[3]);
     return;
   }
 
   console.log(`AZZLE worker agent (Base ${manifest.chainId})`);
   console.log("");
   console.log("Commands:");
-  console.log("  npm run preflight   # USDC ≥ $25 entry collateral target; $45 recommended posting/claiming balance, vault, AZL approval checks");
+  console.log("  npm run preflight   # AZL deposit and wallet balance checks");
   console.log("  npm run list-open   # POSTED tasks from Base RPC");
   console.log("  npm run claim -- <taskId>");
-  console.log("  node agent.mjs accept-direct <taskId>  # invited worker activates direct hire");
-  console.log("  node agent.mjs decline-direct <taskId> # terminate invitation as EXPIRED");
-  console.log("  node agent.mjs prove <taskId>  # retry proof after poster funds + starts");
+  console.log("  node agent.mjs deliver <taskId>  # wait ACTIVE, then markDelivered");
   console.log("");
-  console.log("Flow: claimTask → wait fundTask+startWork → buildExecutionReceipt → submitProof → poster acceptMilestone");
+  console.log("Flow: claim → wait ACTIVE after full funding → markDelivered → poster release / complete");
   console.log("Set USE_XMTP_LIVE=true for XmtpNegotiationTransport (default: NegotiationBus)");
 }
 

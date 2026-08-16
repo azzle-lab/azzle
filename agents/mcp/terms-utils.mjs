@@ -1,108 +1,46 @@
 import { ethers } from "ethers";
-import { buildSettlementDigest } from "../dist/sdk/settlement.js";
-
-export const ESCROW_MODE = { milestone: 1, streaming: 2, hour_blocks: 3 };
 
 export function resolveCriteriaHash(flags, fail) {
   if (flags.criteria_text) {
     return ethers.id(flags.criteria_text);
   }
   const hash = flags.acceptance_criteria_hash;
-  if (!hash) {
-    fail("--acceptance-criteria-hash or --criteria-text required");
+  if (hash && (!ethers.isHexString(hash, 32))) {
+    fail("--acceptance-criteria-hash must be bytes32");
   }
-  return hash;
+  return hash ?? null;
 }
 
-export function parseMilestoneAmounts(flags, totalAmount, fail) {
-  if (flags.milestone_amounts) {
-    const parts = flags.milestone_amounts.split(",").map((s) => s.trim()).filter(Boolean);
-    if (!parts.length) fail("--milestone-amounts must be comma-separated USDC (6dp) values");
-    return parts.map((p) => BigInt(p));
+export function parseTaskPreview(from, flags, manifest, { fail }) {
+  if (!ethers.isAddress(from)) {
+    fail("--from must be a valid EVM address");
   }
-  return [totalAmount];
-}
-
-export function parseStreamParams(flags, escrowMode) {
-  return {
-    streamRate: BigInt(flags.stream_rate ?? "0"),
-    hourBlockSize: BigInt(flags.hour_block_size ?? "0"),
-  };
-}
-
-export function parseTaskTerms(from, flags, manifest, { requireWorker = false, fail }) {
-  const totalAmount = BigInt(flags.total_amount ?? fail("--total-amount required (USDC 6dp)"));
+  const totalAmount = BigInt(flags.total_amount ?? fail("--total-amount required (AZL wei)"));
+  if (totalAmount <= 0n) {
+    fail("--total-amount must be greater than zero");
+  }
   const deadline = Number(flags.deadline ?? fail("--deadline required (unix seconds)"));
+  if (!Number.isSafeInteger(deadline) || deadline <= 0) {
+    fail("--deadline must be a positive Unix timestamp");
+  }
   const acceptanceCriteriaHash = resolveCriteriaHash(flags, fail);
-  const escrowMode = flags.escrow_mode ?? "milestone";
-  if (!(escrowMode in ESCROW_MODE)) {
-    fail("--escrow-mode must be milestone, streaming, or hour_blocks");
-  }
-  const milestoneAmounts = parseMilestoneAmounts(flags, totalAmount, fail);
-  const { streamRate, hourBlockSize } = parseStreamParams(flags, escrowMode);
-
-  const milestoneSum = milestoneAmounts.reduce((a, b) => a + b, 0n);
-  const warnings = [];
-  if (milestoneSum !== totalAmount) {
-    warnings.push(
-      `milestone sum ${milestoneSum} != total-amount ${totalAmount} — verify before posting`
-    );
-  }
-  if (escrowMode === "streaming" && streamRate === 0n) {
-    warnings.push("escrow-mode streaming but --stream-rate is 0");
-  }
-  if (escrowMode === "hour_blocks" && hourBlockSize === 0n) {
-    warnings.push("escrow-mode hour_blocks but --hour-block-size is 0");
-  }
-
-  let worker = ethers.ZeroAddress;
-  if (requireWorker) {
-    const raw = flags.worker ?? fail("--worker required (0x address, not zero)");
-    if (!ethers.isAddress(raw) || raw === ethers.ZeroAddress) {
-      fail("--worker must be a non-zero EVM address");
-    }
-    worker = ethers.getAddress(raw);
-  }
-
-  const terms = {
-    poster: from,
-    worker,
-    token: manifest.external.usdc,
+  return {
+    poster: ethers.getAddress(from),
     totalAmount,
-    escrowMode,
-    milestoneAmounts,
-    streamRate,
-    hourBlockSize,
     deadline,
     acceptanceCriteriaHash,
-    chainId: BigInt(flags.chain_id ?? "8453"),
-    registryAddress: manifest.taskRegistry,
-  };
-
-  const digest = buildSettlementDigest(terms);
-
-  return {
-    terms,
-    digest,
-    streamRate,
-    hourBlockSize,
-    warnings,
+    chainId: 8453,
+    taskRegistry: manifest.taskRegistry,
   };
 }
 
-export function serializeTerms(terms) {
+export function serializeTaskPreview(task) {
   return {
-    poster: terms.poster,
-    worker: terms.worker,
-    token: terms.token,
-    totalAmount: terms.totalAmount.toString(),
-    escrowMode: terms.escrowMode,
-    milestoneAmounts: terms.milestoneAmounts.map((m) => m.toString()),
-    deadline: terms.deadline,
-    acceptanceCriteriaHash: terms.acceptanceCriteriaHash,
-    streamRate: terms.streamRate.toString(),
-    hourBlockSize: terms.hourBlockSize.toString(),
-    chainId: terms.chainId.toString(),
-    registryAddress: terms.registryAddress,
+    poster: task.poster,
+    totalAmountAzlWei: task.totalAmount.toString(),
+    deadline: task.deadline,
+    acceptanceCriteriaHash: task.acceptanceCriteriaHash,
+    chainId: task.chainId,
+    taskRegistry: task.taskRegistry,
   };
 }

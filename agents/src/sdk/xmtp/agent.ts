@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import type { AzzleClient } from "../client.js";
+import type { AzzleV2Client } from "../client-v2.js";
 import type { TaskTerms } from "../types.js";
 import { linkIdentity } from "./identity.js";
 import { NegotiationHandlers, type AgentRole } from "./handlers.js";
@@ -12,14 +12,12 @@ import {
 
 export interface AgentStartupConfig {
   evmSigner: ethers.Signer;
-  azzle: AzzleClient;
+  azzle: AzzleV2Client;
   role: AgentRole;
   terms: TaskTerms;
   counterpartyEvm: string;
   rpcUrl: string;
   registryAddress: string;
-  escrowAddress: string;
-  arbitrationAddress?: string;
   transportOptions?: XmtpTransportOptions;
 }
 
@@ -60,8 +58,6 @@ export async function startAgent(config: AgentStartupConfig): Promise<StartedAge
   const indexer = new ChainEventIndexer({
     rpcUrl: config.rpcUrl,
     registryAddress: config.registryAddress,
-    escrowAddress: config.escrowAddress,
-    arbitrationAddress: config.arbitrationAddress,
     transport,
   });
   await indexer.start();

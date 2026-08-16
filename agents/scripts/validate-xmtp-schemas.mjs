@@ -25,16 +25,43 @@ const PAYLOAD_FIXTURES = [
     },
   },
   {
-    type: "ArbitratorProposal",
-    file: "arbitrator-proposal.json",
+    type: "PaymentRequest",
     payload: {
-      type: "azzle/ArbitratorProposal",
-      disputeId: "1",
+      type: "azzle/PaymentRequest",
       taskId: "1",
-      proposedArbitrator: "0x0000000000000000000000000000000000000003",
-      proposer: "0x0000000000000000000000000000000000000001",
-      rationale: "Fixture proposal",
+      releaseType: "full",
     },
+  },
+  {
+    type: "PaymentRequest",
+    payload: {
+      type: "azzle/PaymentRequest",
+      taskId: "1",
+      releaseType: "partial",
+      amount: "1000000000000000000",
+    },
+  },
+];
+
+const INVALID_PAYLOAD_FIXTURES = [
+  {
+    type: "PaymentRequest",
+    payload: {
+      type: "azzle/PaymentRequest",
+      taskId: "1",
+      releaseType: "partial",
+    },
+    reason: "partial releases require an AZL wei amount",
+  },
+  {
+    type: "PaymentRequest",
+    payload: {
+      type: "azzle/PaymentRequest",
+      taskId: "1",
+      releaseType: "full",
+      amount: "1000000000000000000",
+    },
+    reason: "full completion requests must not specify an amount",
   },
 ];
 
@@ -67,9 +94,20 @@ for (const { type, payload } of PAYLOAD_FIXTURES) {
   }
 }
 
+console.log("[xmtp-schemas] rejecting invalid payload fixtures…");
+for (const { type, payload, reason } of INVALID_PAYLOAD_FIXTURES) {
+  try {
+    validatePayload(type, payload);
+    failed += 1;
+    console.error(`  ✗ ${type}: accepted invalid payload (${reason})`);
+  } catch {
+    console.log(`  ✓ ${type}: ${reason}`);
+  }
+}
+
 console.log("[xmtp-schemas] checking all schema files compile in AJV…");
-// validateEnvelopeShape loads all 20 schemas — if we got here, registry is warm
-console.log("  ✓ 20 schemas registered");
+// validateEnvelopeShape loads every supported schema — if we got here, registry is warm
+console.log("  ✓ supported schemas registered");
 
 if (failed > 0) {
   console.error(`\n[xmtp-schemas] ${failed} validation failure(s)`);

@@ -25,29 +25,24 @@ All messages share a common envelope:
 - XMTP provides E2E encryption between agent inboxes
 - **Private discovery** tasks rely on XMTP for scope — posters do not publish scope on `TaskScopeRegistry`; workers must negotiate before claim ([`protocol/TASK_DISCOVERY.md`](../protocol/TASK_DISCOVERY.md))
 - Economic identity anchored via `IdentityLink` (see `schemas/identity-link.json`)
-- Settlement digests signed by EVM keys off-band in `TaskAcceptance`
+- Settlement digests signed by EVM keys off-band in `TaskAcceptance`. XMTP messages do not create, modify, or replace V2 contract state.
 
 ## Message Types
 
 | Type | Purpose |
 |------|---------|
-| `TaskProposal` | Poster offers initial terms |
-| `TaskCounterOffer` | Worker negotiates terms |
-| `TaskAcceptance` | Mutual agreement + V2 settlement digest |
-| `MilestoneDefinition` | Amend milestone structure |
-| `RevisionRequest` | Poster requests changes mid-flight |
-| `DeliveryNotice` | Worker delivers proof reference |
-| `PaymentRequest` | Worker requests stream/hour release |
+| `TaskProposal` | Poster offers proposed off-chain task terms |
+| `TaskCounterOffer` | Worker negotiates proposed off-chain task terms |
+| `TaskAcceptance` | Mutual agreement plus a V2 settlement digest for an already-posted task |
+| `MilestoneDefinition` | Optional nonbinding off-chain work plan; not an on-chain milestone or release schedule |
+| `RevisionRequest` | Poster requests nonbinding scope changes mid-flight |
+| `DeliveryNotice` | Worker sends delivery metadata after `markDelivered` |
+| `PaymentRequest` | Worker requests either `full` completion or a `partial` AZL-wei release |
 | `CapabilityProof` | Worker proves domain competence |
 | `DisputeEvidence` | Party submits arbitration evidence |
-| `ArbitratorProposal` | Party proposes arbitrator for mutual Onchain consent |
-| `MutualCancel` | Signed cancel intent |
-| `ReplacementContext` | Handoff package for replacement worker |
 | `SupervisorVeto` | Optional human supervisory block |
-| `MilestoneClaim` | Worker proof intent before `submitProof` |
-| `DisputeNotice` | Coordinate `openDispute` and proof block |
-| `VerificationAttest` | Verifier result for an execution receipt |
-| `DismissIntent` | Coordinate `dismissWorker` / `leaveTask` |
+| `AcceptDelivery` | Poster sends notice after `complete` |
+| `IdentityLink` | Links an XMTP key to an EVM address |
 
 See `schemas/` for JSON Schema definitions.
 
@@ -59,19 +54,21 @@ Poster                    Worker
   |     <-- TaskCounterOffer|
   | TaskAcceptance  <--     |
   | TaskAcceptance  -->     |  (both sign same digest)
-  | [Onchain createTask]   |
+  | [Onchain post / claim / fund] |
   | DeliveryNotice  <--     |
-  | [Onchain submitProof]  |
-  | AcceptDelivery  -->     |
+  | [Onchain markDelivered]  |
+  | PaymentRequest  <--     |  (optional: request a partial AZL-wei release)
+  | [Onchain release / complete] |
+  | AcceptDelivery  -->     |  (sent after complete)
 ```
 
 ## Dispute coordination
 
-After `TaskRegistry.openDispute`, parties exchange `ArbitratorProposal` messages (see `schemas/arbitrator-proposal.json`) to agree off-chain, then **both** must call `ArbitrationModule.proposeArbitrator(disputeId, sameAddress)`. Evidence continues in `DisputeEvidence` threads.
+After `TaskRegistry.openDispute`, parties may exchange `DisputeEvidence` messages. The V2 arbitration module controls the on-chain dispute flow; XMTP cannot nominate an arbitrator or change the outcome.
 
 ## Related
 
 - [`protocol/XMTP_EVM_BRIDGE.md`](../protocol/XMTP_EVM_BRIDGE.md)
 - [`schemas/`](schemas/)
 - [`fixtures/`](fixtures/) — valid envelope examples for CI
-- Validation harness: `cd agents && npm run validate:schemas` (AJV + all 20 schemas)
+- Validation harness: `cd agents && npm run validate:schemas` (AJV + all supported schemas)

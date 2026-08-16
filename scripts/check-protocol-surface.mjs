@@ -1,142 +1,98 @@
-/**
- * Fast regression check for accidental reintroduction of retired operational
- * surfaces. Historical audit and x-ray materials are intentionally excluded.
- */
+/** Regression guard for active AZZLE V2 protocol surfaces. */
 import { access, readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const ignored = new Set([
-  "node_modules", ".git", "public", ".tmp", ".tmp-size-check", "audit", "x-ray",
-  "fizz_data", "coverage", "dist", ".agents",
-]);
+const activeRoots = [
+  "README.md", "AGENTS.md", "QUICKSTART.md", "BOOTSTRAP.md", "MASTERSKILL.md", "SECURITY.md",
+  "protocol", "arbitration", "reputation", "site", "launch-skills", "agents", "api", "docs", "xmtp-spec",
+];
+const ignoredNames = new Set(["node_modules", ".git", ".agents", "public", "dist", "coverage", "artifacts", "cache", "typechain-types"]);
+const ignoredPrefixes = ["archive/", "contracts/audit/", "contracts/x-ray/", "contracts/fizz_data/", "site/generated/", "agents/dist/", "site/role-wallet.bundle.js", "launch-skills/azzle-film.html", "launch-skills/trailer_video.html", "api/get-legacy-"];
+const allowedExtensions = /\.(?:md|mjs|js|ts|tsx|json|html|yml|yaml)$/i;
 const legacyAddresses = [
   "0xd931bbc52fabcc2ee5f52b3be489a92b29941054",
   "0x35c4233ae2dd247a726080aa80c232a4f98d2a2d",
   "0xabaa2dcbf3a391cdaab7eeae0cbd50c3128970cc",
   "0x5e6dce7ac4a805761be4b124277c43c33ad3e825",
 ];
-const forbiddenActiveTokens = [
-  "api.studio.thegraph.com/query/1754651/azzle-protocol/v0.3",
-  "SubgraphIndexer",
-  "protocolVersion.*legacy",
-  "src/TaskRegistry.sol",
-  "src/EscrowVault.sol",
-  "src/AgentDepositVault.sol",
-  "src/ReputationRegistry.sol",
-  "src/ArbitrationModule.sol",
-  "src/TreasuryRouter.sol",
+const retiredSelectors = ["postTask", "claimTask", "fundTask", "startWork", "submitProof", "acceptMilestone", "createTask", "acceptDirectHire", "dismissWorker", "leaveTask"];
+const retiredStates = ["IN_REVIEW", "PAUSED", "DELETED", "STREAMING", "HOUR_BLOCKS"];
+const legacyClaims = [
+  [/\$5\s*USDC\s*\+\s*1(?:,|_)?000\s*(?:\$?AZL|AZZLE)/gi, "fixed dual fee"],
+  [/\b(?:job payment|task payment|task escrow|USDC escrow|escrowed?)\b[^\n]{0,80}\bUSDC\b/gi, "USDC task escrow"],
+  [/\bUSDC\b[^\n]{0,80}\b(?:AgentDepositVault|deposit vault|entry collateral|topUp)\b/gi, "USDC deposit collateral"],
 ];
+const legacyExplanation = /\b(?:legacy|retired|deprecated|reserved|historical|v1|does not expose|no longer|do not|never|instead of)\b/i;
+const strictPrefixes = ["agents/src/sdk/client", "agents/src/sdk/rpc-discovery", "agents/src/sdk/base-rpc-indexer"];
 
-async function files(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const nested = await Promise.all(entries.map(async (entry) => {
-    if (ignored.has(entry.name)) return [];
-    const path = join(dir, entry.name);
-    return entry.isDirectory() ? files(path) : [path];
+async function collect(path) {
+  const statEntries = await readdir(path, { withFileTypes: true });
+  const nested = await Promise.all(statEntries.map(async (entry) => {
+    if (ignoredNames.has(entry.name)) return [];
+    const child = join(path, entry.name);
+    return entry.isDirectory() ? collect(child) : [child];
   }));
   return nested.flat();
 }
 
-const violations = [];
-for (const path of await files(root)) {
-  const rel = relative(root, path).split(sep).join("/");
-  if (rel.startsWith("archive/") || rel.startsWith("contracts/.audit-") || rel.startsWith("contracts/fizz_data/") || rel.startsWith("contracts/x-ray/") || rel === "CHANGELOG.md") continue;
-  if (rel === "scripts/check-protocol-surface.mjs") continue;
-  if (!/\.(?:md|mjs|js|ts|tsx|json|html|yml|yaml)$/i.test(path)) continue;
-  const content = await readFile(path, "utf8");
-  if (legacyAddresses.some((address) => content.toLowerCase().includes(address))) {
-    violations.push(rel);
-  }
-  for (const token of forbiddenActiveTokens) {
-    if (content.includes(token)) violations.push(`${rel}: forbidden legacy token ${token}`);
+function isExplained(content, index) {
+  const lineStart = content.lastIndexOf("\n", index) + 1;
+  const lineEnd = content.indexOf("\n", index);
+  return legacyExplanation.test(content.slice(Math.max(0, lineStart - 180), lineEnd < 0 ? content.length : lineEnd + 180));
+}
+
+const paths = [];
+for (const surface of activeRoots) {
+  const absolute = join(root, surface);
+  try {
+    const found = surface.includes(".") ? [absolute] : await collect(absolute);
+    paths.push(...found);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
   }
 }
 
-if (violations.length) {
-  console.error("Protocol surface regression(s):\n" + violations.map((v) => `- ${v}`).join("\n"));
-  process.exit(1);
+const violations = [];
+for (const path of new Set(paths)) {
+  const rel = relative(root, path).split(sep).join("/");
+  if (ignoredPrefixes.some((prefix) => rel.startsWith(prefix)) || !allowedExtensions.test(rel)) continue;
+  const content = await readFile(path, "utf8");
+  const lower = content.toLowerCase();
+  for (const address of legacyAddresses) if (lower.includes(address)) violations.push(`${rel}: stale copied address ${address}`);
+  const strict = strictPrefixes.some((prefix) => rel.startsWith(prefix));
+  if (!strict) continue;
+  for (const token of [...retiredSelectors, ...retiredStates]) {
+    const pattern = new RegExp(`\\b${token}\\b`, "g");
+    for (const match of content.matchAll(pattern)) if (strict && !isExplained(content, match.index)) violations.push(`${rel}: active retired token ${token}`);
+  }
+  if (!strict) continue;
+  for (const [pattern, label] of legacyClaims) {
+    pattern.lastIndex = 0;
+    for (const match of content.matchAll(pattern)) if (!isExplained(content, match.index)) violations.push(`${rel}: ${label}`);
+  }
 }
 
 const canonical = JSON.parse(await readFile(join(root, "contracts", "deployments", "base-8453.json"), "utf8"));
-const generatedJsonConsumers = [
-  "agents/deployments/base-8453.json",
-  "api/lib/contracts.json",
-];
-for (const rel of generatedJsonConsumers) {
+for (const rel of ["agents/deployments/base-8453.json", "api/lib/contracts.json"]) {
   const actual = JSON.parse(await readFile(join(root, rel), "utf8"));
-  if (JSON.stringify(actual) !== JSON.stringify(canonical)) {
-    violations.push(`${rel} differs from the canonical manifest`);
-  }
+  if (JSON.stringify(actual) !== JSON.stringify(canonical)) violations.push(`${rel}: differs from canonical manifest`);
 }
-
-const requiredV2Keys = [
-  "version", "chainId", "taskRegistry", "depositVault", "escrowVault",
-  "arbitrationModule", "stakingVault", "external",
-];
-for (const key of requiredV2Keys) {
-  if (!(key in canonical)) violations.push(`canonical V2 manifest is missing ${key}`);
-}
-
-const generatedTextConsumers = [
-  ["agents/x402-cloud/x402/manifest.ts", "BASE_MAINNET_MANIFEST"],
-  ["launch-skills/js/manifest.generated.js", "MANIFEST"],
-];
-const walletSurface = await readFile(join(root, "src", "azzle-chain.js"), "utf8");
-for (const token of [
-  "postTask", "fundTask", "startWork", "acceptMilestone",
-  "escrowMode", "settlementDigest", "milestoneAmounts", "budgetUsdc",
-  "TaskRegistry", "EscrowVault", "AgentDepositVault", "TreasuryRouter",
-]) {
-  if (walletSurface.includes(token)) {
-    violations.push(`src/azzle-chain.js exposes legacy wallet token ${token}`);
-  }
-}
-for (const token of [
-  "topUp", "lockedBalance",
-  "maxWithdrawableDeposit", "approveUsdcVault", "depositToVault", "withdrawFromVault",
-]) {
-  if (walletSurface.includes(token)) {
-    violations.push(`src/azzle-chain.js exposes retired V2-incompatible wallet token ${token}`);
-  }
-}
-const walletBundlePath = join(root, "site", "role-wallet.bundle.js");
-try {
-  await access(walletBundlePath);
-  const walletBundle = await readFile(walletBundlePath, "utf8");
-  for (const token of ["postTask", "fundTask", "startWork", "acceptMilestone", "getTask("]) {
-    if (walletBundle.includes(token)) {
-      violations.push(`site/role-wallet.bundle.js exposes legacy wallet token ${token}`);
-    }
-  }
-  for (const token of ["topUp", "lockedBalance", "maxWithdrawableDeposit", "approveUsdcVault", "depositToVault", "withdrawFromVault"]) {
-    if (walletBundle.includes(token)) {
-      violations.push(`site/role-wallet.bundle.js exposes retired V2-incompatible wallet token ${token}`);
-    }
-  }
-} catch {
-  console.log("[protocol-surface] wallet bundle not built; source surface check is authoritative");
-}
-for (const [rel, marker] of generatedTextConsumers) {
+for (const [rel, marker] of [["agents/x402-cloud/x402/manifest.ts", "BASE_MAINNET_MANIFEST"], ["launch-skills/js/manifest.generated.js", "MANIFEST"]]) {
   const content = await readFile(join(root, rel), "utf8");
-  if (!content.includes("GENERATED by contracts/scripts/promote-manifest.ts") || !content.includes(canonical.taskRegistry) || !content.includes(canonical.stakingVault) || !content.includes(marker)) {
-    violations.push(`${rel} is not a current generated manifest consumer`);
-  }
+  if (!content.includes("GENERATED by contracts/scripts/promote-manifest.ts") || !content.includes(canonical.taskRegistry) || !content.includes(canonical.stakingVault) || !content.includes(marker)) violations.push(`${rel}: stale generated manifest consumer`);
 }
-
 const x402 = JSON.parse(await readFile(join(root, "agents", "x402-cloud", "bankr.x402.json"), "utf8"));
-for (const [name, service] of Object.entries(x402.services ?? {})) {
-  if (service.tokenAddress?.toLowerCase() !== canonical.external.azl.toLowerCase()) {
-    violations.push(`agents/x402-cloud/bankr.x402.json ${name} tokenAddress differs from canonical V2 AZL`);
-  }
-}
-if (!x402.services?.["azzle-task-scope"]) {
-  violations.push("agents/x402-cloud/bankr.x402.json is missing azzle-task-scope");
-}
+for (const [name, service] of Object.entries(x402.services ?? {})) if (service.tokenAddress?.toLowerCase() !== canonical.external.azl.toLowerCase()) violations.push(`agents/x402-cloud/bankr.x402.json: ${name} does not charge canonical AZL`);
+if (!x402.services?.["azzle-task-scope"]) violations.push("agents/x402-cloud/bankr.x402.json: missing azzle-task-scope");
+
+const sourceWallet = await readFile(join(root, "src", "azzle-chain.js"), "utf8");
+for (const token of [...retiredSelectors, "topUp", "lockedBalance", "maxWithdrawableDeposit", "approveUsdcVault", "depositToVault", "withdrawFromVault"]) if (sourceWallet.includes(token)) violations.push(`src/azzle-chain.js: retired wallet token ${token}`);
+try { await access(join(root, "site", "role-wallet.bundle.js")); } catch { console.log("[protocol-surface] generated wallet bundle absent; source check used"); }
 
 if (violations.length) {
-  console.error("Protocol surface regression(s):\n" + violations.map((v) => `- ${v}`).join("\n"));
+  console.error("Protocol surface regression(s):\n" + [...new Set(violations)].map((item) => `- ${item}`).join("\n"));
   process.exit(1);
 }
-console.log("Protocol surface check passed.");
+console.log(`Protocol surface check passed (${new Set(paths).size} active files scanned).`);

@@ -46,15 +46,12 @@ export type {
   DeliveryDecision,
   PaymentDecision,
   TaskAcceptedInfo,
-  MilestoneDefinitionPayload,
   RevisionRequestPayload,
   DeliveryNoticePayload,
   AcceptDeliveryPayload,
   PaymentRequestPayload,
   CapabilityProofPayload,
   DisputeEvidencePayload,
-  MutualCancelPayload,
-  ReplacementContextPayload,
   SupervisorVetoPayload,
 } from "./handlers.js";
 export { ChainEventIndexer, type ChainEventIndexerConfig } from "./correlation.js";

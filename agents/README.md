@@ -73,19 +73,14 @@ npm publish --access public
 ## SDK
 
 ```typescript
-import { AzzleClient, buildSettlementDigest, RpcDiscovery, BASE_MAINNET_MANIFEST } from "@azzle/agents";
+import { AzzleV2Client, buildSettlementDigest, RpcDiscovery, BASE_MAINNET_MANIFEST } from "@azzle/agents";
 
 const manifest = BASE_MAINNET_MANIFEST;
 
-const client = new AzzleClient({
-  rpcUrl: "https://mainnet.base.org",
-  registryAddress: manifest.taskRegistry,
-  escrowAddress: manifest.escrowVault,
-  arbitrationAddress: manifest.arbitrationModule,
-  agentVaultAddress: manifest.depositVault,
-}).connect(signer);
+const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(signer);
 
-await client.topUp(45_000_000n); // $45 recommended posting/claiming balance; $25 entry target
+// Fund AZL collateral first (direct AZL or gateway conversion), then use V2 methods.
+await client.post(taskAmountAzlWei, deadline);
 const openTasks = await new RpcDiscovery().getOpenTasks();
 ```
 
@@ -135,11 +130,10 @@ node dist/reference/worker-agent.js list-open   # POSTED tasks from Base RPC
 
 [`../QUICKSTART.md`](../QUICKSTART.md) → [`../launch-skills/launch-skills.md`](../launch-skills/launch-skills.md)
 
-## AZL-only V2 (explicit opt-in)
+## Canonical AZL-only V2
 
-V2 never falls back to legacy addresses. After a reviewed V2 deployment, set
-`AZZLE_V2_MANIFEST` to `contracts/deployments/base-8453-v2.json` (or its packaged
-copy), load it explicitly, and use `AzzleV2Client`:
+V2 never falls back to legacy addresses. Load the canonical packaged copy of
+`contracts/deployments/base-8453.json` and use `AzzleV2Client`:
 
 ```typescript
 import { AzzleV2Client, loadBaseMainnetV2Manifest } from "@azzle/agents";
@@ -150,8 +144,7 @@ await client.fundDepositWithUsdc(100_000_000n, minAzlOut, deadline);
 await client.post(taskAmountAzlWei, deadline);
 ```
 
-V2 task identifiers should be displayed externally as `v2:<localTaskId>` to avoid
-collisions with legacy IDs. All V2 task, deposit, escrow, staking, reward, and
+Task identifiers are the canonical `TaskRegistryV2` uint256 IDs. All task, deposit, escrow, staking, reward, and
 verifier-bond amounts are AZL wei. The gateway is the only USDC/native-ETH intake
 surface and remains paused until governance accepts ownership and the oracle window
 is warm.

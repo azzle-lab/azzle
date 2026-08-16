@@ -2,23 +2,29 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://azzle.org/schemas/xmtp/milestone-definition/v2",
   "title": "MilestoneDefinition",
+  "description": "Optional nonbinding off-chain work plan. It does not create milestones or authorize releases on-chain.",
   "type": "object",
   "required": ["type", "taskId", "milestones"],
   "properties": {
     "type": { "const": "azzle/MilestoneDefinition" },
-    "taskId": { "type": "string" },
+    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
     "milestones": {
       "type": "array",
       "items": {
         "type": "object",
         "required": ["amount", "description"],
         "properties": {
-          "amount": { "type": "string" },
+          "amount": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$",
+            "description": "Nonbinding planning estimate in AZL wei; not an on-chain release amount."
+          },
           "description": { "type": "string" },
           "deadline": { "type": "string", "format": "date-time" }
         }
       }
     },
     "amendedAt": { "type": "string", "format": "date-time" }
-  }
+  },
+  "additionalProperties": false
 }

@@ -11,9 +11,9 @@ import {
   type Conversation,
   type DecodedMessage,
 } from "@xmtp/node-sdk";
-import { ethers, Contract } from "ethers";
-import { AzzleClient } from "../sdk/client.js";
-import { BASE_MAINNET_MANIFEST } from "../sdk/manifest.js";
+import { ethers } from "ethers";
+import { AzzleV2Client } from "../sdk/client-v2.js";
+import { loadBaseMainnetV2Manifest } from "../sdk/manifest-v2.js";
 import { buildExecutionReceipt } from "../sdk/receipt.js";
 import { assertValidEnvelope } from "../sdk/xmtp/envelope.js";
 import { resolveXmtpClientOptions } from "../sdk/xmtp/client-config.js";
@@ -21,19 +21,11 @@ import { createXmtpClient, installationPublicKey } from "../sdk/xmtp/signer.js";
 import { verifyIdentityLink } from "../sdk/xmtp/identity.js";
 import type { AzzleEnvelope, IdentityLink } from "../sdk/xmtp/types.js";
 import { buildEnvelope } from "../sdk/xmtp/envelope.js";
-import { ensureAzlAllowance } from "../sdk/preflight.js";
-
-const REGISTRY_STATE_ABI = [
-  "function taskState(uint256 taskId) external view returns (uint8)",
-  "function claimTask(uint256 taskId) external",
-  "function submitProof(uint256 taskId, uint256 milestoneIndex, bytes32 receiptHash) external",
-];
 
 const TASK_POSTED = 1;
 const TASK_ACTIVE = 3;
-const TASK_IN_REVIEW = 4;
 const POLL_INTERVAL_MS = 3_000;
-/** How long to wait for the poster to fundTask + startWork after our claim. */
+/** How long to wait for the poster to fully fund after our claim. */
 const DEFAULT_FUND_WAIT_TIMEOUT_MS = 10 * 60_000;
 const RECONCILE_PASSES = 8;
 const RECONCILE_DELAY_MS = 1_500;
@@ -48,8 +40,8 @@ export interface LiveWorkerConfig {
   rpcUrl: string;
   chainId?: number;
   /**
-   * Max time to wait after claimTask for escrow funding (fundTask) and
-   * work start (startWork) before giving up on submitProof.
+   * Max time to wait after claim for full escrow funding and automatic
+   * activation before giving up on delivery.
    * Defaults to LIVE_WORKER_FUND_TIMEOUT_MS env or 10 minutes.
    */
   fundWaitTimeoutMs?: number;
@@ -57,7 +49,7 @@ export interface LiveWorkerConfig {
 
 export interface LiveWorkerRuntime {
   client: Client;
-  azzle: AzzleClient;
+  azzle: AzzleV2Client;
   signer: ethers.Wallet;
   inboxId: string;
   evmAddress: string;
@@ -104,14 +96,14 @@ export class LiveWorkerService {
   private agent: Agent | null = null;
   private runtime: {
     client: Client;
-    azzle: AzzleClient;
+    azzle: AzzleV2Client;
     signer: ethers.Wallet;
     workerAddress: string;
   } | null = null;
 
   constructor(
     private readonly config: LiveWorkerConfig,
-    private readonly manifest = BASE_MAINNET_MANIFEST
+    private readonly manifest = loadBaseMainnetV2Manifest()
   ) {}
 
   async start(): Promise<LiveWorkerRuntime> {
@@ -130,13 +122,7 @@ export class LiveWorkerService {
     await this.prepareInstallation(client);
     await this.logNetworkRegistration(client, evmAddress);
 
-    const azzle = new AzzleClient({
-      rpcUrl,
-      registryAddress: this.manifest.taskRegistry,
-      escrowAddress: this.manifest.escrowVault,
-      arbitrationAddress: this.manifest.arbitrationModule,
-      signer: { address: evmAddress, signMessage: (m) => signer.signMessage(m) },
-    }).connect(signer);
+    const azzle = new AzzleV2Client(this.manifest, rpcUrl).connect(signer);
 
     this.runtime = { client, azzle, signer, workerAddress: evmAddress };
     this.streamAbort = false;
@@ -719,7 +705,7 @@ export class LiveWorkerService {
   private async handleStructuredText(
     conversation: Conversation,
     raw: string,
-    azzle: AzzleClient,
+    azzle: AzzleV2Client,
     signer: ethers.Wallet,
     workerAddress: string
   ): Promise<void> {
@@ -761,7 +747,7 @@ export class LiveWorkerService {
 
   private async handleTaskProposal(
     conversation: Conversation,
-    azzle: AzzleClient,
+    azzle: AzzleV2Client,
     signer: ethers.Wallet,
     workerAddress: string,
     envelope: AzzleEnvelope
@@ -776,8 +762,7 @@ export class LiveWorkerService {
     }
 
     const taskId = BigInt(taskIdStr);
-    const registry = new Contract(this.manifest.taskRegistry, REGISTRY_STATE_ABI, signer);
-    const state = Number(await registry.taskState(taskId));
+    const state = Number(await azzle.taskState(taskId));
     if (state !== TASK_POSTED) {
       console.warn("[worker] task not POSTED", { taskId: taskIdStr, state });
       return;
@@ -786,26 +771,21 @@ export class LiveWorkerService {
     console.log("[worker] claiming task", { taskId: taskIdStr });
 
     try {
-      await ensureAzlAllowance(signer, {
-        azlToken: this.manifest.external.azl,
-        treasuryRouter: this.manifest.treasuryRouter,
-      });
-      const claimTx = await azzle.claimTask(taskId);
+      const claimTx = await azzle.claim(taskId);
       await claimTx.wait();
     } catch (err) {
-      console.error("[worker] claimTask failed", err);
+      console.error("[worker] claim failed", err);
       await conversation.sendText(
         `claim failed: ${err instanceof Error ? err.message : String(err)}`
       );
       return;
     }
 
-    // submitProof reverts unless the poster has funded escrow (lockedBalance > 0)
-    // and started work (state ACTIVE). Wait for both before proving.
+    // Full funding moves a claimed V2 task to ACTIVE atomically.
     await conversation.sendText(
-      `claimed task ${taskIdStr} — waiting for you to fundTask(${taskIdStr}, amount) and startWork(${taskIdStr}) before delivery`
+      `claimed task ${taskIdStr} — waiting for the poster to fully fund it before delivery`
     );
-    const ready = await this.waitForFundedActive(azzle, taskId, conversation);
+    const ready = await this.waitForActive(azzle, taskId, conversation);
     if (!ready) return;
 
     const deliverableHash = ethers.keccak256(
@@ -828,10 +808,10 @@ export class LiveWorkerService {
       Buffer.from(JSON.stringify(receipt), "utf8").toString("base64");
 
     try {
-      const proofTx = await azzle.submitProof(taskId, 0, receipt.receiptHash);
-      await proofTx.wait();
+      const deliveryTx = await azzle.markDelivered(taskId);
+      await deliveryTx.wait();
     } catch (err) {
-      console.error("[worker] submitProof failed", err);
+      console.error("[worker] markDelivered failed", err);
       return;
     }
 
@@ -854,7 +834,6 @@ export class LiveWorkerService {
       payload: {
         type: "azzle/DeliveryNotice",
         taskId: taskIdStr,
-        milestoneIndex: 0,
         receiptHash: receipt.receiptHash,
         receiptUri,
       },
@@ -865,11 +844,11 @@ export class LiveWorkerService {
   }
 
   /**
-   * Poll until the task is funded (EscrowVault.lockedBalance > 0) and ACTIVE
-   * (poster called fundTask + startWork). Returns false on timeout.
+   * Poll until full funding automatically moves the V2 task to ACTIVE.
+   * Returns false on timeout.
    */
-  private async waitForFundedActive(
-    azzle: AzzleClient,
+  private async waitForActive(
+    azzle: AzzleV2Client,
     taskId: bigint,
     conversation: Conversation
   ): Promise<boolean> {
@@ -878,36 +857,32 @@ export class LiveWorkerService {
       Number(process.env.LIVE_WORKER_FUND_TIMEOUT_MS ?? DEFAULT_FUND_WAIT_TIMEOUT_MS);
     const deadline = Date.now() + timeoutMs;
     let lastState = -1;
-    let lastFunded = false;
     let reminded = false;
 
     while (Date.now() < deadline) {
       let state: number;
-      let locked: bigint;
+      let task;
       try {
-        [state, locked] = await Promise.all([
-          azzle.taskState(taskId),
-          azzle.lockedBalance(taskId),
-        ]);
+        task = await azzle.getTask(taskId);
+        state = task.state;
       } catch (err) {
         console.warn("[worker] funded/ACTIVE poll failed", err);
         await sleep(POLL_INTERVAL_MS);
         continue;
       }
 
-      const funded = locked > 0n;
-      if (state !== lastState || funded !== lastFunded) {
-        console.log("[worker] waiting for funded + ACTIVE", {
+      if (state !== lastState) {
+        console.log("[worker] waiting for ACTIVE", {
           taskId: taskId.toString(),
           state,
-          lockedBalance: locked.toString(),
+          funded: task.funded.toString(),
+          totalAmount: task.totalAmount.toString(),
         });
         lastState = state;
-        lastFunded = funded;
       }
 
-      if (funded && (state === TASK_ACTIVE || state === TASK_IN_REVIEW)) {
-        console.log("[worker] task funded and ACTIVE — submitting proof", {
+      if (state === TASK_ACTIVE && task.funded === task.totalAmount) {
+        console.log("[worker] task ACTIVE — marking delivered", {
           taskId: taskId.toString(),
         });
         return true;
@@ -916,25 +891,21 @@ export class LiveWorkerService {
       // Nudge the poster halfway through the wait if still not ready.
       if (!reminded && Date.now() > deadline - timeoutMs / 2) {
         reminded = true;
-        const missing = [
-          funded ? null : `fundTask(${taskId}, amount)`,
-          state === TASK_ACTIVE ? null : `startWork(${taskId})`,
-        ].filter(Boolean);
         await conversation.sendText(
-          `still waiting on task ${taskId}: please call ${missing.join(" then ")} so I can submit proof`
+          `still waiting on task ${taskId}: the poster must fully fund the task so it becomes ACTIVE`
         );
       }
 
       await sleep(POLL_INTERVAL_MS);
     }
 
-    console.error("[worker] timed out waiting for fundTask/startWork", {
+    console.error("[worker] timed out waiting for ACTIVE", {
       taskId: taskId.toString(),
       timeoutMs,
     });
     await conversation.sendText(
-      `task ${taskId} was never funded/started within ${Math.round(timeoutMs / 60_000)}m — ` +
-        `call fundTask(${taskId}, amount) then startWork(${taskId}) and re-send the proposal`
+      `task ${taskId} did not become ACTIVE within ${Math.round(timeoutMs / 60_000)}m — ` +
+        `fully fund the task and re-send the proposal`
     );
     return false;
   }

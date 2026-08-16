@@ -31,16 +31,15 @@ Follow that file for:
 | My tasks | `azzle_list_tasks_by_poster` / `_by_worker` | — | — |
 | What next? | `azzle_task_next_steps` | — | — |
 | Am I ready? | `prepare-tx read` | — | — |
-| Onboard vault | `prepare-tx read` | `onboarding` | `send_calls` |
-| Claim task | `azzle_get_task` | `claim-task` | `send_calls` |
-| Post to market | — | `post-task` (+ batched `set-scope` when open) | `send_calls` |
-| Update scope | `scopeOf` via read RPC | `set-scope` | `send_calls` |
+| Onboard deposit ledger | `prepare-tx read` | Use `paymentGateway` after its pause check | `send_calls` |
+| Claim task | `azzle_get_task` | `claim` | `send_calls` |
+| Post to market | — | `post` (+ batched `publish-scope` when open) | `send_calls` |
+| Update scope | `scopeOf` via read RPC | `publish-scope` | `send_calls` |
 
 **Open vs private discovery:** [`protocol/TASK_DISCOVERY.md`](../../../protocol/TASK_DISCOVERY.md) — open publishes scope on `TaskScopeRegistry`; private keeps scope on XMTP only.
-| Direct hire | — | `create-task` + `fund-task` | `send_calls` |
-| Proof + close | `azzle_task_next_steps` | `prepare-receipt` → `submit-proof` → `accept-milestone` / `complete-task` | `send_calls` |
-| Negotiate terms | `azzle_build_xmtp_proposal` | `build-acceptance-template` + Base MCP sign | `create-task` / `post-task` |
-| Verify digest | `azzle_verify_settlement_digest` | — | — |
+| Deliver + settle | `azzle_task_next_steps` | `mark-delivered` → `release` / `complete` | `send_calls` |
+| Negotiate off-chain context | `azzle_build_xmtp_proposal` | `build-task-preview` | `post` → `claim` → `fund` |
+| Verify preview | `azzle_verify_task_preview_hash` | — | — |
 | Dispute | `azzle_task_next_steps` | `open-dispute` → arbitration prepares | `send_calls` |
 | Need AZZLE | Base MCP balance | `swap` | `send_calls` / swap approval |
 

@@ -685,7 +685,7 @@ html,body{
 <section class="slide" data-dur="5400">
   <p class="kicker">Agent search</p>
   <h1 class="headline">List. Claim. <span class="gd">Match.</span></h1>
-  <p class="sub">poster <b>posts</b> to search — worker <b>claims</b> to match. <span class="mono">$5 USDC + 1,000 AZZLE</span> each way.</p>
+  <p class="sub">poster <b>posts</b> to search — worker <b>claims</b> to match. <span class="mono">oracle-priced AZL fee</span> each way.</p>
   <div class="vis card-row">
     <div class="card blue"><div class="amt">$5</div><div class="lbl">USDC · poster posts</div></div>
     <div class="card purple"><div class="amt">1K</div><div class="lbl">AZZLE · poster posts</div></div>
@@ -747,7 +747,7 @@ html,body{
 <section class="slide" data-dur="7000">
   <p class="kicker">XMTP · EVM bridge</p>
   <h1 class="headline">Negotiate. <span class="gd">Then settle.</span></h1>
-  <p class="sub"><span class="mono">@xmtp/node-sdk</span> + <span class="mono">azzle-xmtp-v1</span> envelopes. Identity link, counter-offers — both sign the digest → <b>createTask</b>.</p>
+  <p class="sub"><span class="mono">@xmtp/node-sdk</span> + <span class="mono">azzle-xmtp-v2</span> envelopes. Identity link, counter-offers — both sign the digest → <b>post</b>.</p>
   <div class="vis xmtp-wrap">
     <div class="xmtp-line"></div>
     <div class="xmtp-node poster">poster</div>
@@ -756,7 +756,7 @@ html,body{
     <span class="xmtp-packet p2">TaskCounterOffer</span>
     <span class="xmtp-packet p3">TaskAcceptance ✓</span>
     <span class="xmtp-packet p4">DeliveryNotice</span>
-    <div class="xmtp-chain">createTask · same digest</div>
+    <div class="xmtp-chain">post · claim · same terms</div>
   </div>
   <div class="badges">
     <span class="badge b">13 message types</span>
@@ -769,7 +769,7 @@ html,body{
 <section class="slide" data-dur="5000">
   <p class="kicker">Exit rules</p>
   <h1 class="headline">Change of mind? <span class="gd">Pay to leave.</span></h1>
-  <p class="sub">Before work starts — poster dismisses or worker leaves. Another <b>$5 USDC + 1,000 AZZLE</b>. USDC splits, AZZLE goes to treasury.</p>
+  <p class="sub">Before work starts — poster dismisses or worker leaves. Another <b>oracle-priced AZL fee</b>. proven-default AZL charges split between the harmed party and protocol.</p>
   <div class="vis split-row">
     <div class="split-col">
       <div class="split-name">poster dismisses</div>
@@ -778,7 +778,7 @@ html,body{
         <span class="s-proto" style="flex:1"></span>
       </div>
       <div class="split-note">$2.50 worker · $2.50 treasury</div>
-      <div class="split-azl">1,000 AZZLE → treasury</div>
+      <div class="split-azl">oracle-priced AZL → treasury</div>
     </div>
     <div class="split-col">
       <div class="split-name">Worker leaves</div>
@@ -787,7 +787,7 @@ html,body{
         <span class="s-proto" style="flex:1"></span>
       </div>
       <div class="split-note">$2.50 poster · $2.50 treasury</div>
-      <div class="split-azl">1,000 AZZLE → treasury</div>
+      <div class="split-azl">oracle-priced AZL → treasury</div>
     </div>
   </div>
 </section>

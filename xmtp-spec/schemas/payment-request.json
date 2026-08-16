@@ -6,11 +6,23 @@
   "required": ["type", "taskId", "releaseType"],
   "properties": {
     "type": { "const": "azzle/PaymentRequest" },
-    "taskId": { "type": "string" },
-    "releaseType": { "enum": ["stream", "hour_block", "milestone"] },
-    "milestoneIndex": { "type": "integer", "minimum": 0 },
-    "amount": { "type": "string" },
-    "periodStart": { "type": "string", "format": "date-time" },
-    "periodEnd": { "type": "string", "format": "date-time" }
-  }
+    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
+    "releaseType": { "enum": ["full", "partial"] },
+    "amount": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*$",
+      "description": "Positive AZL wei amount encoded as a decimal string; required only for partial releases."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "releaseType": { "const": "partial" } },
+        "required": ["releaseType"]
+      },
+      "then": { "required": ["amount"] },
+      "else": { "not": { "required": ["amount"] } }
+    }
+  ],
+  "additionalProperties": false
 }

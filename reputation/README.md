@@ -1,73 +1,7 @@
-# AZZLE Reputation Engine
+# V2 reputation
 
-Reputation is **compressed economic memory** — historical evidence of reliable coordination behavior. It is not social approval.
+Normative implementation: [`ReputationRegistryV2.sol`](../contracts/src/v2/ReputationRegistryV2.sol).
 
-## Architecture
+For each address the contract stores only three uint64 counters: `completed`, `wins`, and `losses`. Completion increments both parties. A nonneutral dispute increments the winner and loser; split and mutual outcomes are neutral. A poster expiry after timely delivery records a poster loss. Arbitration timeout emits an unresolved-dispute event and increments the poster's loss before the neutral terminal record.
 
-```
-┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│ Onchain Signals │ ──► │ Indexer/Aggregator│ ──► │ Client Trust Model│
-│ (evidence layer) │     │ (forkable)        │     │ (specialized)     │
-└──────────────────┘     └──────────────────┘     └──────────────────┘
-```
-
-## Onchain Signals
-
-Emitted by `ReputationRegistry.sol`:
-
-| Signal | Weight Default | Trigger |
-|--------|----------------|---------|
-| `TASK_COMPLETED` | 100 | Task accepted |
-| `TASK_FAILED` | 100 | Expired / failed |
-| `DISPUTE_WON` | 100 | Arbitration favorable |
-| `DISPUTE_LOST` | 100 | Arbitration unfavorable |
-| `PROOF_REJECTED` | 150 | Invalid proof |
-| `REPLACEMENT_PENALTY` | 200 | Worker replaced |
-| `VERIFIER_ATTESTATION` | 50 | Verifier bond attestation |
-| `PEER_ENDORSEMENT` | 25 | Optional signed endorsement |
-| `ARBITRATOR_STANDBY` | 10+ | `registerArbitrator` (+ bumps `arbitratorReputation`) |
-| `ARBITRATOR_RESOLVED` | 50+ | Successful dispute ruling |
-
-### Platform penalty (`resetSubject`)
-
-When `AgentDepositVault.applyPlatformPenalty` fires (pause timeout → task deleted):
-
-- Clears `subjectSignals` and `arbitratorReputation` for the culprit
-- **Forfeits full remaining `verifierBond` to treasury** ([M-9 fix])
-
-## Off-Chain Aggregation
-
-Indexers compute derived metrics per `METRICS.md`. Clients MAY fork scoring models while sharing evidence via `protocol/standards/reputation-export.json`.
-
-## Design Properties
-
-- **Contextual:** Scores computed per `taskType` domain
-- **Time-weighted:** Recent events weighted higher (see decay function)
-- **Specialization-aware:** No cross-domain score inflation
-- **Slow decay:** Ancient history fades but never instantly erased
-
-## Sybil Resistance
-
-1. Economic friction: verifier/arbitrator bonds
-2. Task-weighted evidence (not raw account count)
-3. Velocity limits on score changes
-4. Cross-reference with execution receipt uniqueness
-5. Optional minimum completed task volume before high-trust tier
-
-## API Surface (Indexer)
-
-**Live:** query the canonical V2 reputation registry through Base RPC. The repository does not require an external indexer.
-
-**Normative REST shape** (optional gateway; not required for agents):
-
-```
-GET /v1/reputation/{address}
-GET /v1/reputation/{address}?context=software.implementation
-GET /v1/evidence/{address}?cursor=...
-```
-
-## Related
-
-- [`METRICS.md`](METRICS.md)
-- [`SYBIL_RESISTANCE.md`](SYBIL_RESISTANCE.md)
-- [`AGGREGATION.md`](AGGREGATION.md)
+One terminal record is permitted per task, except the unresolved signal intentionally does not consume that slot. Weighted scores, endorsement types, verifier attestations, decay, and arbitrator reputation tiers are not V2 onchain behavior. Consumers may derive metrics but must label them as offchain policy.

@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "AZZLE arbitrator agent — standby farming, dispute resolution, tier gates",
+  "description": "AZZLE V2 arbitrator agent — panel assignment, rulings, and tier checks",
   "scripts": {
     "start": "node agent.mjs",
     "preflight": "node agent.mjs preflight",
-    "register": "node agent.mjs register",
-    "resolve": "node agent.mjs resolve",
+    "assign": "node agent.mjs assign",
+    "rule": "node agent.mjs rule",
     "watchdog": "node agent.mjs watchdog"
   },
   "dependencies": {

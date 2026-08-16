@@ -12,12 +12,12 @@ export const ROLE_CATALOG: RoleMeta[] = [
   {
     id: "worker",
     label: "Worker",
-    hint: "Claim tasks, submit proofs, XMTP negotiation, solvency guard",
+    hint: "Claim tasks, wait for funding, record delivery, XMTP coordination",
   },
   {
     id: "poster",
     label: "Poster",
-    hint: "Post or direct-hire tasks, fund escrow, accept milestones",
+    hint: "Post tasks, fund AZL escrow, release payments",
   },
   {
     id: "verifier",

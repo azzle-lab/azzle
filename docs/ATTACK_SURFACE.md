@@ -1,57 +1,7 @@
-# Attack Surface Documentation
+# V2 attack surface
 
-## Onchain
+Canonical controls live in [V2 Solidity](../contracts/src/v2/). Principal boundaries are oracle freshness/liquidity, fixed-route gateway execution, exact-token transfer semantics, deposit solvency and quote latching, global/per-poster exposure caps, escrow authority, arbitration panel capacity, evidence/ruling liveness, governance bootstrap wiring, and optional-feature activation.
 
-| Surface | Risk | Severity |
-|---------|------|----------|
-| EscrowVault reentrancy | Token drain | Mitigated: ReentrancyGuard |
-| EscrowVault direct deposit bypass | Balance health skipped | Mitigated: [H-2] public `deposit()` removed |
-| EscrowVault streaming accounting | Over-release | Mitigated: [H-3] single `totalReleased` baseline |
-| EscrowVault pooled milestone accounting | One task spends another task's escrow | Mitigated: every worker release is bounded by that task's remaining deposit; pending proof liabilities are reserved |
-| EscrowVault refund while frozen | Dispute fund drain | Mitigated: [M-2] `refundRemainingToPoster` reverts if FROZEN |
-| USDC recipient blocklist | Settlement/task transition DoS | Failed pushes become recipient claimables; state finalization proceeds independently |
-| TaskRegistry access control | Unauthorized state change | Role checks on poster/worker |
-| ArbitrationModule unilateral assign | Colluding arbitrator | Mitigated: [C-1] mutual `proposeArbitrator` consent |
-| ArbitrationModule party drift | Wrong payout recipient | Mitigated: [H-4] snapshot at open |
-| ArbitrationModule indefinite lock | Frozen escrow | Mitigated: inactive-`EVIDENCE` fallback replacement plus absolute mode-aware timeout |
-| ArbitrationModule compromise/defect | Irrevocable bond and escrow authority | Coordinated pause + zero-active-dispute rotation with dependency validation |
-| ReputationRegistry spam | Signal flooding | Authorized emitters only |
-| ReputationRegistry bond retention after block | Verifier path bypass | Mitigated: [M-9] bond slash on `resetSubject` |
-| TreasuryRouter fee theft | Unauthorized withdraw | Active feeRecipient only; recipient rotation requires proposal + acceptance |
-| Ownership transfer hijack | Malicious owner | Mitigated: [L-1] Ownable2Step on core contracts |
-| Legacy pause slots | Client invokes retired recovery flow | `PAUSED` / `DELETED` retained only as deprecated enum slots |
+Integrators must read the manifest, verify chain ID and code, check oracle and activation status, set minimum output/deadlines, avoid unlimited allowances where practical, validate event confirmations, and re-read task state before signing. XMTP or HTTP content is untrusted context and cannot substitute for onchain parties, amounts, state, or evidence hashes.
 
-## Off-Chain (XMTP)
-
-| Surface | Risk | Mitigation |
-|---------|------|------------|
-| Identity spoof | Fake worker | IdentityLink verification |
-| Message replay | Duplicate acceptance | Sequence + nonce |
-| Negotiation MITM | Terms tampering | E2E encryption + signed digest |
-| Evidence withholding | Arbitration blind | Onchain evidence hash commit |
-| Arbitrator consent desync | One party seats colluder | Both must call `proposeArbitrator` Onchain |
-
-## Economic
-
-| Surface | Risk | Mitigation |
-|---------|------|------------|
-| Sybil workers | Fake reputation | Bonds, decay, context isolation |
-| Verifier collusion | False attestation | Quorum, slashing extension |
-| Arbitration capture | Biased rulings | Mutual consent, tier escalation, registration cooldown |
-| Standby rep farming | Cheap tier-2 eligibility | `REGISTER_COOLDOWN`, `MIN_RESOLUTIONS_TIER2` |
-| Griefing disputes | Cost externalization | Dispute bonds, loser-pays option, timeout fallback |
-| Search-market exit abuse | Worker lock-out | `dismissWorker` / `leaveTask` fee split |
-
-## Infrastructure
-
-| Surface | Risk | Mitigation |
-|---------|------|------------|
-| Indexer censorship | Discovery failure | Multi-indexer client diversity |
-| RPC unavailability | Settlement delay | Client failover |
-| IPFS pinning loss | Proof unavailable | Multi-pin + hash Onchain |
-
-## Research Priorities
-
-1. Formal verification of escrow invariants (post-audit)
-2. Game-theoretic analysis of mutual-consent arbitrator selection
-3. ZK capability proofs (future)
+Known economic trade-offs include recoverable capacity griefing under the 20% per-poster cap, staking reward timing, terminal credit-cap timing, and address-level sybils. See [`GRIEFING_RESISTANCE.md`](GRIEFING_RESISTANCE.md).

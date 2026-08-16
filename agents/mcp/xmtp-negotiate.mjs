@@ -5,10 +5,9 @@
  * Prerequisite: cd agents && npm run build
  *
  * Read/prepare (no keys):
- *   npm run mcp:xmtp -- build-terms --from 0xPoster --total-amount 100000000 ...
+ *   npm run mcp:xmtp -- build-preview --from 0xPoster --total-amount <azl-wei> ...
  *   npm run mcp:xmtp -- build-proposal --from 0xPoster --counterparty 0xWorker ...
- *   npm run mcp:xmtp -- build-acceptance-template --from 0xPoster --worker 0xWorker ...
- *   npm run mcp:xmtp -- verify-digest --from 0xPoster --digest 0x...
+ *   npm run mcp:xmtp -- verify-preview-hash --from 0xPoster --preview-hash 0x...
  *
  * Live send (requires PRIVATE_KEY + XMTP_DB_PATH):
  *   npm run mcp:xmtp -- send-proposal --from 0xPoster --counterparty 0xWorker ...
@@ -19,10 +18,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createNegotiationTransport } from "../dist/sdk/xmtp/transport.js";
 import {
-  buildTaskTermsBundle,
+  buildTaskPreview,
   buildXmtpProposal,
-  buildXmtpAcceptanceTemplate,
-  verifySettlementDigest,
+  verifyTaskPreviewHash,
 } from "./xmtp-helpers.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -69,34 +67,24 @@ function requireFrom(flags) {
   return ethers.getAddress(from);
 }
 
-function termsOptions(flags) {
-  return { requireWorker: Boolean(flags.worker) };
-}
-
 function usage() {
   return `Usage (from agents/): npm run mcp:xmtp -- <action> [flags]
 
 Actions:
-  build-terms                 Task terms JSON + settlementDigest
+  build-preview               V2 task preview + nonbinding preview hash
   build-proposal              XMTP TaskProposal envelope JSON
-  build-acceptance-template   EIP-712 typed data + TaskAcceptance template
-  verify-digest               Compare --digest to computed terms digest
+  verify-preview-hash         Compare --preview-hash to computed nonbinding preview hash
   send-proposal               Live XMTP send (PRIVATE_KEY required)
 
-Term flags (shared with mcp:prepare post-task/create-task):
+Task flags (shared with mcp:prepare post):
   --from --total-amount --deadline --criteria-text OR --acceptance-criteria-hash
-  [--worker] [--escrow-mode] [--milestone-amounts] [--stream-rate] [--hour-block-size]
-  [--replacement-allowed true] [--fee-bps 100]
 
 Proposal / send:
   --counterparty <0x>   required for send-proposal
   --title --description --negotiation-id --sequence
 
-Acceptance template:
-  --worker required for direct hire terms
-
 Verify:
-  --digest <bytes32>`;
+  --preview-hash <bytes32>`;
 }
 
 async function cmdSendProposal(from, flags) {
@@ -107,7 +95,7 @@ async function cmdSendProposal(from, flags) {
   const counterparty = flags.counterparty ?? fail("--counterparty required");
   if (!ethers.isAddress(counterparty)) fail("--counterparty must be valid address");
 
-  const proposal = buildXmtpProposal(from, flags, manifest, termsOptions(flags));
+  const proposal = buildXmtpProposal(from, flags, manifest);
   const provider = new ethers.JsonRpcProvider(RPC_URL);
   const signer = new ethers.Wallet(pk, provider);
   const signerAddr = await signer.getAddress();
@@ -134,9 +122,9 @@ async function cmdSendProposal(from, flags) {
     ok: true,
     action: "send-xmtp-proposal",
     negotiationId: proposal.negotiationId,
-    settlementDigest: proposal.settlementDigest,
+    nonbindingPreviewHash: proposal.nonbindingPreviewHash,
     counterparty: ethers.getAddress(counterparty),
-    note: "Proposal sent over XMTP. Counterparty should verify settlementDigestPreview.",
+    note: "Proposal sent over XMTP. Counterparty should verify the nonbinding preview hash.",
   });
 }
 
@@ -150,20 +138,15 @@ async function main() {
   }
 
   const from = requireFrom(flags);
-  const opts = termsOptions(flags);
-
   switch (action) {
-    case "build-terms":
-      output(buildTaskTermsBundle(from, flags, manifest, opts));
+    case "build-preview":
+      output(buildTaskPreview(from, flags, manifest));
       break;
     case "build-proposal":
-      output(buildXmtpProposal(from, flags, manifest, opts));
+      output(buildXmtpProposal(from, flags, manifest));
       break;
-    case "build-acceptance-template":
-      output(buildXmtpAcceptanceTemplate(from, flags, manifest, opts));
-      break;
-    case "verify-digest":
-      output(verifySettlementDigest(from, flags, manifest, opts));
+    case "verify-preview-hash":
+      output(verifyTaskPreviewHash(from, flags, manifest));
       break;
     case "send-proposal":
       await cmdSendProposal(from, flags);

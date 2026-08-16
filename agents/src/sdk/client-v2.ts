@@ -44,6 +44,11 @@ const ARBITRATION_ABI = [
   "function timeout(uint256 taskId)",
 ];
 
+export interface OnChainTask {
+  poster: string; worker: string; totalAmount: bigint; funded: bigint; released: bigint;
+  deadline: bigint; fundingDeadline: bigint; deliveredAt: bigint; state: number; stateName: string;
+}
+
 export const V2_TASK_STATE_NAMES = ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", "CANCELLED", "RESOLVED"] as const;
 
 export class AzzleV2Client {
@@ -106,7 +111,16 @@ export class AzzleV2Client {
   publishScope(taskId: bigint, scope: string) { return this.scope.publish(taskId, scope); }
   getScope(taskId: bigint) { return this.scope.scopeOf(taskId) as Promise<string>; }
   taskState(taskId: bigint) { return this.registry.taskState(taskId) as Promise<bigint>; }
-  getTask(taskId: bigint) { return this.registry.tasks(taskId); }
+  async getTask(taskId: bigint): Promise<OnChainTask> {
+    const row = await this.registry.tasks(taskId);
+    const state = Number(row.state);
+    return {
+      poster: row.poster, worker: row.worker, totalAmount: row.totalAmount,
+      funded: row.funded, released: row.released, deadline: row.deadline,
+      fundingDeadline: row.fundingDeadline, deliveredAt: row.deliveredAt,
+      state, stateName: V2_TASK_STATE_NAMES[state] ?? `UNKNOWN(${state})`,
+    };
+  }
 
   fundDepositWithUsdc(exactUsdcIn: bigint, minAzlOut: bigint, deadline: number) {
     return this.gateway.fundWithUsdc(exactUsdcIn, minAzlOut, deadline);
@@ -133,7 +147,7 @@ export class AzzleV2Client {
   }
 
   stake(amount: bigint) { return this.staking.stake(amount); }
-  unstake(amount: bigint, recipient: string) { return this.staking.unstake(amount, recipient); }
+  unstake(amount: bigint) { return this.staking.unstake(amount); }
   claimRewards(recipient: string) { return this.staking.claim(recipient); }
   claimStakingPayout(recipient: string) { return this.staking.claimPayout(recipient); }
   activateStaking() { return this.staking.activateStaking(); }

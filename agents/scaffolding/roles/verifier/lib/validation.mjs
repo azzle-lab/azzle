@@ -15,14 +15,12 @@ export function verifyDeterministic(receipt, expectedOutputHash) {
 }
 
 /**
- * on ProofSubmitted(taskId):
- *   receipt = fetch(receiptUri)
- *   criteria = fetch(acceptanceCriteriaHash)
- *   result = adapter.evaluate(receipt, criteria)
+ * Evaluate off-chain delivery evidence for a V2 dispute or policy workflow.
+ * V2 does not expose an on-chain proof-submission or milestone-verification method.
  */
-export async function evaluateReceipt(receipt, criteria, expectedOutputHash) {
+export async function evaluateReceipt(delivery, criteria, expectedOutputHash) {
   if (criteria.mode === "deterministic") {
-    return verifyDeterministic(receipt, expectedOutputHash);
+    return verifyDeterministic(delivery, expectedOutputHash);
   }
   throw new Error(`Verifier mode ${criteria.mode} not implemented — see VERIFIER_SPEC.md`);
 }

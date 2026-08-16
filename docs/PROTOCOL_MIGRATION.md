@@ -1,32 +1,7 @@
-# Protocol surface migration
+# V1 to V2 protocol migration
 
-## Current authoritative path
+V2 is the only active protocol surface. New integrations must use [`contracts/src/v2/`](../contracts/src/v2/), lower-camel keys from [`base-8453.json`](../contracts/deployments/base-8453.json), AZL-denominated custody, the eight-state V2 lifecycle, and Base RPC discovery.
 
-The deployed Solidity in `contracts/src/` and
-`contracts/deployments/base-8453.json` are authoritative. Transaction-critical
-clients must read Base RPC and the manifest, not a copied address table or
-historical indexer response.
+Do not translate V1 state in place. Keep historical records namespaced by deployment and migrate clients to V2 ABIs/events. Remove USDC job escrow, fixed AZL fee, direct-hire, escrow modes, proof review, pause/delete recovery, party-selected/tiered arbitration, weighted reputation signals, and V1 subgraph assumptions.
 
-## Retired client behavior
-
-- The current `TaskRegistry` state enum ends at `RESOLVED` (9). Clients must
-  not produce pause, delete, platform-block, or emergency-top-up recovery
-  actions.
-- Bound task parties reserve `$8 + bondForAmount(totalAmount)`, where the bond
-  is 5% of the committed amount clamped between $1 and $100. Withdrawals use
-  unreserved `availableBalance`.
-- There is no percentage job-escrow protocol fee. Standard access fees are
-  $5 USDC plus 1,000 AZL; Action Credits can cover eligible post, claim, and
-  direct-hire creation actions only.
-- `UPFRONT` escrow is not a valid new-task mode.
-
-## Indexer posture
-
-The Studio v0.3 subgraph indexes a retired deployment and is deprecated. Base
-RPC is the supported task discovery and transaction-precondition path until a
-separately versioned indexer has current data sources and coverage tests.
-
-## Union staking
-
-Union activation is owner-controlled and must be determined by the live
-`stakingActive()` value. No static document promises an activation date.
+Gateway intake and staking availability are live-state checks, not migration guarantees. Historical V1 explanation belongs only under [`legacy-v1/`](legacy-v1/).

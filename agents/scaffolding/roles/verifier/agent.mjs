@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { buildExecutionReceipt } from "@azzle/agents";
 import { loadManifest } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
@@ -46,17 +45,16 @@ async function unstakeFlow() {
 
 async function validationLoop() {
   const expectedHash = process.env.EXPECTED_OUTPUT_HASH ?? "0x" + "ab".repeat(32);
-  const receipt = buildExecutionReceipt({
+  const delivery = {
     taskId: process.env.TASK_ID ?? "1",
-    milestoneIndex: 0,
     worker: "0x0000000000000000000000000000000000000002",
     artifacts: [{ type: "deterministic_output", hash: expectedHash, uri: "ipfs://stub" }],
-  });
+  };
 
-  const result = await evaluateReceipt(receipt, { mode: "deterministic" }, expectedHash);
+  const result = await evaluateReceipt(delivery, { mode: "deterministic" }, expectedHash);
   const meta = attestationMetadata(result);
   console.log("[verifier] attestation stub", { result, meta });
-  console.log("[verifier] wire attestation on-chain when quorum_met — see VERIFIER_SPEC.md");
+  console.log("[verifier] attest off-chain evidence for dispute or policy workflows; V2 has no on-chain proof or milestone-verification call");
 }
 
 async function main() {
