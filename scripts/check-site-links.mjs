@@ -9,6 +9,10 @@ const vercel = JSON.parse(await readFile(join(root, "vercel.json"), "utf8"));
 const routeTargets = new Map((vercel.rewrites ?? [])
   .filter(({ source, destination }) => !source.includes(":") && !source.includes("("))
   .map(({ source, destination }) => [source.replace(/\/$/, "") || "/", destination]));
+const generatedFrom = new Map([
+  [normalize(join(siteRoot, "role-wallet.bundle.js")), join(root, "src", "wallet-entry.jsx")],
+  [normalize(join(siteRoot, "wallet-qr.js")), join(root, "src", "wallet-qr.mjs")],
+]);
 const failures = [];
 
 async function walk(directory) {
@@ -41,7 +45,13 @@ async function exists(path, allowDirectory = false) {
     const info = await stat(path);
     return info.isFile() || (allowDirectory && info.isDirectory());
   } catch {
-    return false;
+    const source = generatedFrom.get(normalize(path));
+    if (!source) return false;
+    try {
+      return (await stat(source)).isFile();
+    } catch {
+      return false;
+    }
   }
 }
 
