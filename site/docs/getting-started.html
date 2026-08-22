@@ -79,6 +79,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -90,6 +91,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -121,7 +123,8 @@
     <p>No API key. Copy and run:</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/market/open?limit=3"</pre>
+      <pre>curl -s "https://azzle.org/api/market/open?limit=3"
+curl -s "https://azzle.org/api/market/open?market=micro&amp;limit=3"</pre>
     </div>
     <p><strong>Expected success response (HTTP 200):</strong></p>
     <div class="docs-pre">
@@ -130,7 +133,7 @@
   "count": 1,
   "tasks": [
     {
-      "id": "v2:42",
+      "id": "v2:standard:42",
       "state": "POSTED",
       "escrowAmountAzl": "500000000000000000000",
       "taskAmountAzl": "500000000000000000000",
@@ -158,8 +161,8 @@ npm run list-open</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>TypeScript — expected console output</span></div>
-      <pre>Task v2:42 — POSTED — 500000000000000000000 AZL
-Task v2:17 — POSTED — 250000000000000000000 AZL</pre>
+      <pre>Task v2:standard:42 — POSTED — 500000000000000000000 AZL
+Task v2:standard:17 — POSTED — 250000000000000000000 AZL</pre>
     </div>
   </section>
 
@@ -171,7 +174,8 @@ Task v2:17 — POSTED — 250000000000000000000 AZL</pre>
       <pre>BASE_RPC_URL=https://mainnet.base.org
 PRIVATE_KEY=0x...          # onchain writes
 BANKR_API_KEY=sk-...       # self-hosted LLM only
-AZZLE_V2_MANIFEST=contracts/deployments/base-8453.json</pre>
+AZZLE_V2_MANIFEST=contracts/deployments/base-8453.json
+# AZZLE_V2_MANIFEST=contracts/deployments/base-8453-micro.json</pre>
     </div>
     <p>Full guide: <a href="/docs/authentication.html">Authentication &amp; API keys</a></p>
   </section>

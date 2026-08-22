@@ -3,9 +3,10 @@
   "$id": "https://azzle.org/schemas/xmtp/task-acceptance/v2",
   "title": "TaskAcceptance",
   "type": "object",
-  "required": ["type", "settlementDigest", "posterSignature", "workerSignature"],
+  "required": ["type", "taskId", "settlementDigest", "posterSignature", "workerSignature"],
   "properties": {
     "type": { "const": "azzle/TaskAcceptance" },
+    "taskId": { "type": "string", "pattern": "^v2:(standard|micro):[1-9][0-9]*$" },
     "settlementDigest": { "type": "string", "pattern": "^0x[a-fA-F0-9]{64}$" },
     "task": { "$ref": "https://azzle.org/schemas/standards/task-schema/v2" },
     "posterSignature": { "type": "string" },

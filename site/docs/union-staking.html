@@ -52,6 +52,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -63,6 +64,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -82,11 +84,18 @@
     <div class="docs-sidebar-foot"><a href="/market" class="docs-sidebar-market">Open market →</a></div>
   </aside>
   <main class="docs-main"><p class="docs-crumb"><a href="/docs/">Docs</a> / Union staking</p><h1>Union staking &amp; Action Credits</h1>
-<p class="docs-lead">Stake AZL to mine Action Credits and earn the configured protocol reward share. The <a href="/union">Union dashboard</a> reads the v2 vault state and exposes live activation.</p>
-<section class="docs-section"><h2>Action Credits</h2><p>One whole Action Credit automatically replaces one eligible access fee in the v2 task flow. The TaskRegistry spends it atomically; there is no separate redemption transaction.</p><ul><li>Rate: one credit per 30 days per 100,000,000 AZL staked.</li><li>Lifetime issuance cap: 600,000 credits. The dashboard labels <code>creditsOf</code> as projected because it includes unsettled accrual.</li><li>Banked unused credits remain spendable after unstaking and after the cap closes.</li><li>Credits never replace the $25 USD-target entry collateral target; $45 recommended posting/claiming balance or the $8 USD-target live-task reserve.</li><li>Exit compensation and protocol-share charges are not credit-eligible.</li></ul></section>
-<section class="docs-section"><h2>Stake, exit, and recover</h2><p>Approve AZL to <code>UnionStakingVault</code>, then call <code>stake(amount)</code>. The vault rejects fee-on-transfer AZL so principal accounting remains exact. <code>unstake(amount)</code> queues the principal without discarding banked credits or already accrued rewards; call <code>claimUnstake(recipient)</code> to withdraw it. The dashboard defaults the recipient to your connected wallet.</p></section>
-<section class="docs-section"><h2>Protocol reward routing</h2><p>V2 TreasuryRouter routes eligible AZL revenue: 40% to staking rewards, 40% to the burn recipient, and 20% to protocol reserve. Reward duration is deployment-configured; rewards accrue by stake-time rather than a fixed APY.</p></section>
-<section class="docs-section"><h2>Pre-launch and activation</h2><p>Before <code>stakingActive</code> is enabled, <code>stake()</code> and reward notifications reject, no credits accrue, and normal access-fee fallback applies. Activation is owner-controlled; check the live value before presenting staking as active.</p><p>The technical source of truth is <a href="/reference/contracts/src/v2/UnionStakingVaultV2.sol">UnionStakingVaultV2.sol</a>.</p></section>
+<p class="docs-lead">Stake AZL to mine Action Credits and earn the configured protocol reward share. Standard and micro each have their own vault. Credits, stake, and rewards do not cross. The <a href="/union">Union dashboard</a> shows both lanes and reads <code>stakingActive</code> per vault.</p>
+<section class="docs-section"><h2>Two vaults</h2><p>Each market’s <code>stakingVault</code> is wired once to that market’s registry. Splitting stake on the site is two <code>stake()</code> calls. Read addresses from the market manifest — see <a href="/docs/contracts.html">contracts</a> and <a href="/docs/markets.html">markets</a>.</p>
+<div class="docs-table-wrap"><table><thead><tr><th></th><th>standard</th><th>micro</th></tr></thead><tbody>
+<tr><td>Credit rate</td><td>1 / 30 days / 100,000,000 AZL</td><td>1 / 30 days / 10,000,000 AZL</td></tr>
+<tr><td>Lifetime issuance cap</td><td>600,000</td><td>6,000,000</td></tr>
+<tr><td>Pays access fee on</td><td>standard tasks only</td><td>micro tasks only</td></tr>
+</tbody></table></div>
+</section>
+<section class="docs-section"><h2>Action Credits</h2><p>One whole Action Credit automatically replaces one eligible access fee in that market’s task flow. The TaskRegistry spends it atomically; there is no separate redemption transaction.</p><ul><li>The dashboard labels <code>creditsOf</code> as projected because it includes unsettled accrual.</li><li>Banked unused credits remain spendable after unstaking and after that vault’s cap closes.</li><li>Credits never replace entry collateral, the posting-floor deposit, or the live-task reserve. Those USD targets differ by market ($25 / $45 / $8 standard; $3 / $5 / $1 micro).</li><li>Exit compensation and protocol-share charges are not credit-eligible.</li></ul></section>
+<section class="docs-section"><h2>Stake, exit, and recover</h2><p>Approve AZL to the chosen market’s <code>UnionStakingVault</code>, then call <code>stake(amount)</code>. The vault rejects fee-on-transfer AZL so principal accounting remains exact. <code>unstake(amount)</code> queues the principal without discarding banked credits or already accrued rewards; call <code>claimUnstake(recipient)</code> to withdraw it. The dashboard defaults the recipient to your connected wallet.</p></section>
+<section class="docs-section"><h2>Protocol reward routing</h2><p>Each market’s TreasuryRouter routes eligible AZL revenue: 40% to that vault’s staking rewards, 40% to the burn recipient, and 20% to protocol reserve. Reward duration is deployment-configured; rewards accrue by stake-time rather than a fixed APY.</p></section>
+<section class="docs-section"><h2>Pre-launch and activation</h2><p>Before a vault’s <code>stakingActive</code> is enabled, that vault’s <code>stake()</code> and reward notifications reject, no credits accrue there, and that market’s access-fee fallback applies. Activation is owner-controlled per vault; a live standard vault does not imply a live micro vault. Check the value before presenting stake as available.</p><p>Reads: <code>GET /api/union/overview</code> (standard default) and <code>?market=micro</code>. Source: <a href="/reference/contracts/src/v2/UnionStakingVaultV2.sol">UnionStakingVaultV2.sol</a>.</p></section>
 </main></div>
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>

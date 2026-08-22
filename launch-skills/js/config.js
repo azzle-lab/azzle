@@ -1,11 +1,21 @@
-import { MANIFEST, AZL_TOKEN } from "./manifest.generated.js";
+import { MANIFESTS, AZL_TOKEN } from "./manifest.generated.js";
 
 export const DEFAULT_GATEWAY = "http://localhost:4020";
 export const RPC_URL = "https://mainnet.base.org";
 export const CHAIN_ID = 8453;
 
-export const ACCESS_FEE_USDC = 5;
-export const ACCESS_FEE_AZL = 1000;
+export const MARKETS = Object.freeze(["standard", "micro"]);
+
+export function selectedMarket() {
+  if (typeof location === "undefined") return "standard";
+  const market = new URLSearchParams(location.search).get("market") ?? "standard";
+  if (!MARKETS.includes(market)) throw new Error("Unknown market; use standard or micro");
+  return market;
+}
+
+export function selectedManifest(market = selectedMarket()) {
+  return MANIFESTS[market];
+}
 
 /** Bankr x402 Cloud — paid AZZLE read-data endpoints. @see docs/X402_CLOUD.md */
 export const X402_CLOUD_BASE = "https://x402.bankr.bot";
@@ -16,13 +26,13 @@ export const X402_CLOUD_ENDPOINTS = [
     name: "azzle-open-tasks",
     price: "100 AZL",
     desc: "POSTED tasks (claimable market)",
-    example: "?limit=20",
+    example: "?market=standard&limit=20",
   },
   {
     name: "azzle-task",
     price: "100 AZL",
     desc: "Single task by id",
-    example: "?id=1",
+    example: "?id=v2:standard:1&market=standard",
   },
   {
     name: "azzle-reputation",
@@ -134,8 +144,8 @@ export async function gql(query, variables = {}) {
 }
 
 /** REST shortcut — POSTED tasks (preferred for market page). */
-export async function fetchOpenTasks() {
-  const url = gatewayUrl("/v1/market/open");
+export async function fetchOpenTasks(market = selectedMarket()) {
+  const url = gatewayUrl(`/v1/market/open?market=${encodeURIComponent(market)}`);
   if (url !== null) {
     const json = await fetchJson(url);
     return json.tasks ?? [];
@@ -144,18 +154,13 @@ export async function fetchOpenTasks() {
 }
 
 /** REST shortcut — recent tasks. */
-export async function fetchRecentTasks(limit = 30) {
-  const url = gatewayUrl(`/v1/market/recent?limit=${limit}`);
+export async function fetchRecentTasks(limit = 30, market = selectedMarket()) {
+  const url = gatewayUrl(`/v1/market/recent?market=${encodeURIComponent(market)}&limit=${limit}`);
   if (url !== null) {
     const json = await fetchJson(url);
     return json.tasks ?? [];
   }
-  const data = await gql(`query($first: Int!) {
-    tasks(first: $first, orderBy: updatedAt, orderDirection: desc) {
-      id state escrowAmount poster { id } worker { id }
-    }
-  }`, { first: limit });
-  return data.tasks;
+  throw new Error("V2 market endpoint unavailable");
 }
 
 export function fmtUsdc6(raw) {

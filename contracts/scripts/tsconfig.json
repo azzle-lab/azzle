@@ -9,6 +9,8 @@
     "./check-contract-size.ts",
     "./check-v2-manifest.ts",
     "./deploy-v2.ts",
+    "./deploy-v2-micro.ts",
+    "./promote-v2-micro-manifest.ts",
     "./deploy-utils.ts",
     "./inspect-wiring.ts",
     "./preflight-deploy.ts",

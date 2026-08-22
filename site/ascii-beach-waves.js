@@ -1,4 +1,5 @@
 (function () {
+  if (window.matchMedia("(max-width: 700px), (pointer: coarse)").matches) return;
   if (document.getElementById("ascii-wave-bg")) return;
 
   const canvas = document.createElement("canvas");
@@ -109,7 +110,7 @@
     const waveEnvelope = 0.5 + 0.5 * Math.sin(time * 0.32 - 0.6);
     const foamWidth = 0.014 + 0.02 * waveEnvelope;
 
-    canvas.style.opacity = homepage ? "0.3" : light ? "0.3" : "0.18";
+    canvas.style.opacity = homepage ? "0.3" : light ? "0.08" : "0.18";
     if (homepage) {
       ctx.clearRect(0, 0, width, height);
     } else {

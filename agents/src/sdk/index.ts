@@ -51,6 +51,17 @@ export type { BaseMainnetManifest } from "./manifest.js";
 export { loadBaseMainnetV2Manifest } from "./manifest-v2.js";
 export type { BaseMainnetV2Manifest } from "./manifest-v2.js";
 export {
+  MARKET_ECONOMICS,
+  isMarketLive,
+  loadMarketManifest,
+  namespacedTaskId,
+  normalizeMarket,
+  parseTaskRef,
+  resolveExpectedMarket,
+  requireLiveMarket,
+} from "./markets.js";
+export type { AzzleMarket, MarketEconomics, TaskRef } from "./markets.js";
+export {
   canonicalizeMetadata,
   hashMetadata,
   verifySignedMetadata,

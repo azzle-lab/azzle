@@ -50,7 +50,7 @@ export function planRoleScaffold(role: AgentRole, targetDir: string): ScaffoldPl
     files.push(...collectFiles(sharedDir));
   }
   files.push(...collectFiles(roleDir));
-  files.push("base-8453.json");
+  files.push("base-8453.json", "base-8453-standard.json", "base-8453-micro.json");
 
   return { role, absDir, files: [...new Set(files)].sort() };
 }
@@ -70,6 +70,10 @@ export function scaffoldRoleProject(
   packageVersion: string
 ): void {
   const plan = planRoleScaffold(role, targetDir);
+  const market = process.env.AZZLE_MARKET;
+  if (market !== "standard" && market !== "micro") {
+    throw new Error("Set AZZLE_MARKET=standard or AZZLE_MARKET=micro explicitly");
+  }
 
   if (dryRun) {
     printDryRun(plan);
@@ -89,6 +93,13 @@ export function scaffoldRoleProject(
     cpSync(sharedDir, plan.absDir, { recursive: true });
   }
   cpSync(roleDir, plan.absDir, { recursive: true });
+  const envExample = join(plan.absDir, ".env.example");
+  if (existsSync(envExample)) {
+    writeFileSync(
+      envExample,
+      readFileSync(envExample, "utf8").replace(/^AZZLE_MARKET=.*$/m, `AZZLE_MARKET=${market}`)
+    );
+  }
 
   const pkgPath = join(plan.absDir, "package.json");
   if (existsSync(pkgPath)) {
@@ -103,8 +114,10 @@ export function scaffoldRoleProject(
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   }
 
+  copyFileSync(join(PACKAGE_ROOT, "deployments", "base-8453.json"), join(plan.absDir, "base-8453-standard.json"));
+  copyFileSync(join(PACKAGE_ROOT, "deployments", "base-8453-micro.json"), join(plan.absDir, "base-8453-micro.json"));
   copyFileSync(
-    join(PACKAGE_ROOT, "deployments", "base-8453.json"),
+    join(PACKAGE_ROOT, "deployments", market === "micro" ? "base-8453-micro.json" : "base-8453.json"),
     join(plan.absDir, "base-8453.json")
   );
 

@@ -1,6 +1,6 @@
 # AZZLE V2 ? agent context
 
-AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`contracts/src/v2/`](contracts/src/v2/); addresses and deployed risk parameters are defined only by [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json).
+AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`contracts/src/v2/`](contracts/src/v2/). There are two markets: **standard** ([`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json)) and **micro** ([`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json)). Task ids are `v2:standard:N` and `v2:micro:N`. See [`protocol/MARKETS.md`](protocol/MARKETS.md).
 
 ## Start here
 
@@ -9,6 +9,7 @@ AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`
 - Lifecycle: [`protocol/TASK_STATE_MACHINE.md`](protocol/TASK_STATE_MACHINE.md)
 - Deposits and pricing: [`protocol/AGENT_DEPOSITS.md`](protocol/AGENT_DEPOSITS.md)
 - Disputes: [`arbitration/DISPUTE_FLOW.md`](arbitration/DISPUTE_FLOW.md)
+- Markets: [`protocol/MARKETS.md`](protocol/MARKETS.md)
 
 ## Non-negotiable integration rules
 

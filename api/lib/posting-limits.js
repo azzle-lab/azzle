@@ -12,6 +12,7 @@ import {
   savePostingQuotes,
 } from "./posting-store.js";
 import { PLANS, AZL_PAY_DISCOUNT, QUOTE_TTL_MS } from "./plans.js";
+import { normalizeMarket, parseTaskRef } from "./markets.js";
 
 export { PLANS, AZL_PAY_DISCOUNT, QUOTE_TTL_MS };
 
@@ -36,6 +37,10 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function accountKey(address, market) {
+  return `${normalizeMarket(market)}:${address}`;
+}
+
 async function loadStore() {
   return loadPostingAccounts();
 }
@@ -56,8 +61,9 @@ export function discountedUsdForPlan(plan) {
   return plan.priceUsdc * (1 - AZL_PAY_DISCOUNT);
 }
 
-export async function createUpgradeQuote({ address, tier }) {
+export async function createUpgradeQuote({ address, tier, market = "standard" }) {
   const addr = normAddr(address);
+  const selected = normalizeMarket(market);
   const plan = PLANS[tier];
   if (!plan || tier === "free" || !plan.priceUsdc) throw new Error("Invalid upgrade tier");
 
@@ -74,6 +80,7 @@ export async function createUpgradeQuote({ address, tier }) {
   const quote = {
     quoteId,
     address: addr,
+    market: selected,
     tier,
     payWith: "azl",
     listPriceUsdc: plan.priceUsdc,
@@ -94,7 +101,8 @@ export async function createUpgradeQuote({ address, tier }) {
   return quote;
 }
 
-export async function consumeQuote(quoteId, address, tier) {
+export async function consumeQuote(quoteId, address, tier, market = "standard") {
+  const selected = normalizeMarket(market);
   const store = await loadQuotes();
   const quote = store.quotes[quoteId];
   if (!quote) throw new Error("Quote expired or not found — refresh price and try again.");
@@ -105,6 +113,7 @@ export async function consumeQuote(quoteId, address, tier) {
   }
   if (normAddr(quote.address) !== normAddr(address)) throw new Error("Quote wallet mismatch.");
   if (quote.tier !== tier) throw new Error("Quote plan mismatch.");
+  if (quote.market !== selected) throw new Error("Quote market mismatch.");
   delete store.quotes[quoteId];
   await saveQuotes(store);
   return quote;
@@ -167,43 +176,48 @@ export function getQuotaForUser(user) {
   };
 }
 
-export async function getQuota(address) {
+export async function getQuota(address, market = "standard") {
   const addr = normAddr(address);
   if (!addr) throw new Error("Wallet address required");
+  const selected = normalizeMarket(market);
   const store = await loadStore();
-  const user = store.users[addr] ?? { tier: "free", dailyPosts: {} };
-  return getQuotaForUser(user);
+  const user = store.users[accountKey(addr, selected)] ?? { tier: "free", dailyPosts: {} };
+  return { ...getQuotaForUser(user), market: selected };
 }
 
-export async function recordPost(address, { taskId, txHash, description, budgetUsdc, deadlineDays, discoveryOpen } = {}) {
+export async function recordPost(address, { taskId, txHash, description, budgetUsdc, deadlineDays, discoveryOpen, market = "standard" } = {}) {
   const addr = normAddr(address);
   if (!addr) throw new Error("Wallet address required");
+  const selected = normalizeMarket(market);
+  const ref = taskId ? parseTaskRef(taskId) : null;
+  if (ref && ref.market !== selected) throw new Error("Task id market does not match selected market");
   const store = await loadStore();
-  const user = store.users[addr] ?? { tier: "free", dailyPosts: {} };
+  const key = accountKey(addr, selected);
+  const user = store.users[key] ?? { tier: "free", dailyPosts: {} };
   const quota = getQuotaForUser(user);
   if (!quota.canPost) {
     const err = new Error("Daily posting limit reached — upgrade your plan.");
     err.code = "QUOTA_EXCEEDED";
-    err.quota = quota;
+    err.quota = { ...quota, market: selected };
     throw err;
   }
-  const key = todayKey();
+  const day = todayKey();
   user.dailyPosts = user.dailyPosts ?? {};
-  user.dailyPosts[key] = (user.dailyPosts[key] ?? 0) + 1;
+  user.dailyPosts[day] = (user.dailyPosts[day] ?? 0) + 1;
   user.lastPost = {
     at: new Date().toISOString(),
-    taskId: taskId ?? null,
+    taskId: ref?.id ?? null,
     txHash: txHash ?? null,
   };
-  store.users[addr] = user;
+  store.users[key] = user;
   await saveStore(store);
 
   const openDiscovery = discoveryOpen !== false;
-  if (taskId && description) {
+  if (ref && description) {
     let scopeRegistry = null;
     try {
       const { taskScopeRegistryAddress } = await import("./task-scope.js");
-      scopeRegistry = taskScopeRegistryAddress();
+      scopeRegistry = taskScopeRegistryAddress(null, selected);
     } catch {
       /* optional */
     }
@@ -214,7 +228,7 @@ export async function recordPost(address, { taskId, txHash, description, budgetU
     } else {
       const { saveTaskListing } = await import("./task-listings.js");
       await saveTaskListing({
-        taskId,
+        taskId: ref.id,
         description,
         budgetUsdc,
         deadlineDays,
@@ -225,11 +239,11 @@ export async function recordPost(address, { taskId, txHash, description, budgetU
     }
   }
 
-  return getQuotaForUser(user);
+  return { ...getQuotaForUser(user), market: selected };
 }
 
-export async function assertCanPost(address) {
-  const quota = await getQuota(address);
+export async function assertCanPost(address, market = "standard") {
+  const quota = await getQuota(address, market);
   if (!quota.canPost) {
     const err = new Error("Daily posting limit reached — upgrade your plan.");
     err.code = "QUOTA_EXCEEDED";
@@ -321,6 +335,7 @@ export async function verifyAzlPayment({
 
 export async function applyUpgrade({
   address,
+  market = "standard",
   tier,
   txHash,
   billingWallet,
@@ -331,13 +346,14 @@ export async function applyUpgrade({
   quoteId,
 }) {
   const addr = normAddr(address);
+  const selected = normalizeMarket(market);
   const plan = PLANS[tier];
   if (!plan || tier === "free") throw new Error("Invalid upgrade tier");
   if (!txHash) throw new Error("Payment transaction hash required");
 
   if (payWith === "azl") {
     if (!azlAddress) throw new Error("AZL token address missing from manifest.");
-    const quote = await consumeQuote(quoteId, addr, tier);
+    const quote = await consumeQuote(quoteId, addr, tier, selected);
     await verifyAzlPayment({
       txHash,
       fromAddress: addr,
@@ -358,7 +374,8 @@ export async function applyUpgrade({
   }
 
   const store = await loadStore();
-  const user = store.users[addr] ?? { tier: "free", dailyPosts: {} };
+  const key = accountKey(addr, selected);
+  const user = store.users[key] ?? { tier: "free", dailyPosts: {} };
   user.tier = tier;
   user.upgradedAt = new Date().toISOString();
   user.upgradeTx = txHash;
@@ -372,7 +389,7 @@ export async function applyUpgrade({
     user.tierExpiresAt = null;
   }
 
-  store.users[addr] = user;
+  store.users[key] = user;
   await saveStore(store);
-  return getQuotaForUser(user);
+  return { ...getQuotaForUser(user), market: selected };
 }

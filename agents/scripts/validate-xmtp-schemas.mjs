@@ -18,7 +18,7 @@ const PAYLOAD_FIXTURES = [
     file: "dispute-evidence.json",
     payload: {
       type: "azzle/DisputeEvidence",
-      taskId: "1",
+      taskId: "v2:standard:1",
       disputeId: "1",
       claim: "quality",
       evidenceHashes: ["0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"],
@@ -28,7 +28,7 @@ const PAYLOAD_FIXTURES = [
     type: "PaymentRequest",
     payload: {
       type: "azzle/PaymentRequest",
-      taskId: "1",
+      taskId: "v2:standard:1",
       releaseType: "full",
     },
   },
@@ -36,7 +36,7 @@ const PAYLOAD_FIXTURES = [
     type: "PaymentRequest",
     payload: {
       type: "azzle/PaymentRequest",
-      taskId: "1",
+      taskId: "v2:micro:1",
       releaseType: "partial",
       amount: "1000000000000000000",
     },
@@ -48,7 +48,7 @@ const INVALID_PAYLOAD_FIXTURES = [
     type: "PaymentRequest",
     payload: {
       type: "azzle/PaymentRequest",
-      taskId: "1",
+      taskId: "v2:standard:1",
       releaseType: "partial",
     },
     reason: "partial releases require an AZL wei amount",
@@ -57,7 +57,7 @@ const INVALID_PAYLOAD_FIXTURES = [
     type: "PaymentRequest",
     payload: {
       type: "azzle/PaymentRequest",
-      taskId: "1",
+      taskId: "v2:standard:1",
       releaseType: "full",
       amount: "1000000000000000000",
     },
@@ -80,6 +80,26 @@ for (const file of readdirSync(FIXTURES).filter((f) => f.endsWith(".json"))) {
   } catch (err) {
     failed += 1;
     console.error(`  ✗ ${file}:`, err.message ?? err);
+  }
+}
+
+console.log("[xmtp-schemas] rejecting ambiguous task identities…");
+const canonicalDelivery = loadJson(join(FIXTURES, "delivery-notice-envelope.json"));
+for (const [label, envelope] of [
+  ["bare task id", { ...canonicalDelivery, taskId: "42", payload: { ...canonicalDelivery.payload, taskId: "42" } }],
+  ["v2:N task id", { ...canonicalDelivery, taskId: "v2:42", payload: { ...canonicalDelivery.payload, taskId: "v2:42" } }],
+  ["invalid zero task id", { ...canonicalDelivery, taskId: "v2:micro:0", payload: { ...canonicalDelivery.payload, taskId: "v2:micro:0" } }],
+  ["invalid leading-zero task id", { ...canonicalDelivery, taskId: "v2:micro:042", payload: { ...canonicalDelivery.payload, taskId: "v2:micro:042" } }],
+  ["envelope/payload mismatch", { ...canonicalDelivery, payload: { ...canonicalDelivery.payload, taskId: "v2:micro:43" } }],
+  ["market/task mismatch", { ...canonicalDelivery, market: "standard" }],
+  ["missing intended market", (() => { const copy = { ...canonicalDelivery }; delete copy.market; return copy; })()],
+]) {
+  try {
+    validateEnvelopeShape(envelope);
+    failed += 1;
+    console.error(`  ✗ accepted ${label}`);
+  } catch {
+    console.log(`  ✓ rejected ${label}`);
   }
 }
 

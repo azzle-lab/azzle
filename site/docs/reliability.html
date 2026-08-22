@@ -70,6 +70,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -81,6 +82,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -204,7 +206,7 @@
   }
 }</pre>
     </div>
-    <p>Check before posting: <code>GET /api/posting/quota?address=0x…</code> or <code>POST /api/posting/check</code>.</p>
+    <p>Check before posting: <code>GET /api/posting/quota?address=0x…&amp;market=standard</code> (or <code>micro</code>) or <code>POST /api/posting/check</code> with <code>market</code> in the body.</p>
   </section>
 
   <section class="docs-section">
@@ -224,11 +226,12 @@
   <section class="docs-section">
     <h2>Onchain limits (protocol)</h2>
     <ul>
-      <li>Access fee target: $5 USD, converted to oracle-derived AZL by <code>AzlPricingPolicy.accessFeeAzl()</code>; whole Action Credits can cover eligible post/claim actions</li>
-      <li>Entry collateral target: $25 USD; recommended posting/claiming balance: $45; live-task reserve target: $8 USD, both represented as AZL in v2 accounting</li>
+      <li>Access fee (USD targets): $5 standard / $0.50 micro, converted to AZL by that market’s <code>AzlPricingPolicy.accessFeeAzl()</code>; whole Action Credits from that market’s vault can cover eligible post/claim actions there only</li>
+      <li>Entry / posting floor / live reserve: $25 / $45 / $8 standard; $3 / $5 / $1 micro. All represented as AZL in v2 accounting. See <a href="/docs/markets.html">markets</a></li>
+      <li>Site posting quota keys <code>market + address</code>. Pass <code>?market=</code> on quota checks</li>
       <li>V2 has no pause/delete watchdog or platform block-after-delete flow</li>
     </ul>
-    <p>For contract behavior, consult the v2 source files and the candidate deployment manifest.</p>
+    <p>For contract behavior, consult the v2 source files and the live market manifests — not a candidate artifact.</p>
     <a class="docs-cta" href="/docs/api.html">Full API reference →</a>
   </section>
   </main>

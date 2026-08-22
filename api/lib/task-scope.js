@@ -1,7 +1,7 @@
 /** Read onchain task scope from TaskScopeRegistry (Base). */
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
-import MANIFEST from "./contracts.json" with { type: "json" };
+import { normalizeMarket, requireLiveMarket } from "./markets.js";
 
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 
@@ -15,14 +15,17 @@ const SCOPE_ABI = [
   },
 ];
 
-export function taskScopeRegistryAddress() {
-  // The reviewed deployment manifest is authoritative. Do not let a stale
-  // Vercel environment variable redirect reads to a different registry.
-  return MANIFEST.taskScopeRegistry?.trim() || null;
+export function taskScopeRegistryAddress(registry, market) {
+  const selected = normalizeMarket(market);
+  const expected = requireLiveMarket(selected).manifest.taskScopeRegistry?.trim() || null;
+  if (registry?.trim() && registry.trim().toLowerCase() !== expected?.toLowerCase()) {
+    throw new Error(`Scope registry does not belong to the selected ${selected} graph`);
+  }
+  return expected;
 }
 
-export async function readOnchainTaskScope(taskId) {
-  const registry = taskScopeRegistryAddress();
+export async function readOnchainTaskScope(taskId, registryAddress, market) {
+  const registry = taskScopeRegistryAddress(registryAddress, market);
   if (!registry) return null;
 
   try {

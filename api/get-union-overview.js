@@ -4,7 +4,8 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.writeHead(204, { "Access-Control-Allow-Origin": "*" }).end();
   if (req.method !== "GET") return res.writeHead(405, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "method_not_allowed" }));
   try {
-    const overview = await getUnionOverview();
+    const url = new URL(req.url || "/api/union/overview", `https://${req.headers?.host || "azzle.org"}`);
+    const overview = await getUnionOverview(url.searchParams.get("market") ?? "standard");
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300" });
     res.end(JSON.stringify(overview));
   } catch (error) {

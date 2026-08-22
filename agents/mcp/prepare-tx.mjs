@@ -5,19 +5,15 @@
  * Prerequisite: cd agents && npm run build
  *
  *   npm run mcp:prepare -- read --from 0x...
- *   npm run mcp:prepare -- claim --from 0x... --task-id 42
+ *   npm run mcp:prepare -- claim --from 0x... --task-id v2:standard:42
  */
 import { ethers } from "ethers";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { parseTaskPreview } from "./terms-utils.mjs";
 import { buildTaskPreview } from "./xmtp-helpers.mjs";
+import { loadMarketManifest, parseTaskRef, resolveExpectedMarket } from "../dist/sdk/markets.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const manifest = JSON.parse(
-  readFileSync(join(__dirname, "../deployments/base-8453.json"), "utf8")
-);
+const market = resolveExpectedMarket(process.env.AZZLE_MARKET);
+const manifest = loadMarketManifest(market);
 
 const CHAIN_ID = 8453;
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
@@ -103,6 +99,10 @@ function requireFrom(flags) {
     fail("--from <0x address> is required");
   }
   return ethers.getAddress(from);
+}
+
+function requireTaskId(flags) {
+  return parseTaskRef(flags.task_id ?? fail("--task-id required"), market).localIdBigInt;
 }
 
 async function readAllowances(from) {
@@ -191,7 +191,7 @@ async function cmdApproveAzlEscrow() {
 }
 
 async function cmdClaim(flags) {
-  const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
+  const taskId = requireTaskId(flags);
   output(batchResponse("claim", [
     tx(
       "claim",
@@ -240,7 +240,7 @@ async function cmdPost(from, flags) {
 }
 
 async function cmdSetScope(flags) {
-  const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
+  const taskId = requireTaskId(flags);
   const scope = (flags.scope_text ?? flags.scope ?? fail("--scope-text required")).trim();
   if (!manifest.taskScopeRegistry) fail("taskScopeRegistry not in manifest");
   output(
@@ -263,7 +263,7 @@ function cmdArbitration(action, fn, extraArgs) {
 }
 
 async function cmdFund(from, flags) {
-  const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
+  const taskId = requireTaskId(flags);
   const amount = BigInt(flags.amount ?? fail("--amount required"));
   const transactions = [];
   if (flags.skip_approvals !== "true") {
@@ -280,7 +280,7 @@ async function cmdFund(from, flags) {
 }
 
 async function cmdOpenDispute(flags) {
-  const taskId = BigInt(flags.task_id ?? fail("--task-id required"));
+  const taskId = requireTaskId(flags);
   const evidence = flags.evidence ?? flags.evidence_hash ?? "dispute-evidence";
   output(
     batchResponse("open-dispute", [
@@ -347,14 +347,15 @@ Actions:
 
 Common flags:
   --from <0x>                  Required for on-chain prepare actions
+  --task-id <v2:market:N>      Required namespaced task reference
   --skip-approvals             Omit automatic ERC20 approve steps in batches
 
 Action-specific:
   post          --total-amount <azl-wei> --deadline [--criteria-text | --acceptance-criteria-hash]
-  claim         --task-id <id>
-  fund          --task-id --amount <azl-wei> (poster only)
+  claim         --task-id <v2:standard:N|v2:micro:N>
+  fund          --task-id <v2:market:N> --amount <azl-wei> (poster only)
   mark-delivered --task-id
-  release       --task-id --amount <azl-wei>
+  release       --task-id <v2:market:N> --amount <azl-wei>
   complete      --task-id
   cancel        --task-id
   expire        --task-id
@@ -419,17 +420,17 @@ async function main() {
       break;
     case "complete":
       await cmdRegistryCall("complete", "complete", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     case "cancel":
       await cmdRegistryCall("cancel", "cancel", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     case "expire":
       await cmdRegistryCall("expire", "expire", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     case "open-dispute":
@@ -437,41 +438,41 @@ async function main() {
       break;
     case "mark-delivered":
       await cmdRegistryCall("mark-delivered", "markDelivered", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     case "release":
       await cmdRegistryCall("release", "release", flags, [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
         BigInt(flags.amount ?? fail("--amount required")),
       ]);
       break;
     case "assign-arbitrator":
       cmdArbitration("assign-arbitrator", "assignArbitrator", [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     case "submit-evidence":
       cmdArbitration("submit-evidence", "submitEvidence", [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
         ethers.hexlify(encodeDisputeEvidence(flags.evidence ?? flags.evidence_hash ?? fail("--evidence required"))),
       ]);
       break;
     case "begin-ruling":
       cmdArbitration("begin-ruling", "beginRuling", [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     case "rule-dispute":
       cmdArbitration("rule-dispute", "rule", [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
         Number(flags.outcome ?? fail("--outcome required (1-4)")),
         Number(flags.worker_bps ?? fail("--worker-bps required (0-10000)")),
       ]);
       break;
     case "timeout-dispute":
       cmdArbitration("timeout-dispute", "timeout", [
-        BigInt(flags.task_id ?? fail("--task-id required")),
+        requireTaskId(flags),
       ]);
       break;
     default:

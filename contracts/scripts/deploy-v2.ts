@@ -184,6 +184,16 @@ const DEFAULTS = {
   maxExecutionDeviationBps: 500,
   minimumVerifierBondAzl: ethers.parseEther("10000"),
   openTaskCapUsd6: 10_000_000_000n,
+  maxTaskUsd6: 10_000_000_000n,
+  entryDepositUsd6: 25_000_000n,
+  liveTaskReserveUsd6: 8_000_000n,
+  accessFeeUsd6: 5_000_000n,
+  exitCompensationUsd6: 2_500_000n,
+  exitProtocolShareUsd6: 2_500_000n,
+  maxUsdcInput6: 500_000_000n,
+  maxEthInput: ethers.parseEther("10"),
+  creditCap: ethers.parseEther("600000"),
+  creditBaseStake: ethers.parseEther("100000000"),
   creditContext: ethers.id("AZZLE_V2_AGENT_DEPOSIT"),
 } as const;
 
@@ -363,18 +373,25 @@ async function main() {
     DEFAULTS.maxFeedAge,
     "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
   ]);
-  await push("pricingPolicy", "AzlPricingPolicy", [predicted.usdOracle]);
+  await push("pricingPolicy", "AzlPricingPolicy", [
+    predicted.usdOracle,
+    DEFAULTS.entryDepositUsd6,
+    DEFAULTS.liveTaskReserveUsd6,
+    DEFAULTS.accessFeeUsd6,
+    DEFAULTS.exitCompensationUsd6,
+    DEFAULTS.exitProtocolShareUsd6,
+  ]);
   await push("depositVault", "AgentDepositVaultV2", [BASE.azl, predicted.pricingPolicy, factoryAddress]);
   await push("escrowVault", "EscrowVaultV2", [BASE.azl, factoryAddress]);
   await push("reputationRegistry", "ReputationRegistryV2", [factoryAddress]);
   await push("verifierBondVault", "VerifierBondVaultV2", [BASE.azl, DEFAULTS.minimumVerifierBondAzl, 7 * 24 * 60 * 60, predicted.treasuryRouter, factoryAddress]);
-  await push("stakingVault", "UnionStakingVaultV2", [BASE.azl, DEFAULTS.stakingRewardDuration, factoryAddress]);
+  await push("stakingVault", "UnionStakingVaultV2", [BASE.azl, DEFAULTS.stakingRewardDuration, DEFAULTS.creditCap, DEFAULTS.creditBaseStake, factoryAddress]);
   await push("treasuryRouter", "TreasuryRouterV2", [BASE.azl, burnRecipient, factoryAddress]);
-  await push("taskRegistry", "TaskRegistryV2", [predicted.depositVault, predicted.escrowVault, predicted.reputationRegistry, predicted.usdOracle, DEFAULTS.openTaskCapUsd6, factoryAddress]);
+  await push("taskRegistry", "TaskRegistryV2", [predicted.depositVault, predicted.escrowVault, predicted.reputationRegistry, predicted.usdOracle, DEFAULTS.openTaskCapUsd6, DEFAULTS.maxTaskUsd6, factoryAddress]);
   await push("arbitrationModule", "ArbitrationModuleV2", [predicted.taskRegistry, predicted.escrowVault, predicted.reputationRegistry, predicted.verifierBondVault, predicted.treasuryRouter, DEFAULTS.evidenceWindow, DEFAULTS.rulingWindow, DEFAULTS.slashCapBps, panel, factoryAddress]);
   await push("usdcWethLeg", "BaseUsdcWethExactInputLeg", []);
   await push("exactInputExecutor", "BaseAzlExactInputExecutor", [predicted.usdcWethLeg, predicted.usdOracle, DEFAULTS.creditContext, DEFAULTS.maxExecutionDeviationBps, factoryAddress]);
-  await push("paymentGateway", "AzlPaymentGateway", [BASE.usdc, BASE.azl, predicted.usdOracle, predicted.exactInputExecutor, predicted.depositVault, factoryAddress]);
+  await push("paymentGateway", "AzlPaymentGateway", [BASE.usdc, BASE.azl, predicted.usdOracle, predicted.exactInputExecutor, predicted.depositVault, factoryAddress, DEFAULTS.maxUsdcInput6, DEFAULTS.maxEthInput]);
   await push("taskScopeRegistry", "TaskScopeRegistryV2", [predicted.taskRegistry]);
 
   const config = {
@@ -532,18 +549,18 @@ async function main() {
         DEFAULTS.maxFeedAge,
         "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433",
       ] },
-      { name: "AzlPricingPolicy", contract: "src/v2/AzlPricingPolicy.sol:AzlPricingPolicy", args: [predicted.usdOracle] },
+      { name: "AzlPricingPolicy", contract: "src/v2/AzlPricingPolicy.sol:AzlPricingPolicy", args: [predicted.usdOracle, DEFAULTS.entryDepositUsd6, DEFAULTS.liveTaskReserveUsd6, DEFAULTS.accessFeeUsd6, DEFAULTS.exitCompensationUsd6, DEFAULTS.exitProtocolShareUsd6] },
       { name: "AgentDepositVaultV2", contract: "src/v2/AgentDepositVaultV2.sol:AgentDepositVaultV2", args: [BASE.azl, predicted.pricingPolicy, factoryAddress] },
       { name: "EscrowVaultV2", contract: "src/v2/EscrowVaultV2.sol:EscrowVaultV2", args: [BASE.azl, factoryAddress] },
       { name: "ReputationRegistryV2", contract: "src/v2/ReputationRegistryV2.sol:ReputationRegistryV2", args: [factoryAddress] },
       { name: "VerifierBondVaultV2", contract: "src/v2/VerifierBondVaultV2.sol:VerifierBondVaultV2", args: [BASE.azl, DEFAULTS.minimumVerifierBondAzl, 7 * 24 * 60 * 60, predicted.treasuryRouter, factoryAddress] },
-      { name: "UnionStakingVaultV2", contract: "src/v2/UnionStakingVaultV2.sol:UnionStakingVaultV2", args: [BASE.azl, DEFAULTS.stakingRewardDuration, factoryAddress] },
+      { name: "UnionStakingVaultV2", contract: "src/v2/UnionStakingVaultV2.sol:UnionStakingVaultV2", args: [BASE.azl, DEFAULTS.stakingRewardDuration, DEFAULTS.creditCap, DEFAULTS.creditBaseStake, factoryAddress] },
       { name: "TreasuryRouterV2", contract: "src/v2/TreasuryRouterV2.sol:TreasuryRouterV2", args: [BASE.azl, burnRecipient, factoryAddress] },
-      { name: "TaskRegistryV2", contract: "src/v2/TaskRegistryV2.sol:TaskRegistryV2", args: [predicted.depositVault, predicted.escrowVault, predicted.reputationRegistry, predicted.usdOracle, DEFAULTS.openTaskCapUsd6, factoryAddress] },
+      { name: "TaskRegistryV2", contract: "src/v2/TaskRegistryV2.sol:TaskRegistryV2", args: [predicted.depositVault, predicted.escrowVault, predicted.reputationRegistry, predicted.usdOracle, DEFAULTS.openTaskCapUsd6, DEFAULTS.maxTaskUsd6, factoryAddress] },
       { name: "ArbitrationModuleV2", contract: "src/v2/ArbitrationModuleV2.sol:ArbitrationModuleV2", args: [predicted.taskRegistry, predicted.escrowVault, predicted.reputationRegistry, predicted.verifierBondVault, predicted.treasuryRouter, DEFAULTS.evidenceWindow, DEFAULTS.rulingWindow, DEFAULTS.slashCapBps, panel, factoryAddress] },
       { name: "BaseUsdcWethExactInputLeg", contract: "src/v2/BaseUsdcWethExactInputLeg.sol:BaseUsdcWethExactInputLeg", args: [] },
       { name: "BaseAzlExactInputExecutor", contract: "src/v2/BaseAzlExactInputExecutor.sol:BaseAzlExactInputExecutor", args: [predicted.usdcWethLeg, predicted.usdOracle, DEFAULTS.creditContext, DEFAULTS.maxExecutionDeviationBps, factoryAddress] },
-      { name: "AzlPaymentGateway", contract: "src/v2/AzlPaymentGateway.sol:AzlPaymentGateway", args: [BASE.usdc, BASE.azl, predicted.usdOracle, predicted.exactInputExecutor, predicted.depositVault, factoryAddress] },
+      { name: "AzlPaymentGateway", contract: "src/v2/AzlPaymentGateway.sol:AzlPaymentGateway", args: [BASE.usdc, BASE.azl, predicted.usdOracle, predicted.exactInputExecutor, predicted.depositVault, factoryAddress, DEFAULTS.maxUsdcInput6, DEFAULTS.maxEthInput] },
       { name: "TaskScopeRegistryV2", contract: "src/v2/TaskScopeRegistryV2.sol:TaskScopeRegistryV2", args: [predicted.taskRegistry] },
     ];
     const deployedCount = phaseNow === 0 ? 0 : phaseNow === 1 ? 6 : phaseNow === 2 ? 11 : 16;
@@ -598,7 +615,8 @@ async function main() {
     const receipt = await tx.wait();
     if (!receipt) throw new Error("V2 finalization receipt missing");
     const manifest = {
-      version: "2.0.0", chainId: BASE.chainId.toString(), deploymentBlock: receipt.blockNumber,
+      version: "2.0.0", chainId: BASE.chainId.toString(), market: "standard",
+      deploymentBlock: receipt.blockNumber,
       deployer: deployer.address, governance, factory: factoryAddress, bundleHash, ...predicted,
       external: jsonSafe(BASE),
       risk: jsonSafe(config), actionCredits, finalizedTx: tx.hash,

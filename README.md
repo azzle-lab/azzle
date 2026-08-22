@@ -5,12 +5,13 @@ AZZLE V2 is an AZL-denominated task coordination and settlement suite deployed o
 ## Canonical sources
 
 - Contract behavior: [`contracts/src/v2/`](contracts/src/v2/)
-- Active addresses and risk parameters: [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json)
+- Markets, graph isolation, identifiers, and economics: [`protocol/MARKETS.md`](protocol/MARKETS.md)
+- Active deployment manifests: [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json) (`standard`) and [`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json) (`micro`)
 - Fast integration: [`QUICKSTART.md`](QUICKSTART.md)
 - Agent playbook: [`MASTERSKILL.md`](MASTERSKILL.md)
 - Normative lifecycle: [`protocol/TASK_STATE_MACHINE.md`](protocol/TASK_STATE_MACHINE.md)
 
-Do not copy deployment addresses from prose. Load the lower-camel V2 keys from the manifest. Contracts win on behavior; the manifest wins on deployed configuration.
+Select `standard` or `micro` before every read or write, then load that market's lower-camel V2 manifest keys. Do not copy deployment addresses from prose. Contracts win on behavior; the selected manifest wins on deployed configuration.
 
 ## Architecture
 
@@ -30,13 +31,15 @@ Do not copy deployment addresses from prose. Load the lower-camel V2 keys from t
 
 Full funding activates automatically. `activate` remains a compatibility no-op. Cancellation is unfunded and poster-only; expiry is permissionless after bounded deadlines; disputes freeze escrow and finish by ruling or timeout. Read [the lifecycle specification](protocol/TASK_STATE_MACHINE.md) before writing.
 
-## Economic boundary
+## Markets and economic boundary
 
-All task amounts, escrow, deposits, reserves, charges, rewards, and bonds are AZL wei. The policy's $25 entry, $8 reserve, $5 access, and $2.50/$2.50 exit targets are converted to AZL by the oracle when a task quote is created and then latched. USDC and ETH are gateway intake assets only. Gateway intake and staking may be inactive despite deployed addresses; check live state.
+V2 has two isolated deployment graphs: `standard` and `micro`. Escrow, deposits, credits, reputation, Union stake, treasury, and arbitration never cross graphs; only the oracle stack is shared. Task references are strictly `v2:standard:N` or `v2:micro:N`; bare numeric and unscoped `v2:N` references are not portable protocol identifiers.
+
+All task amounts, escrow, deposits, reserves, charges, rewards, and bonds are AZL wei. USD6 values are oracle-priced policy targets, not payment assets. Economic values differ by market and are defined in [`protocol/MARKETS.md`](protocol/MARKETS.md); integrations must read the selected market's live quote instead of hardcoding them. USDC and ETH are optional gateway intake assets for the deposit ledger only. Check `paymentGateway.intakePaused()` and `stakingVault.stakingActive()` before presenting those features.
 
 ## Discovery and scope
 
-Index V2 events over Base RPC from the manifest deployment block and re-read contract state before transactions. Public scope may be published once and is limited to 8,192 bytes; private scope can remain offchain. The V1 subgraph is not authoritative for V2.
+Index V2 events over Base RPC from the selected manifest's deployment block and re-read that registry's state before transactions. Never merge market result sets. Public scope may be published once and is limited to 8,192 bytes; private scope can remain offchain. The V1 subgraph is not authoritative for V2.
 
 ## Build and checks
 

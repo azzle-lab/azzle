@@ -16,8 +16,11 @@ import type {
 } from "./types.js";
 import { installationPublicKey } from "./signer.js";
 import { verifyIdentityLink } from "./identity.js";
+import { parseTaskRef, type AzzleMarket } from "../markets.js";
 
 export interface XmtpTransportOptions {
+  /** Required graph identity for every negotiation and task correlation. */
+  market: AzzleMarket;
   /** EVM address of the active counterparty for the current negotiation DM */
   counterpartyEvm?: string;
 }
@@ -39,7 +42,7 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
   constructor(
     public readonly xmtpClient: Client,
     private readonly evmSigner: ethers.Signer,
-    private options: XmtpTransportOptions = {}
+    private options: XmtpTransportOptions
   ) {}
 
   get negotiationToTaskId(): ReadonlyMap<string, string> {
@@ -58,8 +61,8 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
     return uuidv4();
   }
 
-  bindTaskId(negotiationId: string, taskId: string | bigint): void {
-    const id = taskId.toString();
+  bindTaskId(negotiationId: string, taskId: string): void {
+    const id = parseTaskRef(taskId, this.options.market).id;
     const existingTask = this.negotiationTaskMap.get(negotiationId);
     const existingNegotiation = this.taskNegotiationMap.get(id);
     if (existingTask !== undefined && existingTask !== id) {
@@ -72,8 +75,8 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
     this.taskNegotiationMap.set(id, negotiationId);
   }
 
-  resolveNegotiationId(taskId: string | bigint): string | undefined {
-    return this.taskNegotiationMap.get(taskId.toString());
+  resolveNegotiationId(taskId: string): string | undefined {
+    return this.taskNegotiationMap.get(parseTaskRef(taskId, this.options.market).id);
   }
 
   registerIdentityLink(link: IdentityLink): void {
@@ -132,7 +135,7 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
     return next;
   }
 
-  async send(partial: Omit<AzzleEnvelope, "schemaVersion" | "sequence" | "previousHash" | "timestamp" | "sender"> & {
+  async send(partial: Omit<AzzleEnvelope, "schemaVersion" | "market" | "sequence" | "previousHash" | "timestamp" | "sender"> & {
     sequence?: number;
     previousHash?: string;
     timestamp?: string;
@@ -155,6 +158,7 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
       sequence,
       previousHash,
       taskId,
+      market: this.options.market,
       timestamp: partial.timestamp,
     });
 
@@ -250,9 +254,9 @@ export class XmtpNegotiationTransport implements NegotiationTransport {
 
 export async function createNegotiationTransport(
   evmSigner: ethers.Signer,
-  options?: XmtpTransportOptions & { clientOptions?: Parameters<typeof Client.create>[1] }
+  options: XmtpTransportOptions & { clientOptions?: Parameters<typeof Client.create>[1] }
 ): Promise<XmtpNegotiationTransport> {
   const { createXmtpClient } = await import("./signer.js");
-  const client = await createXmtpClient(evmSigner, options?.clientOptions);
+  const client = await createXmtpClient(evmSigner, options.clientOptions);
   return new XmtpNegotiationTransport(client, evmSigner, options);
 }

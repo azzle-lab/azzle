@@ -1,4 +1,5 @@
-const MANIFEST = require("../contracts/deployments/base-8453.json");
+import { economicsFor, isMarketLive, loadMarketManifest, normalizeMarket, contractsFromManifest } from "./lib/markets.js";
+
 const DEPLOYED_AZL_HOP = "0xd089c46C01ccDE2875CCD4Fc46F8D1B170dd32D9";
 
 const CORS = {
@@ -25,7 +26,22 @@ function postingStoreBackend() {
   return "file";
 }
 
-module.exports = function handler(req, res) {
+function economicsPayload(id) {
+  const e = economicsFor(id);
+  return {
+    entryDepositUsd: e.entryDepositUsd6 / 1_000_000,
+    liveTaskReserveUsd: e.liveTaskReserveUsd6 / 1_000_000,
+    accessFeeUsd: e.accessFeeUsd6 / 1_000_000,
+    exitCompensationUsd: e.exitCompensationUsd6 / 1_000_000,
+    exitProtocolShareUsd: e.exitProtocolShareUsd6 / 1_000_000,
+    maxTaskUsd: e.maxTaskUsd6 / 1_000_000,
+    postingFloorUsd: e.postingFloorUsd6 / 1_000_000,
+    postingFloorUsd6: String(e.postingFloorUsd6),
+    accessFee: "oracle-derived AZL via AzlPricingPolicy.accessFeeAzl()",
+  };
+}
+
+export default function handler(req, res) {
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS);
     res.end();
@@ -36,53 +52,40 @@ module.exports = function handler(req, res) {
     return;
   }
 
-  const billingWallet = process.env.AZZLE_BILLING_WALLET || MANIFEST.governance || "";
-  const taskScopeRegistry =
-    process.env.NEXT_TASK_SCOPE_ADDRESS?.trim() || MANIFEST.taskScopeRegistry || null;
+  const host = req.headers?.host || "azzle.org";
+  const url = new URL(req.url || "/api/site-config", `https://${host}`);
+  let market;
+  try {
+    market = normalizeMarket(url.searchParams.get("market"));
+  } catch (error) {
+    sendJson(res, 400, { error: error?.message ?? String(error) });
+    return;
+  }
+  const manifest = loadMarketManifest(market);
+  const live = isMarketLive(manifest);
+  const billingWallet = process.env.AZZLE_BILLING_WALLET || manifest.governance || "";
 
   sendJson(res, 200, {
     privyAppId: process.env.PRIVY_APP_ID || "",
     privyClientId: process.env.PRIVY_CLIENT_ID || "",
-    chainId: Number(MANIFEST.chainId),
+    privySignerId: process.env.PRIVY_SIGNER_ID || "",
+    chainId: Number(manifest.chainId),
     chainName: "Base",
     rpcUrl: process.env.BASE_RPC_URL || "https://base-rpc.publicnode.com",
+    market,
+    live,
     contracts: {
-      usdc: MANIFEST.external.usdc,
-      azlToken: MANIFEST.external.azl,
-      taskRegistry: MANIFEST.taskRegistry,
-      depositVault: MANIFEST.depositVault,
-      treasuryRouter: MANIFEST.treasuryRouter,
-      escrowVault: MANIFEST.escrowVault,
-      stakingVault: MANIFEST.stakingVault,
-      arbitrationModule: MANIFEST.arbitrationModule,
-      reputationRegistry: MANIFEST.reputationRegistry,
-      verifierBondVault: MANIFEST.verifierBondVault,
-      usdOracle: MANIFEST.usdOracle,
-      pricingPolicy: MANIFEST.pricingPolicy,
-      paymentGateway: MANIFEST.paymentGateway,
+      ...contractsFromManifest(manifest),
       azlHop: process.env.V2_HOP_ADDRESS?.trim() || DEPLOYED_AZL_HOP,
       pimlicoBundlerUrl: process.env.PIMLICO_BUNDLER_URL || "",
-      taskScopeRegistry,
-      observationOracle: MANIFEST.observationOracle,
-      twapAdapter: MANIFEST.twapAdapter,
-      usdcWethLeg: MANIFEST.usdcWethLeg,
-      exactInputExecutor: MANIFEST.exactInputExecutor,
-      factory: MANIFEST.factory,
-      governance: MANIFEST.governance,
-      external: MANIFEST.external,
-      risk: MANIFEST.risk,
-      actionCredits: MANIFEST.actionCredits,
     },
     v2: true,
     taskUnit: "AZL",
     taskStates: ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", "CANCELLED", "RESOLVED"],
-    economics: {
-      entryDepositUsd: 25,
-      liveTaskReserveUsd: 8,
-      accessFeeUsd: 5,
-      exitCompensationUsd: 2.5,
-      exitProtocolShareUsd: 2.5,
-      accessFee: "oracle-derived AZL via AzlPricingPolicy.accessFeeAzl()",
+    economics: economicsPayload(market),
+    markets: {
+      standard: { live: isMarketLive(loadMarketManifest("standard")), economics: economicsPayload("standard") },
+      micro: { live: isMarketLive(loadMarketManifest("micro")), economics: economicsPayload("micro") },
     },
     billingWallet: billingWallet || null,
     postingPlans: PLANS,

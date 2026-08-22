@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { loadManifest } from "./lib/manifest.mjs";
+import { loadManifest, requireTaskRef } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
 loadDotEnv(import.meta.url);
@@ -25,28 +25,28 @@ function requireSigner() {
 async function runPreflight() {
   const signer = requireSigner();
   const wallet = await signer.getAddress();
-  const { bond, warnings } = await monitorBondSlashRisk(signer.provider, wallet);
+  const { bond, warnings } = await monitorBondSlashRisk(signer.provider, wallet, manifest);
   console.log("[verifier] bond (ETH)", ethers.formatEther(bond));
   for (const w of warnings) console.warn("[verifier] WARNING:", w);
-  await printMarketSnapshot();
+  await printMarketSnapshot(manifest);
 }
 
 async function stakeFlow() {
   const signer = requireSigner();
   const bond = process.env.BOND_WEI ? BigInt(process.env.BOND_WEI) : DEFAULT_BOND_WEI;
-  await stakeVerifierBond(signer, bond);
+  await stakeVerifierBond(signer, manifest, bond);
 }
 
 async function unstakeFlow() {
   const signer = requireSigner();
   const amount = process.env.UNSTAKE_WEI ? BigInt(process.env.UNSTAKE_WEI) : DEFAULT_BOND_WEI / 2n;
-  await unstakeVerifierBond(signer, amount);
+  await unstakeVerifierBond(signer, manifest, amount);
 }
 
 async function validationLoop() {
   const expectedHash = process.env.EXPECTED_OUTPUT_HASH ?? "0x" + "ab".repeat(32);
   const delivery = {
-    taskId: process.env.TASK_ID ?? "1",
+    taskId: requireTaskRef(process.env.TASK_ID),
     worker: "0x0000000000000000000000000000000000000002",
     artifacts: [{ type: "deterministic_output", hash: expectedHash, uri: "ipfs://stub" }],
   };

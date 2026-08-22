@@ -57,6 +57,8 @@ contract UnionStakingVaultV2 is V2Ownable2Step, ReentrancyGuard {
     uint256 public constant CREDIT_UNIT = 1e18;
     uint256 public constant CREDIT_CAP = 600_000 * CREDIT_UNIT;
     uint256 public constant CREDIT_BASE_STAKE = 100_000_000 * 1e18;
+    uint256 public immutable creditCap;
+    uint256 public immutable creditBaseStake;
     uint256 public constant CREDIT_PERIOD = 30 days;
     uint256 private constant CREDIT_ACC = 1e18;
 
@@ -113,10 +115,18 @@ contract UnionStakingVaultV2 is V2Ownable2Step, ReentrancyGuard {
     modifier onlyTreasury() { require(msg.sender == treasury, "Sv2: treasury"); _; }
     modifier onlyRegistry() { require(msg.sender == registry, "Sv2: registry"); _; }
 
-    constructor(address _azl, uint256 _duration, address initialOwner) V2Ownable2Step(initialOwner) {
-        require(_azl.code.length != 0 && _duration > 0, "Sv2: config");
+    constructor(address _azl, uint256 _duration, uint256 _creditCap, uint256 _creditBaseStake, address initialOwner)
+        V2Ownable2Step(initialOwner)
+    {
+        require(
+            _azl.code.length != 0 && _duration > 0 && _creditCap >= CREDIT_UNIT && _creditCap % CREDIT_UNIT == 0
+                && _creditBaseStake > 0,
+            "Sv2: config"
+        );
         azl = IERC20(_azl);
         rewardDuration = _duration;
+        creditCap = _creditCap;
+        creditBaseStake = _creditBaseStake;
         lastUpdate = block.timestamp;
         lastCreditAccrual = block.timestamp;
     }
@@ -212,7 +222,7 @@ contract UnionStakingVaultV2 is V2Ownable2Step, ReentrancyGuard {
 
     function creditsRemaining() external view returns (uint256) {
         (, uint256 issued,,,, bool closes) = _projectCreditAccrual();
-        return creditIssuanceClosed || closes ? 0 : CREDIT_CAP - issued;
+        return creditIssuanceClosed || closes ? 0 : creditCap - issued;
     }
 
     function bankCredits() external nonReentrant {
@@ -407,20 +417,20 @@ contract UnionStakingVaultV2 is V2Ownable2Step, ReentrancyGuard {
         emissionRemainder = creditEmissionRemainder;
         projectedAcc = accCreditPerToken;
         accumulatorRemainder = creditAccumulatorRemainderScaled;
-        if (!stakingActive || creditIssuanceClosed || totalStaked == 0 || issued >= CREDIT_CAP) {
-            closes = creditIssuanceClosed || issued >= CREDIT_CAP;
+        if (!stakingActive || creditIssuanceClosed || totalStaked == 0 || issued >= creditCap) {
+            closes = creditIssuanceClosed || issued >= creditCap;
             return (0, issued, emissionRemainder, projectedAcc, accumulatorRemainder, closes);
         }
         uint256 elapsed = block.timestamp - lastCreditAccrual;
         if (elapsed == 0) return (0, issued, emissionRemainder, projectedAcc, accumulatorRemainder, false);
-        uint256 denominator = CREDIT_BASE_STAKE * CREDIT_PERIOD;
+        uint256 denominator = creditBaseStake * CREDIT_PERIOD;
         uint256 emitted = FullMath.mulDiv(elapsed * CREDIT_UNIT, totalStaked, denominator);
         emissionRemainder += mulmod(elapsed * CREDIT_UNIT, totalStaked, denominator);
         if (emissionRemainder >= denominator) {
             emitted += emissionRemainder / denominator;
             emissionRemainder %= denominator;
         }
-        uint256 remaining = CREDIT_CAP - issued;
+        uint256 remaining = creditCap - issued;
         periodCredits = emitted > remaining ? remaining : emitted;
         closes = periodCredits == remaining;
         issued += periodCredits;

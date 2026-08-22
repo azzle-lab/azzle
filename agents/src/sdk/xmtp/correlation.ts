@@ -1,6 +1,7 @@
 import { Contract, ethers } from "ethers";
 import type { OnChainCorrelationEvent, OnChainEventHandler } from "./types.js";
 import type { XmtpNegotiationTransport } from "./transport.js";
+import { namespacedTaskId, type AzzleMarket } from "../markets.js";
 
 const REGISTRY_EVENTS_ABI = [
   "event TaskPosted(uint256 indexed taskId, address indexed poster, uint256 totalAmount, uint256 amountUsd6, uint64 deadline)",
@@ -28,6 +29,7 @@ function eventMeta(args: unknown[]): EventMeta {
 export interface ChainEventIndexerConfig {
   rpcUrl: string;
   registryAddress: string;
+  market: AzzleMarket;
   transport: XmtpNegotiationTransport;
 }
 
@@ -67,7 +69,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskPosted",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: {
@@ -84,7 +86,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskClaimed",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: { worker },
@@ -96,7 +98,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskFunded",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: { amount: amount.toString() },
@@ -108,7 +110,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskActivated",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: {},
@@ -124,7 +126,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskDelivered",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: { deliveredAt: deliveredAt.toString() },
@@ -136,7 +138,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskReleased",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: { amount: amount.toString() },
@@ -148,7 +150,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskCompleted",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: {},
@@ -160,7 +162,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskCancelled",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: {},
@@ -172,7 +174,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskDisputed",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: { opener, evidenceHash },
@@ -184,7 +186,7 @@ export class ChainEventIndexer {
       const meta = eventMeta(args);
       void this.emit({
         kind: "TaskResolved",
-        taskId: taskId.toString(),
+        taskId: namespacedTaskId(this.config.market, taskId),
         blockNumber: meta.blockNumber,
         txHash: meta.transactionHash,
         data: { resolution: Number(resolution), defaultingParty },
@@ -195,7 +197,7 @@ export class ChainEventIndexer {
   private async emit(event: OnChainCorrelationEvent): Promise<void> {
     event.negotiationId =
       event.negotiationId ??
-      (event.taskId !== "0"
+      (event.taskId
         ? this.config.transport.resolveNegotiationId(event.taskId)
         : undefined);
     for (const handler of this.handlers) {

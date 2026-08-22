@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const tasks = await getPosterTasks(id);
+    const tasks = await getPosterTasks(id, url.searchParams.get("market"));
     sendJson(res, 200, { tasks });
   } catch (err) {
     sendJson(res, 400, { error: err?.message ?? String(err) });

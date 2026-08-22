@@ -5,7 +5,8 @@ This is the concise agent playbook. Solidity and the deployment manifest remain 
 ## Canonical sources
 
 - Behavior: [`contracts/src/v2/`](contracts/src/v2/)
-- Addresses and deployed parameters: [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json)
+- Addresses and deployed parameters: [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json) (standard) and [`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json) (micro)
+- Markets: [`protocol/MARKETS.md`](protocol/MARKETS.md)
 - SDK: [`agents/src/sdk/client-v2.ts`](agents/src/sdk/client-v2.ts)
 - Lifecycle: [`protocol/TASK_STATE_MACHINE.md`](protocol/TASK_STATE_MACHINE.md)
 - Custody and policy: [`protocol/AZL_CUSTODY_V2.md`](protocol/AZL_CUSTODY_V2.md)
@@ -28,7 +29,7 @@ V2 uses fixed-total AZL tasks. `TaskRegistryV2` controls lifecycle; `EscrowVault
 
 ## Economics
 
-Policy targets are $25 entry floor, $8 live reserve, $5 access fee, and a $5 proven-default exit charge split $2.50/$2.50 between harmed party and protocol. These are converted to AZL and latched; there is no fixed AZL fee. Action Credits, when active and available, waive only a post/claim access fee.
+Policy targets are market-specific USD6 values converted to AZL and latched; there is no fixed AZL fee. Standard uses $25 entry, $8 live reserve, $5 access, and $2.50/$2.50 exit. Micro uses $3 / $1 / $0.50 / $0.25/$0.25. See [`protocol/MARKETS.md`](protocol/MARKETS.md). Action Credits, when active and available, waive only a post/claim access fee.
 
 ## Arbitration
 

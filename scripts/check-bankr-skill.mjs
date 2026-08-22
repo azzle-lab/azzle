@@ -4,18 +4,20 @@ import { spawnSync } from "node:child_process";
 
 const root = resolve(import.meta.dirname, "..");
 const skillRoot = resolve(root, "agents", "bankr-skill", "azzle");
-const manifestPath = resolve(root, "contracts", "deployments", "base-8453.json");
-const manifest = JSON.parse(
-  readFileSync(manifestPath, "utf8"),
-);
-const pinnedManifestPath = resolve(skillRoot, "references", "base-8453-v2-pinned.json");
+const manifests = {
+  standard: JSON.parse(readFileSync(resolve(root, "contracts", "deployments", "base-8453.json"), "utf8")),
+  micro: JSON.parse(readFileSync(resolve(root, "contracts", "deployments", "base-8453-micro.json"), "utf8")),
+};
+const pinPath = (market) =>
+  resolve(skillRoot, "references", `base-8453-${market}-v2-pinned.json`);
 
 const requiredFiles = [
   "SKILL.md",
   "catalog.json",
   "references/onboarding.md",
   "references/protocol.md",
-  "references/base-8453-v2-pinned.json",
+  "references/base-8453-standard-v2-pinned.json",
+  "references/base-8453-micro-v2-pinned.json",
   "scripts/v2-tasks.sh",
 ];
 
@@ -65,21 +67,24 @@ function valueAtPath(value, path) {
   return path.split(".").reduce((current, key) => current?.[key], value);
 }
 
-try {
-  const pinnedManifest = JSON.parse(readFileSync(pinnedManifestPath, "utf8"));
+for (const [market, manifest] of Object.entries(manifests)) {
+ try {
+  const pinnedManifest = JSON.parse(readFileSync(pinPath(market), "utf8"));
+  if (pinnedManifest.market !== market) fail(`${market} pin must declare market '${market}'`);
   for (const [path, address] of addressLeaves(manifest)) {
     if (valueAtPath(pinnedManifest, path)?.toLowerCase() !== address.toLowerCase()) {
-      fail(`pinned manifest address differs at ${path}`);
+      fail(`${market} pinned manifest address differs at ${path}`);
     }
   }
   for (const [path] of addressLeaves(pinnedManifest)) {
     if (valueAtPath(manifest, path) === undefined) {
-      fail(`pinned manifest has unreviewed address at ${path}`);
+      fail(`${market} pinned manifest has unreviewed address at ${path}`);
     }
   }
   for (const path of [
     "version",
     "chainId",
+    "market",
     "deploymentBlock",
     "bundleHash",
     "external.poolId",
@@ -87,15 +92,42 @@ try {
     "finalizedTx",
   ]) {
     if (valueAtPath(pinnedManifest, path) !== valueAtPath(manifest, path)) {
-      fail(`pinned manifest metadata differs at ${path}`);
+      fail(`${market} pinned manifest metadata differs at ${path}`);
     }
   }
 } catch (error) {
-  fail(`pinned manifest is invalid: ${error.message}`);
+  fail(`${market} pinned manifest is invalid: ${error.message}`);
+ }
+}
+
+for (const path of [
+  "chainId", "external.chainId", "external.usdc", "external.weth", "external.azl",
+  "external.poolManager", "external.universalRouter", "external.hook",
+  "external.ethUsdFeed", "external.poolId", "observationOracle", "twapAdapter", "usdOracle",
+]) {
+  if (String(valueAtPath(manifests.standard, path)).toLowerCase() !==
+      String(valueAtPath(manifests.micro, path)).toLowerCase()) {
+    fail(`shared oracle/external invariant differs at ${path}`);
+  }
+}
+for (const path of [
+  "factory", "treasuryRouter", "pricingPolicy", "depositVault", "escrowVault",
+  "reputationRegistry", "verifierBondVault", "stakingVault", "taskRegistry",
+  "arbitrationModule", "usdcWethLeg", "exactInputExecutor", "paymentGateway",
+  "taskScopeRegistry", "risk.creditContext",
+]) {
+  if (String(valueAtPath(manifests.standard, path)).toLowerCase() ===
+      String(valueAtPath(manifests.micro, path)).toLowerCase()) {
+    fail(`market graph must be isolated at ${path}`);
+  }
 }
 
 const requiredPhrases = [
-  "base-8453-v2-pinned.json",
+  "base-8453-standard-v2-pinned.json",
+  "base-8453-micro-v2-pinned.json",
+  "v2:standard:N",
+  "v2:micro:N",
+  "micro only when explicitly",
   "runtime code",
   "validateGraph()",
   "AZL wei (18 decimals)",
@@ -142,6 +174,17 @@ const forbidden = [
 ];
 for (const [pattern, label] of forbidden) {
   if (pattern.test(content)) fail(`contains ${label}`);
+}
+
+const proseContent = textFiles
+  .filter((path) => !path.endsWith(".json"))
+  .map((path) => readFileSync(path, "utf8"))
+  .join("\n");
+if (/0x[0-9a-fA-F]{40}/.test(proseContent)) {
+  fail("contract/token addresses must remain in reviewed pins, not prose");
+}
+for (const invalid of ["task 42", "scope 42", "id=v2:42"]) {
+  if (content.includes(invalid)) fail(`contains non-canonical sample task reference: ${invalid}`);
 }
 
 try {

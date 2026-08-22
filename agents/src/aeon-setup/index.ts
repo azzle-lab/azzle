@@ -187,7 +187,11 @@ function aeonOverlaySetup(targetDir?: string): void {
   copyFileSync(join(SCAFFOLD_AEON, "azzle", "list-open.mjs"), join(cwd, "azzle", "list-open.mjs"));
   copyFileSync(
     join(PACKAGE_ROOT, "deployments", "base-8453.json"),
-    join(cwd, "azzle", "base-8453.json")
+    join(cwd, "azzle", "base-8453-standard.json")
+  );
+  copyFileSync(
+    join(PACKAGE_ROOT, "deployments", "base-8453-micro.json"),
+    join(cwd, "azzle", "base-8453-micro.json")
   );
 
   const pkgPath = join(cwd, "azzle", "package.json");

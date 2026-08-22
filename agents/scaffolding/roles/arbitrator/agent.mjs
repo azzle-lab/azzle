@@ -1,6 +1,6 @@
 import { Contract, ethers } from "ethers";
 import { AzzleV2Client, checkWorkerPreflight, logPreflightReport } from "@azzle/agents";
-import { loadManifest } from "./lib/manifest.mjs";
+import { loadManifest, requireTaskRef } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
 loadDotEnv(import.meta.url);
@@ -23,7 +23,7 @@ function requireSigner() {
 }
 
 function connectClient(signer) {
-  return new AzzleV2Client(manifest, rpcUrl).connect(signer);
+  return new AzzleV2Client(manifest, rpcUrl, process.env.AZZLE_MARKET).connect(signer);
 }
 
 async function readArbitratorStats(provider, wallet) {
@@ -56,8 +56,7 @@ async function runPreflight() {
 }
 
 async function assignArbitrator(taskIdArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: npm run assign -- <taskId>");
+  const taskId = requireTaskRef(taskIdArg ?? process.env.TASK_ID);
 
   const client = connectClient(requireSigner());
   console.log("[arbitrator] assigning a bonded panel member", taskId.toString());
@@ -66,10 +65,9 @@ async function assignArbitrator(taskIdArg) {
 }
 
 async function ruleFlow(taskIdArg, workerPercentArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
+  const taskId = requireTaskRef(taskIdArg ?? process.env.TASK_ID);
   const workerPercent = Number(workerPercentArg ?? process.env.WORKER_PERCENT ?? "50");
   const outcome = Number(process.env.DISPUTE_OUTCOME ?? "3");
-  if (taskId === 0n) throw new Error("Usage: npm run rule -- <taskId> [workerPercent]");
   if (!Number.isInteger(outcome) || outcome < 1 || outcome > 4) {
     throw new Error("DISPUTE_OUTCOME must be a V2 outcome from 1 to 4");
   }
@@ -82,11 +80,10 @@ async function ruleFlow(taskIdArg, workerPercentArg) {
 }
 
 async function watchdogFlow(taskIdArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: npm run watchdog -- <taskId>");
+  const taskId = requireTaskRef(taskIdArg ?? process.env.TASK_ID);
   const signer = requireSigner();
   const client = connectClient(signer);
-  await runResolutionWatchdog(client, signer.provider, taskId);
+  await runResolutionWatchdog(client, signer.provider, manifest, taskId);
 }
 
 async function tierCheck(amountArg) {
@@ -137,9 +134,9 @@ async function main() {
   console.log("");
   console.log("Commands:");
   console.log("  npm run preflight              # deposit + tier eligibility");
-  console.log("  node agent.mjs assign <taskId> # permissionless capacity fallback");
-  console.log("  node agent.mjs rule <taskId> [workerPercent] # set DISPUTE_OUTCOME=1..4");
-  console.log("  npm run watchdog -- <taskId>   # calls V2 timeout after deadlines");
+  console.log("  node agent.mjs assign <v2:market:N> # permissionless capacity fallback");
+  console.log("  node agent.mjs rule <v2:market:N> [workerPercent] # set DISPUTE_OUTCOME=1..4");
+  console.log("  npm run watchdog -- <v2:market:N>   # calls V2 timeout after deadlines");
   console.log("  node agent.mjs tier-check [amountUsd6]");
 }
 

@@ -33,7 +33,7 @@ export class CompetitiveIntelligence extends BaseAgent {
 
   protected async tick(): Promise<void> {
     const intel = await this.llmJson(
-      { watch_list: WATCH, azzle_position: "USDC escrow task markets on Base, XMTP negotiation" },
+      { watch_list: WATCH, azzle_position: "isolated AZL escrow task markets on Base, XMTP negotiation" },
       IntelSchema,
       "Brief competitive intel — threat levels 0-1."
     );

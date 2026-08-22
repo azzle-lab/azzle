@@ -6,7 +6,8 @@ tags: [crypto, agents, base, azzle]
 requires: [AZZLE_RPC_URL?]
 ---
 
-> **${var}** — Optional filter hint (e.g. "high escrow only", "tasks posted in last 24h"). If empty, report all POSTED listings.
+> **market** — Required per-skill configuration: exactly `standard` or `micro`.
+> **${var}** — Optional filter hint. Workflow dispatch prefixes `market=<market>;`.
 
 Today is ${today}. Read `memory/MEMORY.md` and `memory/topics/azzle-protocol.md` before starting.
 
@@ -16,7 +17,9 @@ Match `soul/SOUL.md` / `soul/STYLE.md` when populated; otherwise clear and direc
 
 ## Steps
 
-1. **Fetch open tasks** — use the manifest-backed SDK reader:
+1. **Select market** — require `market`, export it as `AZZLE_MARKET`, and
+   reject a missing/unknown value. There is no execution-time default.
+2. **Fetch open tasks** — use the matching installed manifest-backed reader:
 
    ```bash
    node ./azzle/list-open.mjs > .azzle-open-tasks.json
@@ -24,7 +27,9 @@ Match `soul/SOUL.md` / `soul/STYLE.md` when populated; otherwise clear and direc
 
    Base RPC is the only supported discovery source.
 
-2. **Parse** — count POSTED tasks; note `id`, poster, `totalAmount` (AZL wei), `deadline`, and state. For each task id, read **`taskScopeRegistry.scopeOf(id)`** when scope text is needed — empty scope means **private discovery** (XMTP only). Spec: [`protocol/TASK_DISCOVERY.md`](../../../../protocol/TASK_DISCOVERY.md). Apply `${var}` filter if set.
+3. **Parse** — require every result ID to be `v2:standard:N` or `v2:micro:N`
+   and to match `market`; reject bare IDs, `v2:N`, and cross-market results.
+   Then count POSTED tasks and apply `${var}`.
 
 3. **Write** `articles/azzle-market-${today}.md`:
    - Headline count of open listings
@@ -46,4 +51,5 @@ Match `soul/SOUL.md` / `soul/STYLE.md` when populated; otherwise clear and direc
 
 - Read-only skill — no wallet transactions. Claiming/posting is `azzle-worker` + Bankr.
 - Never invent task ids; only report Base RPC results.
-- Addresses and fees: `memory/topics/azzle-protocol.md` and `azzle/base-8453.json`.
+- Addresses and fees: `memory/topics/azzle-protocol.md` and the explicitly
+  selected installed market manifest.

@@ -6,19 +6,26 @@
     "vercel-build": "node scripts/vercel-build.mjs",
     "build:wallet": "node scripts/build-wallet.mjs",
     "sync:manifest-surfaces": "node scripts/sync-manifest-surfaces.mjs",
+    "check:manifest-surfaces": "node scripts/sync-manifest-surfaces.mjs --check",
+    "check:site-addresses": "node scripts/sync-site-contract-addresses.mjs --check",
+    "check:site-config": "node scripts/verify-v2-site-config.mjs",
     "check:protocol-surface": "node scripts/check-protocol-surface.mjs",
     "check:bankr-skill": "node scripts/check-bankr-skill.mjs",
+    "check:openapi": "node scripts/check-openapi-contract.mjs",
+    "check:site-links": "node scripts/check-site-links.mjs",
     "prestart": "node scripts/build-wallet.mjs",
     "start": "node scripts/site-server.mjs",
     "site": "node scripts/site-server.mjs",
     "check:v2-docs": "node scripts/verify-v2-docs.mjs",
-    "test": "npm run check:protocol-surface && npm run check:v2-docs"
+    "test": "npm run check:manifest-surfaces && npm run check:site-addresses && npm run check:site-config && npm run check:bankr-skill && npm run check:protocol-surface && npm run check:v2-docs && npm run check:openapi && npm run check:site-links"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "@privy-io/react-auth": "^2.25.0",
+    "@privy-io/react-auth": "^3.37.4",
+    "@privy-io/server-auth": "^1.32.5",
+    "@stripe/crypto": "^1.1.3",
     "@upstash/redis": "^1.34.0",
     "@xmtp/browser-sdk": "^7.1.0",
     "@zerodev/ecdsa-validator": "^5.4.9",

@@ -53,6 +53,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -64,6 +65,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -136,7 +138,7 @@ KEEPER_PRIVATE_KEY=0x...
 
 npm install
 npm run deploy:base:v2:record-observations</pre></div>
-      <p>The loop reads the active <code>contracts/deployments/base-8453.json</code> manifest; it does not depend on a candidate deployment artifact. Stop it cleanly with <code>Ctrl+C</code> or <code>SIGTERM</code>.</p>
+      <p>The loop reads the active <code>contracts/deployments/base-8453.json</code> manifest for the shared observation oracle. Micro reuses the same oracle stack; do not run a second keeper for <code>base-8453-micro.json</code>. The loop does not depend on a candidate deployment artifact. Stop it cleanly with <code>Ctrl+C</code> or <code>SIGTERM</code>.</p>
     </section>
 
     <section class="docs-section">

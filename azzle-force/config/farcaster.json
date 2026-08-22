@@ -10,7 +10,7 @@
   "searchQueries": [
     "agent marketplace",
     "autonomous agent",
-    "USDC escrow",
+    "AZL escrow",
     "MCP server",
     "onchain agents",
     "task market"
@@ -26,7 +26,7 @@
     {
       "id": "mcp-bounty",
       "hook": "MCP server maintainer posts a bounty",
-      "scenario": "An agent needs a custom MCP tool wired to a subgraph. It posts $40 USDC escrow, another agent claims, ships the handler, proves with a tx hash + repo link — paid without a Discord thread.",
+      "scenario": "An agent needs a custom MCP tool. It selects micro, posts an AZL-denominated task, another agent claims and delivers the handler, and the poster releases AZL without a Discord thread.",
       "channels": ["base-builds", "farcaster"]
     },
     {
@@ -38,13 +38,13 @@
     {
       "id": "walk-away-cost",
       "hook": "What ghosting actually costs",
-      "scenario": "Claim + leave isn't free: access fees are $5 USDC + 1,000 $AZL each way, deposit floor is $8, and reputation compounds. Spam agents bleed; serious ones stay solvent.",
+      "scenario": "Post and claim consume market-specific oracle-priced AZL from isolated deposit ledgers unless a same-market Action Credit is used. See protocol/MARKETS.md.",
       "channels": ["base"]
     },
     {
       "id": "research-sprint",
       "hook": "24h research sprint between agents",
-      "scenario": "Poster agent scopes 'map 50 Base DeFi protocols by TVL + audit status'. Worker agent claims, delivers structured JSON + sources, poster accepts — USDC releases, both reputations tick up.",
+      "scenario": "Poster agent scopes 'map 50 Base DeFi protocols by TVL + audit status'. A worker claims, delivers structured JSON + sources, and the poster releases AZL; reputation updates only on that market.",
       "channels": ["base-builds"]
     },
     {
@@ -62,19 +62,19 @@
     {
       "id": "sybil-fee",
       "hook": "Fees as noise filter, not rent",
-      "scenario": "$5 USDC + 1,000 $AZL per post/claim isn't a platform tax — it's the cost of spamming the task pool. Real agents amortize it; farmers don't.",
+      "scenario": "Each market oracle-prices its access policy in AZL. Same-market Action Credits can waive eligible access revenue; see protocol/MARKETS.md for current targets.",
       "channels": ["base", "farcaster"]
     },
     {
       "id": "aeon-worker",
       "hook": "Scheduled worker on GitHub Actions",
-      "scenario": "Aeon fork polls open tasks via subgraph, claims one under $100 USDC, executes, proves, gets paid — cron-driven income for an autonomous repo agent.",
+      "scenario": "Aeon polls one selected registry over Base RPC, claims a strict namespaced task, delivers, and receives AZL — cron-driven income for an autonomous repo agent.",
       "channels": ["base-builds"]
     },
     {
       "id": "x402-read",
       "hook": "Paid reads meet open tasks",
-      "scenario": "Agent needs premium market data behind x402. It completes a small onchain task, earns USDC, pays the read — labor liquidity funding API calls without human card swipes.",
+      "scenario": "An agent needs premium data behind x402. It completes a small onchain task, earns AZL, and pays for the read without a human card swipe.",
       "channels": ["base-builds", "farcaster"]
     },
     {
@@ -92,7 +92,7 @@
     {
       "id": "bankr-wallet",
       "hook": "Wallet agent tops up and participates",
-      "scenario": "Bankr-style agent acquires $AZL, tops $25 USDC deposit, posts a micro-task, another agent fulfills it — two wallets coordinating labor on Base with no shared Slack.",
+      "scenario": "A Bankr-style agent selects micro, checks gateway intake, credits the micro AZL deposit ledger, and posts v2:micro:N — two wallets coordinating labor on Base with no shared Slack.",
       "channels": ["base"]
     },
     {
@@ -104,7 +104,7 @@
     {
       "id": "deposit-pause",
       "hook": "Solvency pause before rug",
-      "scenario": "Agent deposit drops below $8 USDC mid-task → 15-minute pause window before deletion. Gives worker time to dispute or exit — labor markets need circuit breakers too.",
+      "scenario": "Each market reserves oracle-priced AZL collateral while a task is live. V2 has no pause/delete recovery flow; bounded expiry and dispute paths resolve failures.",
       "channels": ["base"]
     },
     {

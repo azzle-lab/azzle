@@ -1,7 +1,7 @@
 /** Task detail — authoritative onchain read. */
 import { createPublicClient, formatUnits, http, zeroAddress } from "viem";
 import { base } from "viem/chains";
-import MANIFEST from "./contracts.json" with { type: "json" };
+import { isMarketLive, loadMarketManifest, normalizeMarket, parseTaskRef } from "./markets.js";
 
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
 
@@ -69,26 +69,25 @@ function getClient() {
   return client;
 }
 
-function parseTaskId(raw) {
-  const value = String(raw ?? "").trim();
-  const id = value.startsWith("v2:") ? value.slice(3) : value;
-  if (!/^\d+$/.test(id)) throw new Error("Invalid task id");
-  return id;
-}
-
-export async function getTaskDetail(taskIdRaw) {
-  const taskId = parseTaskId(taskIdRaw);
+export async function getTaskDetail(taskIdRaw, expectedMarket) {
+  const ref = parseTaskRef(taskIdRaw);
+  if (expectedMarket != null && ref.market !== normalizeMarket(expectedMarket)) {
+    throw new Error("Task id market does not match selected market");
+  }
+  const m = loadMarketManifest(ref.market);
+  if (!isMarketLive(m)) return null;
+  const taskId = ref.localId;
   const id = BigInt(taskId);
 
   const [task, locked] = await Promise.all([
     getClient().readContract({
-      address: MANIFEST.taskRegistry,
+      address: m.taskRegistry,
       abi: REGISTRY_ABI,
       functionName: "tasks",
       args: [id],
     }),
     getClient().readContract({
-      address: MANIFEST.escrowVault,
+      address: m.escrowVault,
       abi: ESCROW_ABI,
       functionName: "escrows",
       args: [id],
@@ -116,7 +115,7 @@ export async function getTaskDetail(taskIdRaw) {
   let onchainScope = null;
   try {
     const { readOnchainTaskScope } = await import("./task-scope.js");
-    onchainScope = await readOnchainTaskScope(taskId);
+    onchainScope = await readOnchainTaskScope(taskId, m.taskScopeRegistry, ref.market);
   } catch {
     /* scope registry optional */
   }
@@ -126,8 +125,9 @@ export async function getTaskDetail(taskIdRaw) {
   const discoveryPrivate = !onchainScope;
 
   return {
-    id: taskId,
+    id: ref.id,
     protocolVersion: "v2",
+    market: ref.market,
     asset: "AZL",
     state,
     budgetAzl,
@@ -153,8 +153,8 @@ export async function getTaskDetail(taskIdRaw) {
     listingSavedAt: null,
     escrowMode: null,
     claimable: state === "POSTED",
-    registryAddress: MANIFEST.taskRegistry,
-    escrowAddress: MANIFEST.escrowVault,
-    chainId: Number(MANIFEST.chainId),
+    registryAddress: m.taskRegistry,
+    escrowAddress: m.escrowVault,
+    chainId: Number(m.chainId),
   };
 }

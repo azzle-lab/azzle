@@ -3,7 +3,46 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const checkOnly = process.argv.includes("--check");
 const manifest = JSON.parse(await readFile(join(root, "contracts", "deployments", "base-8453.json"), "utf8"));
+const micro = JSON.parse(await readFile(join(root, "contracts", "deployments", "base-8453-micro.json"), "utf8"));
+
+const addressPattern = /^0x[0-9a-fA-F]{40}$/;
+const sharedPaths = [
+  ["observationOracle"], ["twapAdapter"], ["usdOracle"],
+  ["external", "usdc"], ["external", "azl"], ["external", "weth"],
+  ["external", "poolManager"], ["external", "universalRouter"], ["external", "hook"],
+  ["external", "ethUsdFeed"],
+];
+const isolatedKeys = [
+  "factory", "pricingPolicy", "depositVault", "escrowVault", "reputationRegistry",
+  "verifierBondVault", "stakingVault", "treasuryRouter", "taskRegistry",
+  "arbitrationModule", "paymentGateway", "taskScopeRegistry", "usdcWethLeg",
+  "exactInputExecutor",
+];
+const at = (value, path) => path.reduce((currentValue, key) => currentValue?.[key], value);
+if (manifest.market !== "standard" || micro.market !== "micro"
+  || String(manifest.chainId) !== "8453" || String(micro.chainId) !== "8453") {
+  throw new Error("[site-addresses] expected standard and micro Base 8453 manifests");
+}
+for (const path of sharedPaths) {
+  const standardValue = at(manifest, path);
+  const microValue = at(micro, path);
+  if (!addressPattern.test(standardValue) || !addressPattern.test(microValue)
+    || standardValue.toLowerCase() !== microValue.toLowerCase()) {
+    throw new Error(`[site-addresses] invalid shared address at ${path.join(".")}`);
+  }
+}
+if (!/^0x[0-9a-fA-F]{64}$/.test(manifest.external?.poolId)
+  || manifest.external.poolId.toLowerCase() !== micro.external?.poolId?.toLowerCase()) {
+  throw new Error("[site-addresses] markets must share a valid external.poolId");
+}
+for (const key of isolatedKeys) {
+  if (!addressPattern.test(manifest[key]) || !addressPattern.test(micro[key])
+    || manifest[key].toLowerCase() === micro[key].toLowerCase()) {
+    throw new Error(`[site-addresses] invalid or non-isolated market graph address at ${key}`);
+  }
+}
 
 const current = {
   deploymentBlock: manifest.deploymentBlock,
@@ -96,7 +135,8 @@ const files = [
 ];
 
 for (const file of files) {
-  let content = await readFile(file, "utf8");
+  const before = await readFile(file, "utf8");
+  let content = before;
   for (const key of Object.keys(stale)) {
     content = content.split(stale[key]).join(current[key]);
   }
@@ -115,12 +155,21 @@ for (const file of files) {
   if (file.endsWith(join("site", "index.html"))) {
     content = content.replace(
       /([ \t]*<!-- CANONICAL-CONTRACT-CARDS:START -->)[\s\S]*?([ \t]*<!-- CANONICAL-CONTRACT-CARDS:END -->)/,
-      `\n$1\n${contractCards}\n$2`
+      `$1\n${contractCards}\n$2`
     );
   }
-  await writeFile(file, content);
+  if (checkOnly && content !== before) {
+    throw new Error(`[site-addresses] ${file} is stale; run node scripts/sync-site-contract-addresses.mjs`);
+  }
+  if (!checkOnly) await writeFile(file, content);
 }
 
-await writeFile(siteConfigPath, siteConfig);
+const siteConfigBefore = await readFile(siteConfigPath, "utf8");
+if (checkOnly && siteConfig !== siteConfigBefore) {
+  throw new Error("[site-addresses] site/v2-config.js is stale; run node scripts/sync-site-contract-addresses.mjs");
+}
+if (!checkOnly) await writeFile(siteConfigPath, siteConfig);
 
-console.log("[site-addresses] synchronized active site surfaces from canonical V2 manifest");
+console.log(checkOnly
+  ? "[site-addresses] active site surfaces are synchronized"
+  : "[site-addresses] synchronized active site surfaces from canonical V2 manifest");

@@ -53,7 +53,7 @@ function extractSections(md: string, headings: string[]): string {
 }
 
 const FALLBACK =
-  "AZZLE — agents post, claim, prove, and get paid on Base. Labor Organism: USDC escrow, agent task markets, onchain reputation. Access fee: $5 USDC + 1,000 $AZL. Voice: bold, agent-native, anti-middleman. azzle.org";
+  "AZZLE — agents post, claim, deliver, and settle in AZL on Base. Labor Organism: isolated standard/micro task markets and market-local reputation. Name the market, use strict v2:standard:N or v2:micro:N ids, and defer economics to protocol/MARKETS.md. Voice: bold, agent-native, anti-middleman. azzle.org";
 
 /** Condensed positioning block for LLM system prompts. */
 export function productMarketingPromptBlock(maxChars = 6500): string {

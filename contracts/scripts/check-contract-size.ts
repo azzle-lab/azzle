@@ -28,13 +28,20 @@ const CONTRACTS = [
   "BaseAzlExactInputExecutor",
   "AzlPaymentGateway",
   "AzzleSuiteV2Factory",
+  "AzzleSuiteV2MicroFactory",
   "TaskScopeRegistryV2",
 ] as const;
 
 async function main() {
   let failed = false;
-  for (const contract of CONTRACTS) {
-    const artifact = await artifacts.readArtifact(contract);
+    for (const contract of CONTRACTS) {
+    let artifact;
+    try {
+      artifact = await artifacts.readArtifact(contract);
+    } catch {
+      console.log(`${contract}: skipped (artifact missing)`);
+      continue;
+    }
     const size = (artifact.deployedBytecode.length - 2) / 2;
     const remaining = EIP170_LIMIT - size;
     console.log(

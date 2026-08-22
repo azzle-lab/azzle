@@ -57,8 +57,8 @@ export class Onboarding extends BaseAgent {
         name: entity.name,
         docs: ONBOARDING_DOCS,
         economics: {
-          entry_deposit: "$25 USDC",
-          access_fee: "$5 USDC + 1,000 $AZL",
+          entry_deposit: "market-specific oracle-priced AZL; see protocol/MARKETS.md",
+          access_fee: "market-specific oracle-priced AZL or same-market Action Credit",
           chain: "Base 8453",
         },
       },

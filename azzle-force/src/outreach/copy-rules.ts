@@ -20,7 +20,7 @@ export function followUpCopyRules(brand: OutreachBrand, step: number): string {
   return [
     `FOLLOW-UP #${step} (${urgency}):`,
     "Reference your prior message briefly — do not repeat the full pitch.",
-    "Add ONE new value: open task on market, $25 deposit walkthrough, or specific repo use case.",
+    "Add ONE new value: an explicitly named market, its manifest-driven deposit walkthrough, or a specific repo use case.",
     "CTA: binary reply (yes/no) or one question they can answer in 5 words.",
     firstTouchCopyRules(brand),
   ].join("\n");

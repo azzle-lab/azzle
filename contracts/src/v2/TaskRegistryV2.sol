@@ -134,6 +134,8 @@ contract TaskRegistryV2 is V2Ownable2Step, ReentrancyGuard {
     /// @dev Wired for `validateGraph()` only; open/private scope text lives in `TaskScopeRegistryV2`.
     address public scopeRegistry;
     uint256 public immutable openTaskCapUsd6;
+    /// @dev Per-task USD6 ceiling. Standard sets this equal to `openTaskCapUsd6`; micro sets $50.
+    uint256 public immutable maxTaskUsd6;
     uint256 public openTaskTotalUsd6;
     uint256 public taskCount;
     mapping(address => uint256) public posterOpenTaskTotalUsd6;
@@ -177,11 +179,13 @@ contract TaskRegistryV2 is V2Ownable2Step, ReentrancyGuard {
         address _reputation,
         address _usdOracle,
         uint256 _openTaskCapUsd6,
+        uint256 _maxTaskUsd6,
         address initialOwner
     ) V2Ownable2Step(initialOwner) {
         require(
             _deposits.code.length != 0 && _escrow.code.length != 0 && _reputation.code.length != 0
-                && _usdOracle.code.length != 0 && _openTaskCapUsd6 > 0,
+                && _usdOracle.code.length != 0 && _openTaskCapUsd6 > 0 && _maxTaskUsd6 > 0
+                && _maxTaskUsd6 <= _openTaskCapUsd6,
             "TRv2: config"
         );
         deposits = IAgentDepositV2(_deposits);
@@ -189,6 +193,7 @@ contract TaskRegistryV2 is V2Ownable2Step, ReentrancyGuard {
         reputation = IReputationV2(_reputation);
         usdOracle = IAzlUsdOracle(_usdOracle);
         openTaskCapUsd6 = _openTaskCapUsd6;
+        maxTaskUsd6 = _maxTaskUsd6;
     }
 
     /// @dev One-shot bootstrap wiring; no post-deploy replacement (anti-rug). Complete before renouncing is moot — renounce is disabled.
@@ -217,7 +222,8 @@ contract TaskRegistryV2 is V2Ownable2Step, ReentrancyGuard {
         // Do not apply the conservative access-fee haircut here: doing so
         // would allow aggregate posted obligations to exceed openTaskCapUsd6.
         uint256 amountUsd6 = usdOracle.quoteUsdForAzlPar(totalAmount);
-        require(amountUsd6 > 0 && amountUsd6 <= openTaskCapUsd6, "TRv2: cap");
+        require(amountUsd6 > 0 && amountUsd6 <= maxTaskUsd6, "TRv2: task cap");
+        require(amountUsd6 <= openTaskCapUsd6, "TRv2: cap");
 
         taskId = ++taskCount;
         tasks[taskId] = Task(msg.sender, address(0), totalAmount, 0, 0, deadline, 0, 0, State.POSTED);

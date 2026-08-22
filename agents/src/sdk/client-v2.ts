@@ -1,5 +1,6 @@
 import { Contract, ethers } from "ethers";
 import type { BaseMainnetV2Manifest } from "./manifest-v2.js";
+import { namespacedTaskId, parseTaskRef, resolveExpectedMarket, type AzzleMarket, type TaskRef } from "./markets.js";
 
 const REGISTRY_ABI = [
   "function post(uint256 totalAmount,uint64 deadline) returns (uint256)",
@@ -60,9 +61,12 @@ export class AzzleV2Client {
   private bonds: Contract;
   private arbitration: Contract;
   private scope: Contract;
+  public readonly market: AzzleMarket;
 
-  constructor(public readonly manifest: BaseMainnetV2Manifest, rpcUrl: string) {
+  constructor(public readonly manifest: BaseMainnetV2Manifest, rpcUrl: string, market?: string) {
     if (manifest.version !== "2.0.0" || manifest.chainId !== "8453") throw new Error("AzzleV2Client: invalid V2 manifest");
+    if (!manifest.market) throw new Error("AzzleV2Client: manifest must declare market");
+    this.market = resolveExpectedMarket(market ?? manifest.market, manifest);
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.registry = new Contract(manifest.taskRegistry, REGISTRY_ABI, this.provider);
     this.vault = new Contract(manifest.depositVault, VAULT_ABI, this.provider);
@@ -93,26 +97,57 @@ export class AzzleV2Client {
       if (log.address.toLowerCase() !== this.manifest.taskRegistry.toLowerCase()) continue;
       try {
         const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
-        if (parsed?.name === "TaskPosted") return { taskId: parsed.args.taskId as bigint, receipt };
+        if (parsed?.name === "TaskPosted") {
+          const localTaskId = parsed.args.taskId as bigint;
+          return { taskId: namespacedTaskId(this.market, localTaskId), localTaskId, receipt };
+        }
       } catch { /* unrelated log */ }
     }
     throw new Error("AzzleV2Client: TaskPosted event missing");
   }
 
-  claim(taskId: bigint) { return this.registry.claim(taskId); }
-  fund(taskId: bigint, amount: bigint) { return this.registry.fund(taskId, amount); }
-  activate(taskId: bigint) { return this.registry.activate(taskId); }
-  release(taskId: bigint, amount: bigint) { return this.registry.release(taskId, amount); }
-  markDelivered(taskId: bigint) { return this.registry.markDelivered(taskId); }
-  expire(taskId: bigint) { return this.registry.expire(taskId); }
-  complete(taskId: bigint) { return this.registry.complete(taskId); }
-  cancel(taskId: bigint) { return this.registry.cancel(taskId); }
-  openDispute(taskId: bigint, evidenceHash: string) { return this.registry.openDispute(taskId, evidenceHash); }
-  publishScope(taskId: bigint, scope: string) { return this.scope.publish(taskId, scope); }
-  getScope(taskId: bigint) { return this.scope.scopeOf(taskId) as Promise<string>; }
-  taskState(taskId: bigint) { return this.registry.taskState(taskId) as Promise<bigint>; }
-  async getTask(taskId: bigint): Promise<OnChainTask> {
-    const row = await this.registry.tasks(taskId);
+  private localTaskId(taskId: TaskRef | string | bigint): bigint {
+    if (typeof taskId === "bigint") return taskId;
+    return parseTaskRef(taskId, this.market).localIdBigInt;
+  }
+  resolveTaskRef(taskId: TaskRef | string): bigint { return this.localTaskId(taskId); }
+
+  claim(taskId: TaskRef | string): any;
+  /** @internal */ claim(taskId: bigint): any;
+  claim(taskId: TaskRef | string | bigint) { return this.registry.claim(this.localTaskId(taskId)); }
+  fund(taskId: TaskRef | string, amount: bigint): any;
+  /** @internal */ fund(taskId: bigint, amount: bigint): any;
+  fund(taskId: TaskRef | string | bigint, amount: bigint) { return this.registry.fund(this.localTaskId(taskId), amount); }
+  activate(taskId: TaskRef | string): any;
+  /** @internal */ activate(taskId: bigint): any;
+  activate(taskId: TaskRef | string | bigint) { return this.registry.activate(this.localTaskId(taskId)); }
+  release(taskId: TaskRef | string, amount: bigint): any;
+  /** @internal */ release(taskId: bigint, amount: bigint): any;
+  release(taskId: TaskRef | string | bigint, amount: bigint) { return this.registry.release(this.localTaskId(taskId), amount); }
+  markDelivered(taskId: TaskRef | string): any;
+  /** @internal */ markDelivered(taskId: bigint): any;
+  markDelivered(taskId: TaskRef | string | bigint) { return this.registry.markDelivered(this.localTaskId(taskId)); }
+  expire(taskId: TaskRef | string): any;
+  /** @internal */ expire(taskId: bigint): any;
+  expire(taskId: TaskRef | string | bigint) { return this.registry.expire(this.localTaskId(taskId)); }
+  complete(taskId: TaskRef | string): any;
+  /** @internal */ complete(taskId: bigint): any;
+  complete(taskId: TaskRef | string | bigint) { return this.registry.complete(this.localTaskId(taskId)); }
+  cancel(taskId: TaskRef | string): any;
+  /** @internal */ cancel(taskId: bigint): any;
+  cancel(taskId: TaskRef | string | bigint) { return this.registry.cancel(this.localTaskId(taskId)); }
+  openDispute(taskId: TaskRef | string, evidenceHash: string): any;
+  /** @internal */ openDispute(taskId: bigint, evidenceHash: string): any;
+  openDispute(taskId: TaskRef | string | bigint, evidenceHash: string) { return this.registry.openDispute(this.localTaskId(taskId), evidenceHash); }
+  publishScope(taskId: TaskRef | string, scope: string) { return this.scope.publish(this.localTaskId(taskId), scope); }
+  getScope(taskId: TaskRef | string) { return this.scope.scopeOf(this.localTaskId(taskId)) as Promise<string>; }
+  taskState(taskId: TaskRef | string): Promise<bigint>;
+  /** @internal */ taskState(taskId: bigint): Promise<bigint>;
+  taskState(taskId: TaskRef | string | bigint) { return this.registry.taskState(this.localTaskId(taskId)) as Promise<bigint>; }
+  async getTask(taskId: TaskRef | string): Promise<OnChainTask>;
+  /** @internal */ async getTask(taskId: bigint): Promise<OnChainTask>;
+  async getTask(taskId: TaskRef | string | bigint): Promise<OnChainTask> {
+    const row = await this.registry.tasks(this.localTaskId(taskId));
     const state = Number(row.state);
     return {
       poster: row.poster, worker: row.worker, totalAmount: row.totalAmount,
@@ -136,8 +171,8 @@ export class AzzleV2Client {
   availableDeposit(account: string) { return this.vault.available(account) as Promise<bigint>; }
   withdrawableDeposit(account: string) { return this.vault.withdrawable(account) as Promise<bigint>; }
   latchedEntryFloor(account: string) { return this.vault.latchedEntryFloor(account) as Promise<bigint>; }
-  getTaskQuote(taskId: bigint) {
-    return this.vault.taskQuotes(taskId) as Promise<{
+  getTaskQuote(taskId: TaskRef | string) {
+    return this.vault.taskQuotes(this.localTaskId(taskId)) as Promise<{
       entryDeposit: bigint;
       liveTaskReserve: bigint;
       accessFee: bigint;
@@ -161,8 +196,8 @@ export class AzzleV2Client {
   withdrawVerifierBond(amount: bigint) { return this.bonds.withdraw(amount); }
   claimBondPayout(recipient: string) { return this.bonds.claimPayout(recipient); }
 
-  submitEvidence(taskId: bigint, evidenceHash: string) { return this.arbitration.submitEvidence(taskId, evidenceHash); }
-  beginRuling(taskId: bigint) { return this.arbitration.beginRuling(taskId); }
-  rule(taskId: bigint, outcome: number, workerBps: number) { return this.arbitration.rule(taskId, outcome, workerBps); }
-  timeout(taskId: bigint) { return this.arbitration.timeout(taskId); }
+  submitEvidence(taskId: TaskRef | string, evidenceHash: string) { return this.arbitration.submitEvidence(this.localTaskId(taskId), evidenceHash); }
+  beginRuling(taskId: TaskRef | string) { return this.arbitration.beginRuling(this.localTaskId(taskId)); }
+  rule(taskId: TaskRef | string, outcome: number, workerBps: number) { return this.arbitration.rule(this.localTaskId(taskId), outcome, workerBps); }
+  timeout(taskId: TaskRef | string) { return this.arbitration.timeout(this.localTaskId(taskId)); }
 }

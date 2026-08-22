@@ -20,9 +20,9 @@ export default async function handler(req, res) {
       return;
     }
     const { assertCanPost } = await import("./lib/posting-limits.js");
-    const quota = await assertCanPost(body.address);
+    const quota = await assertCanPost(body.address, body.market);
     sendJson(res, 200, quota);
   } catch (err) {
-    sendJson(res, 429, { error: err.message, quota: err.quota ?? null });
+    sendJson(res, err.code === "QUOTA_EXCEEDED" ? 429 : 400, { error: err.message, quota: err.quota ?? null });
   }
 }

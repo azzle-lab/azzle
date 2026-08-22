@@ -45,11 +45,10 @@
         <li><a href="/pricing">Pricing</a></li>
       </ul>
     </div>
-    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.2" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
       <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
       <div data-rd-wallet-mount></div>
       <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
-      
     </div>
   </nav>
 
@@ -59,12 +58,17 @@
         <div>
           <span class="rd-page-kicker">WORKSPACE / POSTER</span>
           <h4>My tasks</h4>
-          <p>Track posted jobs, funding, delivery receipts, verification status, and V2 settlement actions.</p>
+          <p>Track posted jobs, funding, delivery receipts, verification status, and V2 settlement actions including cancel and expire.</p>
         </div>
         <a href="/post" class="rd-action rd-action--primary rd-mytasks-new">Post new task</a>
       </div>
 
       <p class="rd-checkout-status" id="rd-mytasks-status">Sign in (top right) to load your tasks.</p>
+      <div class="rd-market-view-seg" role="tablist" aria-label="Market filter">
+        <button type="button" class="rd-market-view-tab on" data-market-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="rd-market-view-tab" data-market-filter="standard" role="tab" aria-selected="false">Standard</button>
+        <button type="button" class="rd-market-view-tab" data-market-filter="micro" role="tab" aria-selected="false">Micro</button>
+      </div>
       <div class="rd-mytasks-ledger" id="rd-mytasks-ledger" hidden>
         <span><b id="rd-mytasks-funded">0 AZL</b> funded</span>
         <span><b id="rd-mytasks-locked">0 AZL</b> locked</span>
@@ -80,7 +84,36 @@
     </section>
   </div>
 </div>
+<dialog class="rd-receipt-dialog" id="rd-mytasks-confirm-dialog" aria-labelledby="rd-mytasks-confirm-title">
+  <form method="dialog" id="rd-mytasks-confirm-form">
+    <div class="rd-receipt-head">
+      <h5 id="rd-mytasks-confirm-title">Cancel this task?</h5>
+      <button type="submit" value="cancel" aria-label="Close">&times;</button>
+    </div>
+    <p id="rd-mytasks-confirm-task"></p>
+    <p class="rd-receipt-note" id="rd-mytasks-confirm-body"></p>
+    <menu>
+      <button type="submit" value="cancel" class="rd-action">Go back</button>
+      <button type="submit" value="continue" class="rd-action rd-action--primary" id="rd-mytasks-confirm-continue">Continue</button>
+    </menu>
+  </form>
+</dialog>
+<dialog class="rd-receipt-dialog" id="rd-mytasks-confirm-again-dialog" aria-labelledby="rd-mytasks-confirm-again-title">
+  <form method="dialog" id="rd-mytasks-confirm-again-form">
+    <div class="rd-receipt-head">
+      <h5 id="rd-mytasks-confirm-again-title">Confirm cancel</h5>
+      <button type="submit" value="cancel" aria-label="Close">&times;</button>
+    </div>
+    <p id="rd-mytasks-confirm-again-task"></p>
+    <p class="rd-receipt-note rd-confirm-warn" id="rd-mytasks-confirm-again-body"></p>
+    <menu>
+      <button type="submit" value="cancel" class="rd-action">Go back</button>
+      <button type="submit" value="continue" class="rd-action rd-mytasks-btn--danger" id="rd-mytasks-confirm-again-continue">Yes, cancel task</button>
+    </menu>
+  </form>
+</dialog>
 <script type="module" src="role-wallet.bundle.js"></script>
+<script src="markets.js"></script>
 <script src="my-tasks.js"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>

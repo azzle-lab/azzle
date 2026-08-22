@@ -1,17 +1,16 @@
 /**
  * x402 Cloud service: azzle-reputation
- * Paid reputation lookup — aggregated on-chain rep, task/dispute history,
- * verifier bond, and recent reputation signals for one AZZLE agent.
+ * Paid reputation lookup — canonical on-chain counters and verifier bond for
+ * one AZZLE agent in one explicitly selected market.
  *
- * Self-contained handler (per-service bundle): no cross-directory imports.
+ * Self-contained handler (per-service bundle): only the generated manifest is imported.
  * Price + schema live in ../../bankr.x402.json.
  *
  * @see docs/X402_CLOUD.md
  */
+import { selectBaseMainnetManifest } from "../manifest";
 
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const REPUTATION = "0xb5827Bb3bb9760Ed72eA1416818188a8e71851B6";
-const VERIFIER_BOND_VAULT = "0xFeF0722d2f3ba0FEb59b3fd5dCAaF49e69BD5387";
 const REPUTATION_OF = "0xb9f79451"; // reputation(address)
 const BONDS = "0xfe10d774"; // bonds(address)
 
@@ -39,22 +38,29 @@ function addressArg(address: string): string {
 }
 
 export default async function handler(req: Request) {
-  const address = new URL(req.url).searchParams.get("address");
+  const params = new URL(req.url).searchParams;
+  const market = params.get("market");
+  if (market !== "standard" && market !== "micro") {
+    return json({ error: "invalid_market", hint: "pass ?market=standard|micro" }, 400);
+  }
+  const address = params.get("address");
   if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
     // 400 → non-2xx, caller not charged.
     return json({ error: "invalid_address", hint: "pass ?address=0x... (40 hex chars)" }, 400);
   }
 
   const arg = addressArg(address);
+  const manifest = selectBaseMainnetManifest(market);
   const [reputationRow, verifierBondAzl] = await Promise.all([
-    rpc<string>("eth_call", [{ to: REPUTATION, data: `${REPUTATION_OF}${arg}` }, "latest"]),
-    rpc<string>("eth_call", [{ to: VERIFIER_BOND_VAULT, data: `${BONDS}${arg}` }, "latest"]),
+    rpc<string>("eth_call", [{ to: manifest.reputationRegistry, data: `${REPUTATION_OF}${arg}` }, "latest"]),
+    rpc<string>("eth_call", [{ to: manifest.verifierBondVault, data: `${BONDS}${arg}` }, "latest"]),
   ]);
   const words = reputationRow.slice(2).match(/.{64}/g) ?? [];
   const [completed, wins, losses] = words.map((word) => BigInt(`0x${word}`).toString());
   return {
     protocol: "azzle",
     chainId: 8453,
+    market,
     address: address.toLowerCase(),
     found: true,
     completed, wins, losses,

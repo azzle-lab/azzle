@@ -3,6 +3,9 @@
  */
 import { buildExecutionReceipt } from "../sdk/receipt.js";
 import { RpcDiscovery } from "../sdk/rpc-discovery.js";
+import { loadBaseMainnetV2Manifest } from "../sdk/manifest-v2.js";
+import { parseTaskRef, resolveExpectedMarket } from "../sdk/markets.js";
+import type { BaseMainnetV2Manifest } from "../sdk/manifest-v2.js";
 
 export { startLiveWorker, LiveWorkerService } from "./live-worker.js";
 export type { LiveWorkerConfig, LiveWorkerRuntime } from "./live-worker.js";
@@ -15,8 +18,14 @@ export { createXmtpClient } from "../sdk/xmtp/signer.js";
 export { resolveXmtpClientOptions } from "../sdk/xmtp/client-config.js";
 
 /** List claimable tasks directly from the Base TaskRegistry. */
-export async function listOpenTasks(rpcUrl?: string) {
-  return new RpcDiscovery({ rpcUrl }).getOpenTasks();
+function configuredMarket(): string {
+  if (!process.env.AZZLE_MARKET) throw new Error("Reference worker requires AZZLE_MARKET=standard or micro");
+  return process.env.AZZLE_MARKET;
+}
+
+export async function listOpenTasks(rpcUrl?: string, manifest: BaseMainnetV2Manifest = loadBaseMainnetV2Manifest()) {
+  const market = resolveExpectedMarket(configuredMarket(), manifest);
+  return new RpcDiscovery({ rpcUrl, market, manifest }).getOpenTasks();
 }
 
 export async function runWorkerAgent(params: {
@@ -24,6 +33,7 @@ export async function runWorkerAgent(params: {
   worker: string;
   deliverableHash: string;
 }) {
+  parseTaskRef(params.taskId, configuredMarket());
   const receipt = buildExecutionReceipt({
     taskId: params.taskId,
     worker: params.worker,
@@ -62,7 +72,7 @@ if (isDirectRun) {
       .catch(console.error);
   } else {
     runWorkerAgent({
-      taskId: "1",
+      taskId: `v2:${resolveExpectedMarket(configuredMarket())}:1`,
       worker: "0x0000000000000000000000000000000000000002",
       deliverableHash: "0x" + "ab".repeat(32),
     }).catch(console.error);

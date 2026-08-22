@@ -7,7 +7,7 @@
   "required": ["type", "taskId"],
   "properties": {
     "type": { "const": "azzle/AcceptDelivery" },
-    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
+    "taskId": { "type": "string", "pattern": "^v2:(standard|micro):[1-9][0-9]*$" },
     "receiptHash": { "type": "string" },
     "acceptedAt": { "type": "string", "format": "date-time" }
   },

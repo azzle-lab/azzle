@@ -1,8 +1,14 @@
-export function summarizeLedger(tasks = [], address) {
+import { normalizeMarket, parseTaskRef, requireLiveMarket } from "./markets.js";
+
+export function summarizeLedger(tasks = [], address, market = "standard") {
+  const selected = normalizeMarket(market);
+  const { manifest } = requireLiveMarket(selected);
   const account = address?.toLowerCase();
   const summary = {
     protocolVersion: "v2",
     asset: "AZL",
+    market: selected,
+    registryAddress: manifest.taskRegistry,
     account: account ?? null,
     taskCount: 0,
     fundedAzlWei: "0",
@@ -22,6 +28,10 @@ export function summarizeLedger(tasks = [], address) {
   let pending = 0n;
   let disputed = 0n;
   for (const task of tasks) {
+    const ref = parseTaskRef(task.id);
+    if (ref.market !== selected || task.market !== selected || task.registryAddress !== manifest.taskRegistry) {
+      throw new Error(`Task ${task.id} does not belong to the selected ${selected} graph`);
+    }
     const isPoster = !account || task.poster?.toLowerCase() === account;
     const isWorker = !account || task.worker?.toLowerCase() === account;
     if (!isPoster && !isWorker) continue;
@@ -40,7 +50,9 @@ export function summarizeLedger(tasks = [], address) {
     if (task.state === "CANCELLED") summary.cancelled += 1;
     if (Number(task.deliveredAt ?? 0) > 0) summary.deliveryAssertions += 1;
     summary.entries.push({
-      id: task.id?.startsWith("v2:") ? task.id : `v2:${task.id}`,
+      id: ref.id,
+      market: selected,
+      registryAddress: manifest.taskRegistry,
       role,
       state: task.state,
       totalAmountAzlWei: total.toString(),

@@ -11,6 +11,8 @@ const PLANS = {
   enterprise: { label: "Enterprise", dailyLimit: null },
 };
 
+import { normalizeMarket } from "./lib/markets.js";
+
 function sendJson(res, status, body) {
   res.writeHead(status, { ...CORS, "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
@@ -69,10 +71,9 @@ export default async function handler(req, res) {
     const addr = normAddr(url.searchParams.get("address"));
     if (!addr) throw new Error("Wallet address required");
 
-    const { loadPostingAccounts } = await import("./lib/posting-store.js");
-    const store = await loadPostingAccounts();
-    const user = store.users[addr] ?? { tier: "free", dailyPosts: {} };
-    sendJson(res, 200, getQuotaForUser(user));
+    const market = normalizeMarket(url.searchParams.get("market"));
+    const { getQuota } = await import("./lib/posting-limits.js");
+    sendJson(res, 200, await getQuota(addr, market));
   } catch (err) {
     sendJson(res, 400, { error: err?.message ?? String(err) });
   }

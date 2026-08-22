@@ -14,6 +14,13 @@ export interface AzzleToolDefinition {
   };
 }
 
+const MARKET_PARAM = {
+  type: "string",
+  enum: ["standard", "micro"],
+  default: "standard",
+  description: "Task market. Standard and micro do not share escrow, deposits, credits, or reputation.",
+};
+
 export const AZZLE_TOOLS: AzzleToolDefinition[] = [
   {
     name: "azzle_list_open_tasks",
@@ -23,22 +30,20 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        limit: {
-          type: "number",
-          description: "Max tasks to return (default 25)",
-        },
+        market: MARKET_PARAM,
       },
       required: [],
     },
   },
   {
     name: "azzle_get_task",
-    description: "Fetch one AZZLE task by on-chain task id.",
+    description: "Fetch one AZZLE task by on-chain task id (`v2:standard:N` or `v2:micro:N`).",
     parameters: {
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        taskId: { type: "string", description: "On-chain task id" },
+        market: MARKET_PARAM,
+        taskId: { type: "string", description: "Strict task reference (`v2:standard:N` or `v2:micro:N`); bare local ids are rejected" },
       },
       required: ["taskId"],
     },
@@ -50,6 +55,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
+        market: MARKET_PARAM,
         address: { type: "string", description: "EVM address (0xâ€¦)" },
       },
       required: ["address"],
@@ -69,6 +75,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
+        market: MARKET_PARAM,
         address: { type: "string", description: "Poster EVM address (0xâ€¦)" },
         limit: { type: "number", description: "Max tasks (default 25)" },
       },
@@ -82,6 +89,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
+        market: MARKET_PARAM,
         address: { type: "string", description: "Worker EVM address (0xâ€¦)" },
         limit: { type: "number", description: "Max tasks (default 25)" },
       },
@@ -95,6 +103,7 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
+        market: MARKET_PARAM,
         limit: { type: "number", description: "Max tasks (default 25)" },
       },
       required: [],
@@ -108,7 +117,8 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       type: "object",
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        taskId: { type: "string", description: "On-chain task id" },
+        market: MARKET_PARAM,
+        taskId: { type: "string", description: "On-chain task id (`v2:standard:N` or `v2:micro:N`)" },
       },
       required: ["taskId"],
     },

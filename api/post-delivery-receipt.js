@@ -1,5 +1,6 @@
 import { deliveryState, validateDeliveryReceipt } from "./lib/delivery-state.js";
 import { getTaskDetail } from "./lib/task-detail.js";
+import { normalizeMarket, parseTaskRef } from "./lib/markets.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -27,19 +28,24 @@ export default async function handler(req, res) {
   }
   try {
     const input = await body(req);
-    const taskId = String(input.taskId ?? "").replace(/^v2:/, "");
-    const task = await getTaskDetail(taskId);
+    const ref = parseTaskRef(input.taskId);
+    if (input.market != null && ref.market !== normalizeMarket(input.market)) {
+      throw new Error("Task id market does not match selected market");
+    }
+    const task = await getTaskDetail(ref.id, ref.market);
     if (!task) {
       res.writeHead(404, { ...CORS, "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "task_not_found" }));
       return;
     }
-    const validation = validateDeliveryReceipt(input.receipt, taskId, task.worker);
+    const validation = validateDeliveryReceipt(input.receipt, ref.localId, task.worker);
     const status = deliveryState(task, input.receipt);
     res.writeHead(validation.valid ? 200 : 422, { ...CORS, "Content-Type": "application/json" });
     res.end(JSON.stringify({
       protocolVersion: "v2",
-      taskId: `v2:${taskId}`,
+      market: ref.market,
+      taskId: ref.id,
+      registryAddress: task.registryAddress,
       accepted: validation.valid,
       validation,
       delivery: status,

@@ -6,7 +6,7 @@
   "required": ["type", "taskId", "releaseType"],
   "properties": {
     "type": { "const": "azzle/PaymentRequest" },
-    "taskId": { "type": "string", "pattern": "^[0-9]+$" },
+    "taskId": { "type": "string", "pattern": "^v2:(standard|micro):[1-9][0-9]*$" },
     "releaseType": { "enum": ["full", "partial"] },
     "amount": {
       "type": "string",

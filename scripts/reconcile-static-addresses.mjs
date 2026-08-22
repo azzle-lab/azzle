@@ -5,6 +5,7 @@
  *
  * Usage:
  *   node scripts/reconcile-static-addresses.mjs contracts/deployments/archive/base-8453.<timestamp>.json
+ *   node scripts/reconcile-static-addresses.mjs --check contracts/deployments/archive/base-8453.<timestamp>.json
  */
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -12,7 +13,8 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const previousPath = process.argv[2];
+const checkOnly = process.argv.includes("--check");
+const previousPath = process.argv.slice(2).find((arg) => arg !== "--check");
 if (!previousPath) throw new Error("Pass the archived pre-promotion manifest path.");
 const previous = JSON.parse(await readFile(previousPath, "utf8"));
 const current = JSON.parse(await readFile(join(root, "contracts", "deployments", "base-8453.json"), "utf8"));
@@ -29,6 +31,7 @@ async function documentationFiles(directory) {
   if (!existsSync(directory)) return [];
   const output = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
+    if (entry.isDirectory() && ["archive", "legacy-v1"].includes(entry.name)) continue;
     const file = join(directory, entry.name);
     if (entry.isDirectory()) output.push(...await documentationFiles(file));
     else if (documentationExtensions.has(extname(file).toLowerCase())) output.push(file);
@@ -42,6 +45,7 @@ for (const directory of ["docs", "site/docs"]) {
 }
 
 let updated = 0;
+const staleFiles = [];
 for (const file of files) {
   if (!existsSync(file)) continue;
   const before = await readFile(file, "utf8");
@@ -53,8 +57,14 @@ for (const file of files) {
     }
   }
   if (after !== before) {
-    await writeFile(file, after);
+    if (checkOnly) staleFiles.push(file);
+    else await writeFile(file, after);
     updated++;
   }
 }
-console.log(`[manifest] reconciled ${updated} static documentation surfaces from ${previousPath}`);
+if (staleFiles.length) {
+  throw new Error(`[manifest] ${staleFiles.length} active static surface(s) still contain prior addresses; rerun without --check`);
+}
+console.log(checkOnly
+  ? `[manifest] no active static surfaces contain addresses from ${previousPath}`
+  : `[manifest] reconciled ${updated} static documentation surfaces from ${previousPath}`);

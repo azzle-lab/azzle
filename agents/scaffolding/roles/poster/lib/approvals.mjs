@@ -1,7 +1,3 @@
-import { loadManifest } from "./manifest.mjs";
-
-const manifest = loadManifest(import.meta.url, "..", "base-8453.json");
-
 export async function runApprovalScaffold(client) {
   const intakePaused = await client.isDepositIntakePaused();
   if (intakePaused) {

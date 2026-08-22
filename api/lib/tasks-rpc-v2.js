@@ -1,9 +1,8 @@
 /** Explicit AZL-only V2 Base RPC reader. No fallback to the legacy manifest. */
 import { createPublicClient, http, zeroAddress } from "viem";
 import { base } from "viem/chains";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { rankTask, resolveMetadata, metadataTrust } from "./marketplace-metadata.js";
+import { isMarketLive, loadMarketManifest, namespacedTaskId, normalizeMarket } from "./markets.js";
 
 const MAX_SCAN = 5_000;
 const BATCH_SIZE = 100;
@@ -20,20 +19,17 @@ const ABI = [
   ] },
 ];
 
-let cache;
-function manifest() {
-  const path = process.env.AZZLE_V2_MANIFEST
-    ?? resolve(process.cwd(), "contracts/deployments/base-8453.json");
-  cache ??= JSON.parse(readFileSync(resolve(path), "utf8"));
-  if (cache.version !== "2.0.0" || cache.chainId !== "8453") throw new Error("invalid AZZLE V2 manifest");
-  return cache;
+function manifest(market = "standard") {
+  return loadMarketManifest(normalizeMarket(market));
 }
 
 export async function listV2Tasks({
   limit = 100, state, poster, worker, minAmountAzlWei, cursor,
-  taskType, capability, verificationMode, beforeDeadline, metadataUri,
+  taskType, capability, verificationMode, beforeDeadline, metadataUri, market = "standard",
 } = {}) {
-  const m = manifest();
+  const selected = normalizeMarket(market);
+  const m = manifest(selected);
+  if (!isMarketLive(m)) throw new Error(`${selected} market is not deployed yet`);
   const client = createPublicClient({ chain: base, transport: http(process.env.BASE_RPC_URL ?? "https://mainnet.base.org") });
   const count = Number(await client.readContract({ address: m.taskRegistry, abi: ABI, functionName: "taskCount" }));
   const first = Math.min(Math.max(Number(limit) || 100, 1), 100);
@@ -43,10 +39,10 @@ export async function listV2Tasks({
   for (let id = Math.min(count, before - 1); id >= 1 && out.length < first; id--) {
     const row = await client.readContract({ address: m.taskRegistry, abi: ABI, functionName: "tasks", args: [BigInt(id)] });
     const task = {
-      protocolVersion: "v2", id: `v2:${id}`, localTaskId: String(id), asset: "AZL",
+      protocolVersion: "v2", id: namespacedTaskId(selected, id), localTaskId: String(id), market: selected, asset: "AZL",
       state: STATES[Number(row[8])] ?? "UNKNOWN", poster: row[0], worker: row[1] === zeroAddress ? null : row[1],
       totalAmountAzlWei: row[2].toString(), fundedAzlWei: row[3].toString(), releasedAzlWei: row[4].toString(),
-      deadline: Number(row[5]), fundingDeadline: Number(row[6]), deliveredAt: Number(row[7]), registry: m.taskRegistry,
+      deadline: Number(row[5]), fundingDeadline: Number(row[6]), deliveredAt: Number(row[7]), registryAddress: m.taskRegistry,
     };
     let scope = null;
     if (m.taskScopeRegistry) {
@@ -81,7 +77,7 @@ export async function listV2Tasks({
   return {
     tasks: out,
     meta: {
-      protocolVersion: "v2", asset: "AZL", taskCount: count, source: "base-rpc",
+      protocolVersion: "v2", asset: "AZL", market: selected, taskCount: count, source: "base-rpc",
       nextCursor: out.length === first ? String(Number(out[out.length - 1].localTaskId)) : null,
     },
   };

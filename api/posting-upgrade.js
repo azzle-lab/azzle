@@ -1,6 +1,6 @@
 import { readJsonBody } from "./lib/vercel-http.js";
 import { CORS, sendJson } from "./lib/respond.js";
-import { loadManifest } from "./lib/manifest.js";
+import { loadMarketManifest, normalizeMarket } from "./lib/markets.js";
 
 export default async function handler(req, res) {
   try {
@@ -20,7 +20,8 @@ export default async function handler(req, res) {
       sendJson(res, 400, { error: "Invalid JSON body" });
       return;
     }
-    const MANIFEST = loadManifest();
+    const market = normalizeMarket(body.market);
+    const MANIFEST = loadMarketManifest(market);
     const billingWallet =
       process.env.AZZLE_BILLING_WALLET || MANIFEST?.feeRecipient || "";
     if (!billingWallet) throw new Error("Billing wallet not configured on server.");
@@ -28,6 +29,7 @@ export default async function handler(req, res) {
     const { applyUpgrade } = await import("./lib/posting-limits.js");
     const quota = await applyUpgrade({
       address: body.address,
+      market,
       tier: body.tier,
       txHash: body.txHash,
       billingWallet,

@@ -11,14 +11,15 @@ import { readFile } from "node:fs/promises";
 import { dirname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ethers } from "ethers";
-import { BASE_MAINNET_MANIFEST } from "../dist/sdk/manifest.js";
 import { RpcDiscovery } from "../dist/sdk/rpc-discovery.js";
+import { loadMarketManifest, resolveExpectedMarket } from "../dist/sdk/markets.js";
 
 const PORT = Number(process.env.AZZLE_GATEWAY_PORT ?? "4020");
 const RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
-const manifest = BASE_MAINNET_MANIFEST;
+const market = resolveExpectedMarket(process.env.AZZLE_MARKET);
+const manifest = loadMarketManifest(market);
 const provider = new ethers.JsonRpcProvider(RPC);
-const indexer = new RpcDiscovery({ rpcUrl: RPC });
+const indexer = new RpcDiscovery({ rpcUrl: RPC, market, manifest });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SURFACES_ROOT = normalize(join(__dirname, "..", "..", "launch-skills"));
@@ -74,7 +75,7 @@ const server = createServer(async (req, res) => {
 
   try {
     if (req.method === "GET" && path === "/health") {
-      json(res, 200, { ok: true, chainId: 8453, source: "base-rpc" });
+      json(res, 200, { ok: true, chainId: 8453, market, source: "base-rpc" });
       return;
     }
 
@@ -105,7 +106,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const taskMatch = path.match(/^\/v1\/tasks\/(\d+)$/);
+    const taskMatch = decodeURIComponent(path).match(/^\/v1\/tasks\/(v2:(?:standard|micro):\d+)$/);
     if (req.method === "GET" && taskMatch) {
       const task = await indexer.getTask(taskMatch[1]);
       if (!task) {
@@ -132,7 +133,7 @@ const server = createServer(async (req, res) => {
         "GET /v1/market/recent",
         "GET /v1/leaderboard/reputation",
         "GET /v1/leaderboard/verifiers",
-        "GET /v1/tasks/:id",
+        "GET /v1/tasks/v2:standard:N",
       ],
     });
   } catch (err) {

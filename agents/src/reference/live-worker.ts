@@ -21,6 +21,7 @@ import { createXmtpClient, installationPublicKey } from "../sdk/xmtp/signer.js";
 import { verifyIdentityLink } from "../sdk/xmtp/identity.js";
 import type { AzzleEnvelope, IdentityLink } from "../sdk/xmtp/types.js";
 import { buildEnvelope } from "../sdk/xmtp/envelope.js";
+import { parseTaskRef } from "../sdk/markets.js";
 
 const TASK_POSTED = 1;
 const TASK_ACTIVE = 3;
@@ -761,7 +762,7 @@ export class LiveWorkerService {
       return;
     }
 
-    const taskId = BigInt(taskIdStr);
+    const taskId = parseTaskRef(taskIdStr, azzle.market).localIdBigInt;
     const state = Number(await azzle.taskState(taskId));
     if (state !== TASK_POSTED) {
       console.warn("[worker] task not POSTED", { taskId: taskIdStr, state });
@@ -826,6 +827,7 @@ export class LiveWorkerService {
       type: "DeliveryNotice",
       negotiationId,
       taskId: taskIdStr,
+      market: azzle.market,
       sequence: 1,
       sender: {
         evmAddress: workerAddress,

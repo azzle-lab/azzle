@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — dual V2 markets (standard + micro)
+
+One V2 Solidity surface, two Base graphs. Standard stays the live `base-8453.json` deployment. Micro is a new CREATE2 graph that reuses the live observation/TWAP/USD oracle and isolates vault, registry, escrow, gateway, staking, treasury, reputation, bonds, arbitration, and scope. Task ids are `v2:standard:N` and `v2:micro:N`. See [`protocol/MARKETS.md`](protocol/MARKETS.md).
+
 ## Unreleased — Pashov pass-2 remediation (2026-07-19)
 
 Composer 2.5 12-agent re-audit after F1–F8. **208/208** Hardhat tests; all suite contracts under EIP-170.

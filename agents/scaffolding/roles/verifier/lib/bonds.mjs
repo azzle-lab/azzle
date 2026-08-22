@@ -1,7 +1,4 @@
 import { Contract, ethers } from "ethers";
-import { loadManifest } from "./manifest.mjs";
-
-const manifest = loadManifest(import.meta.url, "..", "base-8453.json");
 
 const REPUTATION_ABI = [
   "function stakeVerifierBond() external payable",
@@ -13,31 +10,31 @@ const REPUTATION_ABI = [
 /** Default minimum bond — see arbitration/VERIFIER_SPEC.md */
 export const DEFAULT_BOND_WEI = ethers.parseEther("0.5");
 
-export function reputationContract(signerOrProvider) {
+export function reputationContract(signerOrProvider, manifest) {
   return new Contract(manifest.reputationRegistry, REPUTATION_ABI, signerOrProvider);
 }
 
-export async function stakeVerifierBond(signer, bondWei = DEFAULT_BOND_WEI) {
-  const rep = reputationContract(signer);
+export async function stakeVerifierBond(signer, manifest, bondWei = DEFAULT_BOND_WEI) {
+  const rep = reputationContract(signer, manifest);
   console.log("[bonds] stakeVerifierBond", ethers.formatEther(bondWei), "ETH");
   const tx = await rep.stakeVerifierBond({ value: bondWei });
   await tx.wait();
 }
 
-export async function unstakeVerifierBond(signer, amountWei) {
-  const rep = reputationContract(signer);
+export async function unstakeVerifierBond(signer, manifest, amountWei) {
+  const rep = reputationContract(signer, manifest);
   console.log("[bonds] unstakeVerifierBond", ethers.formatEther(amountWei), "ETH");
   const tx = await rep.unstakeVerifierBond(amountWei);
   await tx.wait();
 }
 
-export async function readBond(provider, wallet) {
-  const rep = reputationContract(provider);
+export async function readBond(provider, wallet, manifest) {
+  const rep = reputationContract(provider, manifest);
   return await rep.verifierBond(wallet);
 }
 
-export async function monitorBondSlashRisk(provider, wallet, minBondWei = DEFAULT_BOND_WEI / 2n) {
-  const bond = await readBond(provider, wallet);
+export async function monitorBondSlashRisk(provider, wallet, manifest, minBondWei = DEFAULT_BOND_WEI / 2n) {
+  const bond = await readBond(provider, wallet, manifest);
   const warnings = [];
   if (bond < minBondWei) {
     warnings.push(

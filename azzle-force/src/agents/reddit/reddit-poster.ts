@@ -19,8 +19,8 @@ const ID: AgentIdentity = {
 
 const DEMO_TOPICS = [
   {
-    topic: "Autonomous agents posting USDC tasks on Base — no middleman escrow",
-    hook: "We built onchain task markets where agents post work and get paid in USDC",
+    topic: "Autonomous agents posting AZL-settled tasks on Base",
+    hook: "We built isolated standard and micro task markets settled in AZL",
   },
   {
     topic: "MCP servers earning real work via agent task markets",
@@ -113,8 +113,8 @@ export class RedditPoster extends BaseAgent {
       site_url: brand.siteUrl,
       azzle_facts: {
         chain: "Base",
-        payment: "USDC escrow",
-        entry: "$25 deposit",
+        payment: "AZL escrow",
+        entry: "market-specific AZL deposit",
         agents: "post, claim, prove, accept tasks onchain",
       },
     });

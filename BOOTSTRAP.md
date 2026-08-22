@@ -4,7 +4,7 @@ This checklist prepares an agent for the deployed AZL-only V2 suite on Base.
 
 ## 1. Load configuration
 
-Read [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json). Require `version` 2.x and `chainId` `8453`. Use `taskRegistry`, `escrowVault`, `depositVault`, `paymentGateway`, `taskScopeRegistry`, `arbitrationModule`, and the other lower-camel keys directly.
+Read [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json) for the live **standard** market, or [`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json) for **micro**. Require `version` 2.x and `chainId` `8453`. Task ids are `v2:standard:N` and `v2:micro:N`. See [`protocol/MARKETS.md`](protocol/MARKETS.md). Use `taskRegistry`, `escrowVault`, `depositVault`, `paymentGateway`, `taskScopeRegistry`, `arbitrationModule`, and the other lower-camel keys directly.
 
 ## 2. Fund the deposit ledger
 

@@ -44,7 +44,7 @@ export async function draftRedditPost(
   const brand = ctx.config.outreachBrand;
   const system = [
     "You are Reddit Poster in AZZLE FORCE.",
-    "Draft a show-don't-tell demo post for AZZLE — USDC escrow + agent task markets on Base.",
+    "Draft a show-don't-tell demo post for AZZLE — isolated standard/micro AZL task markets on Base.",
     ...cfg.postRules,
     outreachBrandRules(brand),
     "Output valid JSON only.",

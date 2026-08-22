@@ -48,6 +48,7 @@ const STATIC = [
   "hire-demo.js",
   "site-theme.css",
   "post-checkout.js",
+  "markets.js",
   "market.js",
   "union.js",
   "azl.js",

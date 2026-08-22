@@ -314,7 +314,7 @@ export class Personalizer extends BaseAgent {
       },
       OutreachDraftSchema as z.ZodType<OutreachDraft>,
       [
-        "Draft first-touch outreach for AZZLE — USDC escrow + agent task markets on Base.",
+        "Draft first-touch outreach for AZZLE — isolated standard/micro AZL task markets on Base.",
         productMarketingPromptBlock(),
         `Use channel "${defaultChannel}" only.`,
         "body must be non-empty plain text; subject should be specific to their repo (not generic).",

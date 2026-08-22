@@ -27,7 +27,7 @@ export class SignalIntake extends BaseAgent {
     try {
       tasks = (await this.ctx.azzle.getOpenTasks(15)) as typeof tasks;
     } catch (err) {
-      console.warn(`[${this.identity.id}] subgraph unavailable:`, err);
+      console.warn(`[${this.identity.id}] Base RPC discovery unavailable:`, err);
       return;
     }
 
@@ -38,7 +38,7 @@ export class SignalIntake extends BaseAgent {
       const name = `poster-${poster.slice(0, 10)}`;
       const entityId = await this.ctx.postgres.upsertEntity("person", name, {
         wallet: poster,
-        signal_source: "azzle_subgraph",
+        signal_source: "azzle_base_rpc",
         last_task_id: task.id,
       });
 

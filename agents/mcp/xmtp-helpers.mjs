@@ -43,6 +43,11 @@ export function verifyTaskPreviewHash(from, flags, manifest) {
 }
 
 export function buildXmtpProposal(from, flags, manifest) {
+  const market = flags.market;
+  if (market !== "standard" && market !== "micro") {
+    throw new Error("--market standard|micro is required for every XMTP negotiation");
+  }
+  if (manifest.market !== market) throw new Error("Selected XMTP market does not match manifest");
   const bundle = buildTaskPreview(from, flags, manifest);
   const negotiationId = flags.negotiation_id ?? randomUUID();
   const taskSummary = {
@@ -57,6 +62,7 @@ export function buildXmtpProposal(from, flags, manifest) {
     type: "TaskProposal",
     negotiationId,
     sequence: Number(flags.sequence ?? "1"),
+    market,
     previousHash: flags.previous_hash,
     sender: {
       evmAddress: from.toLowerCase(),

@@ -55,7 +55,9 @@ async function serveStatic(pathname, res) {
   if (rel === "/docs/quickstart") rel = "/docs/quickstart.html";
   if (rel === "/docs/api" || rel === "/docs/api-reference") rel = "/docs/api.html";
   if (rel === "/docs/contracts") rel = "/docs/contracts.html";
+  if (rel === "/docs/markets") rel = "/docs/markets.html";
   if (rel === "/docs/agents" || rel === "/docs/agent-guide") rel = "/docs/agent-guide.html";
+  if (rel === "/docs/integrate") rel = "/docs/integrate.html";
   if (rel === "/docs/authentication") rel = "/docs/authentication.html";
   if (rel === "/docs/reliability") rel = "/docs/reliability.html";
   if (rel === "/docs/union-staking") rel = "/docs/union-staking.html";
@@ -83,7 +85,7 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
 
   try {
-    if (path.startsWith("/api/")) {
+    if (path.startsWith("/api/") || path === "/snap" || path === "/snap/") {
       let body = {};
       if (req.method === "POST") {
         try {
@@ -102,6 +104,8 @@ const server = createServer(async (req, res) => {
         pathname: path,
         searchParams: url.searchParams,
         body,
+        headers: req.headers,
+        origin: `http://localhost:${PORT}`,
       });
       sendApiResult(res, result);
       return;

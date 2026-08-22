@@ -1,5 +1,7 @@
 export const ENVELOPE_SCHEMA_VERSION = "azzle-xmtp-v2" as const;
 export const IDENTITY_LINK_TYPE = "azzle/identity-link/v2" as const;
+export type XmtpMarket = "standard" | "micro";
+export type CanonicalTaskRef = `v2:${XmtpMarket}:${string}`;
 
 export const MESSAGE_TYPES = [
   "TaskProposal",
@@ -27,6 +29,7 @@ export interface AzzleEnvelope<TPayload = Record<string, unknown>> {
   type: MessageType | string;
   negotiationId: string;
   taskId?: string;
+  market: XmtpMarket;
   sequence: number;
   previousHash: string;
   timestamp: string;
@@ -61,7 +64,7 @@ export interface OnChainCorrelationEvent {
     | "TaskCancelled"
     | "TaskDisputed"
     | "TaskResolved";
-  taskId: string;
+  taskId: CanonicalTaskRef;
   negotiationId?: string;
   blockNumber: number;
   txHash: string;

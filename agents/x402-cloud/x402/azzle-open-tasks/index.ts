@@ -7,10 +7,9 @@
  * @see docs/X402_CLOUD.md
  */
 
-import { BASE_MAINNET_MANIFEST } from "../manifest";
+import { selectBaseMainnetManifest, type AzzleMarket } from "../manifest";
 
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const TASK_REGISTRY = BASE_MAINNET_MANIFEST.taskRegistry;
 const TASK_COUNT = "0xb6cb58a5";
 const GET_TASK = "0x1d65e77e";
 const POSTED = 1n;
@@ -37,7 +36,14 @@ function word(data: string, index: number): string {
   return data.slice(2 + index * 64, 2 + (index + 1) * 64);
 }
 
-function parseTask(id: bigint, data: string) {
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function parseTask(id: bigint, data: string, market: AzzleMarket, registryAddress: string) {
   const totalAmount = BigInt(`0x${word(data, 2)}`);
   const funded = BigInt(`0x${word(data, 3)}`);
   const released = BigInt(`0x${word(data, 4)}`);
@@ -47,7 +53,9 @@ function parseTask(id: bigint, data: string) {
   return {
     protocolVersion: "v2",
     asset: "AZL",
-    id: `v2:${id.toString()}`,
+    id: `v2:${market}:${id.toString()}`,
+    market,
+    registryAddress,
     localTaskId: id.toString(),
     state: "POSTED",
     poster: `0x${word(data, 0).slice(24)}`,
@@ -62,14 +70,26 @@ function parseTask(id: bigint, data: string) {
 }
 
 export default async function handler(req: Request) {
-  const raw = Number(new URL(req.url).searchParams.get("limit") ?? "50");
+  const params = new URL(req.url).searchParams;
+  const market = params.get("market");
+  if (market !== "standard" && market !== "micro") {
+    return json({ error: "invalid_market", hint: "pass ?market=standard|micro" }, 400);
+  }
+  const manifest = selectBaseMainnetManifest(market);
+  const registryAddress = manifest.taskRegistry;
+  const raw = Number(params.get("limit") ?? "50");
   const limit = Number.isFinite(raw) ? Math.min(Math.max(Math.trunc(raw), 1), 100) : 50;
 
   // Throwing → non-2xx, so the caller is NOT charged (settle-after-response).
-  const count = Number(BigInt(await rpc<string>("eth_call", [{ to: TASK_REGISTRY, data: TASK_COUNT }, "latest"])));
+  const count = Number(BigInt(await rpc<string>("eth_call", [{ to: registryAddress, data: TASK_COUNT }, "latest"])));
   const tasks: ReturnType<typeof parseTask>[] = [];
   for (let id = count; id >= Math.max(1, count - SCAN_WINDOW + 1) && tasks.length < limit; id--) {
-    const task = parseTask(BigInt(id), await rpc<string>("eth_call", [{ to: TASK_REGISTRY, data: callData(GET_TASK, BigInt(id)) }, "latest"]));
+    const task = parseTask(
+      BigInt(id),
+      await rpc<string>("eth_call", [{ to: registryAddress, data: callData(GET_TASK, BigInt(id)) }, "latest"]),
+      market,
+      registryAddress,
+    );
     if (task) tasks.push(task);
   }
 
@@ -77,6 +97,8 @@ export default async function handler(req: Request) {
     protocol: "azzle",
     chainId: 8453,
     network: "base",
+    market,
+    registryAddress,
     count: tasks.length,
     tasks,
     generatedAt: Math.floor(Date.now() / 1000),

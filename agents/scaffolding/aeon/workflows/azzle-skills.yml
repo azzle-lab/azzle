@@ -20,9 +20,16 @@ on:
           - azzle-market
           - azzle-worker
       var:
-        description: Skill var — task id, filter hint, or focus string
+        description: Skill var — namespaced task id, filter hint, or focus string
         required: false
         type: string
+      market:
+        description: Required AZZLE market for this skill run
+        required: true
+        type: choice
+        options:
+          - standard
+          - micro
 
 permissions:
   actions: write
@@ -42,10 +49,10 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             echo "skill=azzle-market" >> "$GITHUB_OUTPUT"
-            echo "var=" >> "$GITHUB_OUTPUT"
+            echo "var=market=standard" >> "$GITHUB_OUTPUT"
           else
             echo "skill=${{ inputs.skill }}" >> "$GITHUB_OUTPUT"
-            echo "var=${{ inputs.var }}" >> "$GITHUB_OUTPUT"
+            echo "var=market=${{ inputs.market }};${{ inputs.var }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Dispatch Aeon skill runner

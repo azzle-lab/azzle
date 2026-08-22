@@ -615,7 +615,7 @@ html,body{
     <div class="mech p">Escrow</div>
     <div class="mech o">Solvency</div>
     <div class="mech g">Deposits</div>
-    <div class="mech full">XMTP · Subgraph · Recoverability</div>
+    <div class="mech full">XMTP · Base RPC · Bounded resolution</div>
   </div>
 </section>
 
@@ -661,10 +661,10 @@ html,body{
 <section class="slide" data-dur="5200">
   <p class="kicker">Access fee</p>
   <h1 class="headline">Two tokens. <span class="gd">One signal.</span></h1>
-  <p class="sub">Every protocol action requires both — <b>USDC</b> settles the network, <span class="azl">$AZL</span> stakes your intent.</p>
+  <p class="sub"><span class="azl">$AZL</span> is the payment, escrow, deposit, fee, reward, and bond asset. USD figures are oracle-priced policy targets.</p>
   <div class="vis fee-stack">
     <div class="fee-row u">
-      <span class="fee-tok">USDC</span>
+      <span class="fee-tok">AZL wei</span>
       <span class="fee-amt">$5</span>
       <span class="fee-dest">→ Treasury</span>
     </div>
@@ -687,9 +687,9 @@ html,body{
   <h1 class="headline">List. Claim. <span class="gd">Match.</span></h1>
   <p class="sub">poster <b>posts</b> to search — worker <b>claims</b> to match. <span class="mono">oracle-priced AZL fee</span> each way.</p>
   <div class="vis card-row">
-    <div class="card blue"><div class="amt">$5</div><div class="lbl">USDC · poster posts</div></div>
+    <div class="card blue"><div class="amt">MARKET</div><div class="lbl">oracle-priced AZL · poster posts</div></div>
     <div class="card purple"><div class="amt">1K</div><div class="lbl">AZZLE · poster posts</div></div>
-    <div class="card green"><div class="amt">$5</div><div class="lbl">USDC · Worker claims</div></div>
+    <div class="card green"><div class="amt">MARKET</div><div class="lbl">oracle-priced AZL · worker claims</div></div>
     <div class="card purple"><div class="amt">1K</div><div class="lbl">AZZLE · Worker claims</div></div>
   </div>
   <div class="vis timeline">
@@ -705,7 +705,7 @@ html,body{
 <section class="slide" data-dur="5800">
   <p class="kicker">Live on The Graph</p>
   <h1 class="headline">No indexer <span class="gd2">to host.</span></h1>
-  <p class="sub"><span class="mono">getOpenTasks()</span> hits Studio GraphQL on Base. Public subgraph, free tier — claimable work in one query.</p>
+  <p class="sub"><span class="mono">getOpenTasks()</span> indexes the selected registry over Base RPC. Standard and micro lists are never merged.</p>
   <div class="vis indexer-grid">
     <div class="graph-hub">
       <div class="g-logo">The Graph · azzle-protocol</div>
@@ -713,9 +713,9 @@ html,body{
       <div class="g-pulse"><i></i></div>
     </div>
     <div class="task-feed">
-      <div class="task-card"><div><div class="t-id">#1042</div><div class="t-amt">2.4M USDC</div></div><span class="t-state">POSTED</span></div>
-      <div class="task-card"><div><div class="t-id">#1041</div><div class="t-amt">850K USDC</div></div><span class="t-state">POSTED</span></div>
-      <div class="task-card"><div><div class="t-id">#1039</div><div class="t-amt">120K USDC</div></div><span class="t-state">POSTED</span></div>
+      <div class="task-card"><div><div class="t-id">v2:standard:1042</div><div class="t-amt">AZL wei</div></div><span class="t-state">POSTED</span></div>
+      <div class="task-card"><div><div class="t-id">v2:standard:1041</div><div class="t-amt">AZL wei</div></div><span class="t-state">POSTED</span></div>
+      <div class="task-card"><div><div class="t-id">v2:standard:1039</div><div class="t-amt">AZL wei</div></div><span class="t-state">POSTED</span></div>
     </div>
   </div>
   <div class="badges">
@@ -728,8 +728,8 @@ html,body{
 <!-- 6: SOLVENCY -->
 <section class="slide" data-dur="4800">
   <p class="kicker">Solvency</p>
-  <h1 class="headline">Stay funded <span class="gd">or pause.</span></h1>
-  <p class="sub"><b>$25 entry collateral target; $45 recommended posting/claiming balance</b> to enter — <b>$8</b> minimum while a task runs. Drop below $8 → pause. <b>15 minutes</b> to recover.</p>
+  <h1 class="headline">Stay solvent <span class="gd">per market.</span></h1>
+  <p class="sub">Read the selected market's live policy quote. Deposits and reserves are AZL wei; USD6 values are policy targets, not balances or payment assets.</p>
   <div class="vis card-row">
     <div class="card green"><div class="amt">$25 entry collateral target; $45 recommended posting/claiming balance</div><div class="lbl">Top-up to post or claim</div></div>
     <div class="card orange"><div class="amt">$8</div><div class="lbl">Min during any open task</div></div>
@@ -796,7 +796,7 @@ html,body{
 <section class="slide" data-dur="4800">
   <p class="kicker">Reputation</p>
   <h1 class="headline">History <span class="gd2">persists.</span></h1>
-  <p class="sub">Onchain signals indexed in the subgraph. <span class="mono">getAgentReputation()</span> — score + signal history per agent.</p>
+  <p class="sub">Onchain signals indexed from the selected registry over Base RPC. Reputation is isolated between standard and micro.</p>
   <div class="vis stat-row">
     <div class="stat g"><div class="s-val">↑</div><div class="s-lbl">Tasks done</div></div>
     <div class="stat p"><div class="s-val">W/L</div><div class="s-lbl">Disputes</div></div>
@@ -816,7 +816,7 @@ html,body{
   <div class="end-chain">Protocol — Live on Base (8453)</div>
   <p class="sub" style="margin-bottom:28px">Contracts · Agents · Indexer — shipped in the open</p>
   <div class="badges">
-    <span class="badge live">Subgraph live</span>
+    <span class="badge live">Base RPC live</span>
     <span class="badge b">XMTP transport</span>
     <span class="badge">Escrow</span>
     <span class="badge p">$AZL access fee</span>

@@ -13,11 +13,13 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AEON_UPSTREAM, handleAeonSetup, PACKAGE_VERSION } from "./aeon-setup/index.js";
-import { BASE_MAINNET_MANIFEST } from "./sdk/manifest.js";
+import { loadMarketManifest, resolveExpectedMarket } from "./sdk/markets.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = join(__dirname, "..");
 const GITHUB_REPO = "https://www.azzle.org.git";
+const SELECTED_MARKET = resolveExpectedMarket(process.env.AZZLE_MARKET);
+const SELECTED_MANIFEST = loadMarketManifest(SELECTED_MARKET);
 
 const HELP = `azzle — AZZLE protocol agent installer (v${PACKAGE_VERSION})
 
@@ -166,6 +168,7 @@ function scaffoldProject(targetDir: string): void {
     [
       "# Base mainnet RPC",
       "AZZLE_RPC_URL=https://mainnet.base.org",
+      `AZZLE_MARKET=${SELECTED_MARKET}`,
       "",
       "# Wallet private key (never commit .env)",
       "# PRIVATE_KEY=0x...",
@@ -174,7 +177,7 @@ function scaffoldProject(targetDir: string): void {
   );
 
   copyFileSync(
-    join(PACKAGE_ROOT, "deployments", "base-8453.json"),
+    join(PACKAGE_ROOT, "deployments", SELECTED_MARKET === "micro" ? "base-8453-micro.json" : "base-8453.json"),
     join(absDir, "base-8453.json")
   );
 
@@ -203,7 +206,7 @@ function addToProject(): void {
 
   if (!existsSync(join(cwd, "base-8453.json"))) {
     copyFileSync(
-      join(PACKAGE_ROOT, "deployments", "base-8453.json"),
+      join(PACKAGE_ROOT, "deployments", SELECTED_MARKET === "micro" ? "base-8453-micro.json" : "base-8453.json"),
       join(cwd, "base-8453.json")
     );
     console.log("Wrote base-8453.json (canonical Base mainnet addresses).");
@@ -220,8 +223,8 @@ Docs: https://www.azzle.org/reference/AGENTS.md
 }
 
 function printAddresses(): void {
-  const m = BASE_MAINNET_MANIFEST;
-  console.log(`AZZLE Base mainnet (chainId ${m.chainId})`);
+  const m = SELECTED_MANIFEST;
+  console.log(`AZZLE Base mainnet ${SELECTED_MARKET} market (chainId ${m.chainId})`);
   console.log("");
   for (const [key, value] of Object.entries(m)) {
     console.log(`${key.padEnd(20)} ${value}`);
@@ -237,8 +240,10 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(readFileSync(join(__dir, "base-8453.json"), "utf8"));
 
 const rpcUrl = process.env.AZZLE_RPC_URL ?? "https://mainnet.base.org";
+const market = process.env.AZZLE_MARKET;
+if (!market) throw new Error("Set AZZLE_MARKET=standard or micro");
 async function listOpen() {
-  const indexer = new RpcDiscovery({ rpcUrl });
+  const indexer = new RpcDiscovery({ rpcUrl, market, manifest });
   const tasks = await indexer.getOpenTasks();
   console.log(JSON.stringify({ count: tasks.length, tasks }, null, 2));
 }

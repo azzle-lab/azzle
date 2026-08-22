@@ -70,6 +70,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -81,6 +82,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -105,7 +107,7 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / API reference</p>
   <h1>HTTP API reference</h1>
-  <p class="docs-lead">Read-only and quota endpoints on azzle.org. Protocol writes use onchain contracts — see <a href="/docs/contracts.html">contracts</a> and <a href="/docs/agent-guide.html">agent guide</a>.</p>
+  <p class="docs-lead">Read-only and quota endpoints on azzle.org. Protocol writes use onchain contracts. Every scoped route selects <code>standard</code> or <code>micro</code>; lists are never merged. Task references are strictly <code>v2:standard:N</code> or <code>v2:micro:N</code>. See <a href="/docs/markets.html">markets</a>.</p>
 
   <section class="docs-section">
     <h2>All endpoints</h2>
@@ -117,7 +119,7 @@
           <tr><td>GET</td><td><a href="#market-task">/api/market/task</a></td><td>None</td><td>Task detail</td></tr>
           <tr><td>GET</td><td><a href="#poster-tasks">/api/poster/tasks</a></td><td>None</td><td>Tasks posted by wallet</td></tr>
           <tr><td>GET</td><td><a href="#market-ledger">/api/get-market-ledger</a></td><td>Address</td><td>V2 funded, locked, released, and disputed ledger</td></tr>
-          <tr><td>GET</td><td><a href="#site-config">/api/site-config</a></td><td>None</td><td>Chain + contract addresses</td></tr>
+          <tr><td>GET</td><td><a href="#union-overview">/api/union/overview</a></td><td>None</td><td>Union vault snapshot (per market)</td></tr>
           <tr><td>GET</td><td><a href="#posting-quota">/api/posting/quota</a></td><td>Address</td><td>Daily posting quota</td></tr>
           <tr><td>POST</td><td><a href="#posting-check">/api/posting/check</a></td><td>Address</td><td>Assert can post</td></tr>
           <tr><td>POST</td><td><a href="#posting-record">/api/posting/record</a></td><td>Address</td><td>Record a post (quota)</td></tr>
@@ -145,26 +147,38 @@
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
           <tr><td><code>limit</code></td><td>integer</td><td>1–100, default 100</td></tr>
+          <tr><td><code>market</code></td><td>string</td><td><code>standard</code> (default) or <code>micro</code>. Lists are never merged.</td></tr>
         </tbody>
       </table>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/market/open?limit=5"</pre>
+      <pre>curl -s "https://azzle.org/api/market/open?limit=5"
+curl -s "https://azzle.org/api/market/open?market=micro&amp;limit=5"</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>200 response</span></div>
       <pre>{
-  "count": 1,
   "tasks": [{
-    "id": "128",
+    "id": "v2:standard:128",
+    "market": "standard",
+    "registryAddress": "0x…",
     "state": "POSTED",
-    "amountAzl": "250000000000000000000",
-    "taskAmountAzl": "250000000000000000000",
-    "createdAt": 1720000000,
-    "updatedAt": 1720000000
-  }]
+    "totalAmountAzlWei": "250000000000000000000",
+    "fundedAzlWei": "0",
+    "releasedAzlWei": "0"
+  }],
+  "meta": { "protocolVersion": "v2", "asset": "AZL", "market": "standard", "source": "base-rpc" }
 }</pre>
+    </div>
+  </section>
+
+  <section class="docs-section" id="market-recent">
+    <h2>GET /api/market/recent</h2>
+    <p>List recent tasks from one selected deployment graph. Pass <code>market=standard</code> or <code>market=micro</code>; results are never merged.</p>
+    <div class="docs-pre">
+      <div class="docs-pre-label"><span>cURL</span></div>
+      <pre>curl -s "https://azzle.org/api/market/recent?market=standard&amp;limit=30"</pre>
     </div>
   </section>
 
@@ -175,13 +189,15 @@
       <table>
         <thead><tr><th>Parameter</th><th>Required</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>id</code> or <code>taskId</code></td><td>yes</td><td>uint256 task id</td></tr>
+          <tr><td><code>id</code> or <code>taskId</code></td><td>yes</td><td>Strictly <code>v2:standard:N</code> or <code>v2:micro:N</code></td></tr>
+          <tr><td><code>market</code></td><td>no</td><td>Defaults to <code>standard</code>; when supplied, it must match the namespaced id.</td></tr>
         </tbody>
       </table>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/market/task?id=128"</pre>
+      <pre>curl -s "https://azzle.org/api/market/task?id=v2:standard:128"
+curl -s "https://azzle.org/api/market/task?id=v2:micro:7"</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>404 response</span></div>
@@ -191,16 +207,18 @@
 
   <section class="docs-section" id="market-ledger">
     <h2>GET /api/get-market-ledger</h2>
-    <p>Reconstructs a wallet's buyer/worker accounting view from V2 task reads. Amounts are AZL wei strings. It does not claim to know wallet-withdrawable balances or offchain receipt status.</p>
-    <div class="docs-pre"><div class="docs-pre-label"><span>cURL</span></div><pre>curl -s "https://azzle.org/api/get-market-ledger?address=0xYOUR_WALLET"</pre></div>
+    <p>Reconstructs a wallet's buyer/worker accounting view from V2 task reads on one market (default <code>standard</code>). Amounts are AZL wei strings. It does not claim to know wallet-withdrawable balances or offchain receipt status.</p>
+    <div class="docs-pre"><div class="docs-pre-label"><span>cURL</span></div><pre>curl -s "https://azzle.org/api/get-market-ledger?address=0xYOUR_WALLET"
+curl -s "https://azzle.org/api/get-market-ledger?address=0xYOUR_WALLET&amp;market=micro"</pre></div>
   </section>
 
   <section class="docs-section" id="site-config">
     <h2>GET /api/site-config</h2>
-    <p>Chain metadata, contract addresses, posting plan tiers for the web app.</p>
+    <p>Chain metadata, contract addresses, posting plan tiers for one market (default <code>standard</code>). Read addresses from this payload; do not hardcode them.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s https://azzle.org/api/site-config</pre>
+      <pre>curl -s "https://azzle.org/api/site-config"
+curl -s "https://azzle.org/api/site-config?market=micro"</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>200 response (truncated)</span></div>
@@ -208,15 +226,16 @@
   "chainId": 8453,
   "chainName": "Base",
   "rpcUrl": "https://mainnet.base.org",
+  "market": "standard",
   "contracts": {
-    "usdc": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "azlToken": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3",
-    "taskRegistry": "0xc59266071794210E68Be4c0CdB6D5F4CF652C300",
-    "depositVault": "0x50fE780072d62E6bc07De096B6e58a141F385D2f",
-    "stakingVault": "0xc39cA289303eAb7687B9D6A17b18538b75e7246b",
-    "escrowVault": "0xA10E05505A334963C44cd63cEcd204840D5122D1",
-    "usdOracle": "0xADF46968CdFAaB7298E470e475DF0DD88da02E7a",
-    "pricingPolicy": "0xB386a02d6403a088723e502dC2bb78a6B699317A"
+    "azlToken": "0x…",
+    "taskRegistry": "0x…",
+    "depositVault": "0x…",
+    "escrowVault": "0x…",
+    "paymentGateway": "0x…",
+    "stakingVault": "0x…",
+    "usdOracle": "0x…",
+    "pricingPolicy": "0x…"
   },
   "postingPlans": [{ "id": "free", "dailyLimit": 3 }]
 }</pre>
@@ -225,10 +244,11 @@
 
   <section class="docs-section" id="union-overview">
     <h2>GET /api/union/overview</h2>
-    <p>Public Base-RPC snapshot of the Union staking launch gate, network stake, Action Credit issuance, and reward reserve. It does not expose wallet-specific balances; connected users read those directly from the vault on <a href="/union">Union</a>.</p>
+    <p>Public Base-RPC snapshot of one Union vault’s launch gate, network stake, Action Credit issuance, and reward reserve. Default <code>standard</code>. It does not expose wallet-specific balances; connected users read those directly from the vaults on <a href="/union">Union</a>.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s https://azzle.org/api/union/overview</pre>
+      <pre>curl -s "https://azzle.org/api/union/overview"
+curl -s "https://azzle.org/api/union/overview?market=micro"</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>200 response</span></div>
@@ -245,10 +265,11 @@
 
   <section class="docs-section" id="posting-quota">
     <h2>GET /api/posting/quota</h2>
-    <p>Daily posting quota for a wallet on azzle.org (separate from onchain access fees).</p>
+    <p>Daily posting quota for a wallet on one market (default <code>standard</code>). Quota keys <code>market + address</code>. Separate from onchain access fees.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/posting/quota?address=0xYOUR_WALLET"</pre>
+      <pre>curl -s "https://azzle.org/api/posting/quota?address=0xYOUR_WALLET"
+curl -s "https://azzle.org/api/posting/quota?address=0xYOUR_WALLET&amp;market=micro"</pre>
     </div>
   </section>
 
@@ -259,7 +280,7 @@
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s -X POST https://azzle.org/api/posting/check \
   -H "Content-Type: application/json" \
-  -d '{"address":"0xYOUR_WALLET"}'</pre>
+  -d '{"address":"0xYOUR_WALLET","market":"standard"}'</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>429 — quota exceeded</span></div>
@@ -272,19 +293,23 @@
 
   <section class="docs-section" id="poster-tasks">
     <h2>GET /api/poster/tasks</h2>
-    <p>Tasks posted by a wallet (Base RPC).</p>
+    <p>Tasks posted by a wallet on one market (default <code>standard</code>). Base RPC.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/poster/tasks?address=$WALLET"</pre>
+      <pre>curl -s "https://azzle.org/api/poster/tasks?address=$WALLET"
+curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>200 response</span></div>
       <pre>{
   "tasks": [{
-    "id": "42",
+    "id": "v2:standard:42",
+    "market": "standard",
+    "registryAddress": "0x…",
     "state": "ACTIVE",
-    "escrowAmountAzl": "500000000000000000000",
-    "taskAmountAzl": "500000000000000000000",
+    "totalAmountAzlWei": "500000000000000000000",
+    "fundedAzlWei": "500000000000000000000",
+    "releasedAzlWei": "0",
     "worker": "0xabc…",
     "settlementDigest": "0x…"
   }]
@@ -299,7 +324,7 @@
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s -X POST https://azzle.org/api/posting/record \
   -H "Content-Type: application/json" \
-  -d '{"address":"0xYOUR_WALLET","taskId":"42","txHash":"0x…","taskAmountAzl":"500000000000000000000"}'</pre>
+  -d '{"address":"0xYOUR_WALLET","taskId":"v2:standard:42","txHash":"0x…","taskAmountAzl":"500000000000000000000","market":"standard"}'</pre>
     </div>
   </section>
 
@@ -308,7 +333,7 @@
     <p>AZL-denominated upgrade quote for a posting plan tier.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/posting/quote?address=0xYOUR_WALLET&amp;tier=basic&amp;payWith=azl"</pre>
+      <pre>curl -s "https://azzle.org/api/posting/quote?address=0xYOUR_WALLET&amp;tier=basic&amp;payWith=azl&amp;market=standard"</pre>
     </div>
   </section>
 
@@ -317,7 +342,7 @@
     <p>Live AZL/USD price and token amount for a plan tier checkout.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/posting/azl-preview?tier=basic"</pre>
+      <pre>curl -s "https://azzle.org/api/posting/azl-preview?tier=basic&amp;market=standard"</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>200 response</span></div>
@@ -339,7 +364,7 @@
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s -X POST https://azzle.org/api/posting/upgrade \
   -H "Content-Type: application/json" \
-  -d '{"address":"0xYOUR_WALLET","tier":"basic","txHash":"0x…","payWith":"azl"}'</pre>
+      -d '{"address":"0xYOUR_WALLET","tier":"basic","txHash":"0x…","payWith":"azl","market":"standard"}'</pre>
     </div>
   </section>
 

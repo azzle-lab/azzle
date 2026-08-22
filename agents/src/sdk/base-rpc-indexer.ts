@@ -1,6 +1,6 @@
 /** Bounded direct Base RPC reader for agent task discovery. */
 import { ethers } from "ethers";
-import { BASE_MAINNET_MANIFEST } from "./manifest.js";
+import { loadMarketManifest, namespacedTaskId, parseTaskRef, resolveExpectedMarket, type AzzleMarket, type TaskRef } from "./markets.js";
 
 export interface BaseRpcTask {
   id: string;
@@ -26,6 +26,7 @@ export interface BaseRpcAgent {
 export interface BaseRpcIndexerConfig {
   rpcUrl?: string;
   scanWindow?: number;
+  market?: AzzleMarket | string;
 }
 
 const TASK_ABI = [
@@ -36,21 +37,24 @@ const STATES = ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", 
 
 export class BaseRpcIndexer {
   readonly rpcUrl: string;
+  readonly market: AzzleMarket;
   private readonly provider: ethers.JsonRpcProvider;
   private readonly registry: ethers.Contract;
   private readonly scanWindow: number;
 
   constructor(config: BaseRpcIndexerConfig = {}) {
+    this.market = resolveExpectedMarket(config.market);
+    const manifest = loadMarketManifest(this.market);
     this.rpcUrl = config.rpcUrl ?? process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
     this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
-    this.registry = new ethers.Contract(BASE_MAINNET_MANIFEST.taskRegistry, TASK_ABI, this.provider);
+    this.registry = new ethers.Contract(manifest.taskRegistry, TASK_ABI, this.provider);
     this.scanWindow = Math.max(100, config.scanWindow ?? 400);
   }
 
   private mapTask(id: bigint, task: any): BaseRpcTask | null {
     if (!task.poster || task.poster === ethers.ZeroAddress) return null;
     return {
-      id: `v2:${id.toString()}`, state: STATES[Number(task.state)] ?? "UNKNOWN",
+      id: namespacedTaskId(this.market, id), state: STATES[Number(task.state)] ?? "UNKNOWN",
       poster: { id: task.poster }, worker: task.worker === ethers.ZeroAddress ? null : { id: task.worker },
       escrowAmount: task.totalAmount.toString(), createdAt: "0",
       updatedAt: "0", settlementDigest: null,
@@ -70,8 +74,8 @@ export class BaseRpcIndexer {
 
   async getOpenTasks(limit = 100) { return this.recent(Math.min(Math.max(limit, 1), 100), (task) => task.state === "POSTED"); }
   async getRecentTasks(limit = 50) { return this.recent(Math.min(Math.max(limit, 1), 100)); }
-  async getTask(taskId: string | bigint) {
-    const id = BigInt(taskId);
+  async getTask(taskId: TaskRef | string) {
+    const id = parseTaskRef(taskId, this.market).localIdBigInt;
     return this.mapTask(id, await this.registry.tasks(id));
   }
   async getTasksByPoster(poster: string, limit = 25) {

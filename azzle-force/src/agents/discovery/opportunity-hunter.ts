@@ -55,7 +55,7 @@ export class OpportunityHunter extends BaseAgent {
           state: t.state,
           escrow: t.escrowAmount,
           poster: t.poster.id,
-          source: "azzle-subgraph",
+          source: "azzle-base-rpc",
         },
         embedText: `AZZLE task ${t.id} escrow ${t.escrowAmount}`,
         embedCollection: "entities",

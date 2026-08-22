@@ -52,7 +52,7 @@
         <li><a href="/docs/">Docs</a></li>
       </ul>
     </div>
-    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.2" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
       <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
       <div data-rd-wallet-mount></div>
       <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
@@ -60,61 +60,129 @@
     </div>
   </nav>
 
-  <div class="rd-subpage-inner rd-subpage-inner--wide">
+  <div class="rd-subpage-inner rd-subpage-inner--wide rd-subpage-inner--wallet">
     <section class="rd-wallet-page" id="rd-wallet-page">
-      <div class="rd-checkout-head">
-        <h4>Wallet</h4>
-        <p>Balances on Base · deposit collateral converted to AZL, or send AZL and ETH.</p>
-      </div>
+      <svg class="rd-wallet-net" id="rd-wallet-net" aria-hidden="true">
+        <defs>
+          <linearGradient id="rd-wallet-net-stroke" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity=".55"/>
+            <stop offset="100%" stop-color="var(--accent-lo)" stop-opacity=".18"/>
+          </linearGradient>
+          <filter id="rd-wallet-net-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="1.6" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <g class="rd-wallet-net-mesh"></g>
+        <g class="rd-wallet-net-links"></g>
+        <g class="rd-wallet-net-nodes"></g>
+      </svg>
 
-      <div class="rd-wallet-receive" id="rd-wallet-receive" hidden>
-        <span class="rd-wallet-receive-label">Receive on Base</span>
-        <code class="rd-wallet-address" id="rd-wallet-address"></code>
-        <button type="button" class="rd-wallet-qr-btn" id="rd-wallet-qr-btn" aria-label="Show QR code" title="QR code">
-          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
-          </svg>
-        </button>
-        <button type="button" class="rd-wallet-copy" id="rd-wallet-copy">Copy address</button>
+      <div class="rd-wallet-toolbar">
+        <div class="rd-checkout-head">
+          <div>
+            <h4>Wallet</h4>
+            <p>Base balances · vault collateral · swap · onramp</p>
+          </div>
+        </div>
+        <div class="rd-wallet-receive" id="rd-wallet-receive" data-net-node="receive" hidden>
+          <span class="rd-wallet-receive-label">Receive</span>
+          <button type="button" class="rd-wallet-address" id="rd-wallet-address" title="Copy address"></button>
+          <button type="button" class="rd-wallet-qr-btn" id="rd-wallet-qr-btn" aria-label="Show QR code" title="QR code">
+            <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <path d="M14 14h3v3h-3zM17 17h3v3h-3zM14 20h3"/>
+            </svg>
+          </button>
+          <button type="button" class="rd-wallet-copy" id="rd-wallet-copy">Copy</button>
+        </div>
       </div>
 
       <p class="rd-checkout-status" id="rd-wallet-status">Sign in (top right) to view balances.</p>
 
+      <article class="rd-wallet-swap" id="rd-wallet-swap" data-net-node="swap" hidden>
+        <header class="rd-wallet-swap-head">
+          <h5>Swap</h5>
+          <p>Same-chain on Base via Privy. Quoted rate includes protocol fees and can move before confirm.</p>
+        </header>
+        <div class="rd-wallet-swap-row">
+          <label class="rd-wallet-swap-leg">
+            <span>From</span>
+            <select id="rd-swap-from" aria-label="Swap from">
+              <option value="eth">ETH</option>
+              <option value="usdc" selected>USDC</option>
+              <option value="azl">AZL</option>
+            </select>
+            <input type="number" id="rd-swap-amount" min="0" step="any" inputmode="decimal" placeholder="Amount"/>
+          </label>
+          <button type="button" class="rd-wallet-swap-flip" id="rd-swap-flip" aria-label="Flip pair" title="Flip pair">⇄</button>
+          <label class="rd-wallet-swap-leg">
+            <span>To</span>
+            <select id="rd-swap-to" aria-label="Swap to">
+              <option value="eth">ETH</option>
+              <option value="usdc">USDC</option>
+              <option value="azl" selected>AZL</option>
+            </select>
+            <output id="rd-swap-out" class="rd-wallet-swap-out">—</output>
+          </label>
+          <button type="button" class="rd-action rd-action--primary" id="rd-swap-btn">Swap</button>
+        </div>
+        <p class="rd-wallet-swap-quote" id="rd-swap-quote">Enter an amount for a live quote, then Swap.</p>
+      </article>
+
 
 
       <div class="rd-wallet-grid" id="rd-wallet-grid" hidden>
-        <article class="rd-wallet-asset" id="wallet-collateral" data-asset="usdc">
+        <article class="rd-wallet-asset rd-wallet-asset--hub" id="wallet-collateral" data-asset="usdc" data-net-node="usdc">
           <header class="rd-wallet-asset-head">
             <h5>USDC</h5>
             <p class="rd-wallet-bal" id="rd-bal-usdc-wallet">—</p>
-            <p class="rd-wallet-sub">Deposit collateral · value converts to AZL for v2 actions</p>
+            <p class="rd-wallet-sub">Wallet balance · deposit converts to AZL collateral</p>
           </header>
           <div class="rd-wallet-vault">
-            <p class="rd-wallet-vault-label">V2 protocol collateral</p>
-            <div class="rd-wallet-collateral-values">
-              <p class="rd-wallet-bal" id="rd-bal-usdc-vault">—</p>
-              <p class="rd-wallet-collateral-usd" id="rd-bal-usdc-vault-usd">—</p>
-              <p class="rd-wallet-collateral-market" id="rd-bal-usdc-vault-market" hidden>—</p>
+            <p class="rd-wallet-vault-label">Protocol vaults</p>
+            <div class="rd-union-lanes rd-wallet-lanes">
+              <div class="rd-union-lane" data-net-node="vault-standard">
+                <span>Standard(6$ to 10K$ per Task)</span>
+                <strong id="rd-bal-vault-standard">—</strong>
+                <small id="rd-bal-vault-standard-usd">$45 floor · entry $25 · access $5</small>
+              </div>
+              <div class="rd-union-lane" data-net-node="vault-micro">
+                <span>Micro(0.6$ to 50$ per Task)</span>
+                <strong id="rd-bal-vault-micro">—</strong>
+                <small id="rd-bal-vault-micro-usd">$5 floor · entry $3 · access $0.50</small>
+              </div>
             </div>
-            <p class="rd-wallet-hint">$45 recommended collateral value to post or claim.</p>
           </div>
           <div class="rd-wallet-forms">
+            <div class="rd-wallet-controls">
             <fieldset class="rd-wallet-currency">
               <legend>Deposit using</legend>
               <div class="rd-wallet-currency-tabs" role="group" aria-label="Collateral deposit currency">
                 <button type="button" class="rd-wallet-currency-tab is-selected" data-deposit-currency="usdc" aria-pressed="true">USDC</button>
                 <button type="button" class="rd-wallet-currency-tab" data-deposit-currency="eth" aria-pressed="false">ETH</button>
               </div>
-              <p class="rd-wallet-currency-note" id="rd-wallet-currency-note">USDC deposit converts into AZL collateral.</p>
             </fieldset>
+            <fieldset class="rd-wallet-currency">
+              <legend>Vault</legend>
+              <div class="rd-market-view-seg rd-wallet-vault-seg" role="group" aria-label="Collateral vault">
+                <button type="button" class="rd-market-view-tab on" data-vault-market="standard" aria-pressed="true">Standard</button>
+                <button type="button" class="rd-market-view-tab" data-vault-market="micro" aria-pressed="false">Micro</button>
+              </div>
+            </fieldset>
+            </div>
+            <p class="rd-wallet-currency-note" id="rd-wallet-vault-note">Deposits stay in the selected vault. Credits do not cross.</p>
+            <p class="rd-wallet-currency-note" id="rd-wallet-currency-note" hidden>USDC deposit converts into AZL collateral.</p>
             <div class="rd-wallet-form" hidden>
                 <p class="rd-wallet-hint" id="rd-usdc-allowance-hint">Allowance is approved automatically with the USDC deposit when needed.</p>
             </div>
             <div class="rd-wallet-form">
-                <span id="rd-deposit-form-label">Fund collateral · USDC converts to AZL</span>
+                <span id="rd-deposit-form-label">Fund Standard collateral · USDC converts to AZL</span>
               <div class="rd-wallet-row">
                 <input type="number" id="rd-usdc-deposit-amt" min="1" step="1" value="45" inputmode="decimal"/>
                 <button type="button" class="rd-action rd-action--primary" id="rd-usdc-deposit-btn">Deposit collateral</button>
@@ -139,7 +207,7 @@
           </div>
         </article>
 
-        <article class="rd-wallet-asset" id="wallet-azl" data-asset="azl">
+        <article class="rd-wallet-asset" id="wallet-azl" data-asset="azl" data-net-node="azl">
           <header class="rd-wallet-asset-head">
             <h5>AZL</h5>
             <p class="rd-wallet-bal" id="rd-bal-azl">—</p>
@@ -158,7 +226,7 @@
           <p class="rd-wallet-foot"><a class="rd-wallet-earn-btn" href="/union">EARN ACTION CREDITS</a></p>
         </article>
 
-        <article class="rd-wallet-asset" id="wallet-eth" data-asset="eth">
+        <article class="rd-wallet-asset" id="wallet-eth" data-asset="eth" data-net-node="eth">
           <header class="rd-wallet-asset-head">
             <h5>ETH</h5>
             <p class="rd-wallet-bal" id="rd-bal-eth">—</p>
@@ -173,6 +241,28 @@
                 <button type="button" class="rd-action" id="rd-eth-send-btn">Send</button>
               </div>
             </div>
+          </div>
+        </article>
+
+        <article class="rd-wallet-asset rd-wallet-asset--onramp" id="rd-wallet-onramp" data-net-node="onramp">
+          <header class="rd-wallet-asset-head">
+            <h5>ONRAMP</h5>
+            <p class="rd-wallet-sub">Card, Apple Pay, or Google Pay · USDC lands in this wallet on Base</p>
+          </header>
+          <div class="rd-wallet-onramp-methods" aria-hidden="true">
+            <span>Card</span>
+            <span>Apple Pay</span>
+            <span>Google Pay</span>
+          </div>
+          <div class="rd-wallet-forms">
+            <div class="rd-wallet-form">
+              <span>Amount (USD)</span>
+              <div class="rd-wallet-row">
+                <input type="number" id="rd-onramp-amt" min="1" step="1" value="50" inputmode="decimal" placeholder="50"/>
+                <button type="button" class="rd-action rd-action--primary" id="rd-onramp-btn">onramp</button>
+              </div>
+            </div>
+            <p class="rd-wallet-hint" id="rd-onramp-hint">Opens Privy’s Stripe onramp. US only outside New York, and the EU.</p>
           </div>
         </article>
       </div>
@@ -195,6 +285,7 @@
 </div>
 
 <script type="module" src="role-wallet.bundle.js"></script>
+<script src="markets.js"></script>
 <script src="wallet-qr.js"></script>
 <script src="wallet-page.js"></script>
 <script src="azl-nav-ticker.js"></script>

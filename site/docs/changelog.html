@@ -70,6 +70,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -81,6 +82,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -106,6 +108,21 @@
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Changelog</p>
     <h1>Changelog</h1>
     <p class="docs-lead">API and documentation changes on azzle.org. Protocol contract versions are tracked separately on GitHub (<a href="/docs/changelog.html">CHANGELOG.md</a>).</p>
+
+    <section class="docs-section">
+      <h2>2026-08-21 — Dual-market V2 docs</h2>
+      <h3>Added</h3>
+      <ul>
+        <li><a href="/docs/markets.html">Markets</a> — standard vs micro graphs, task ids, isolated vaults, economics</li>
+        <li>Micro discovery: <code>?market=micro</code> on open, task, poster, ledger, site-config, quota, and Union overview</li>
+      </ul>
+      <h3>Changed</h3>
+      <ul>
+        <li>Task examples use namespaced ids (<code>v2:standard:N</code> / <code>v2:micro:N</code>)</li>
+        <li>Union, integrate, reliability, and agent docs cover both posting floors and per-vault credits</li>
+        <li>Contract directory lists both manifests; addresses stay runtime-loaded</li>
+      </ul>
+    </section>
 
     <section class="docs-section">
       <h2>2026-07-02 — Docs surface v1</h2>

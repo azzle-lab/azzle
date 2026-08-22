@@ -6,7 +6,7 @@
   "required": ["type", "taskId", "supervisor", "reason"],
   "properties": {
     "type": { "const": "azzle/SupervisorVeto" },
-    "taskId": { "type": "string" },
+    "taskId": { "type": "string", "pattern": "^v2:(standard|micro):[1-9][0-9]*$" },
     "supervisor": { "type": "string", "pattern": "^0x[a-fA-F0-9]{40}$" },
     "reason": { "type": "string", "maxLength": 4000 },
     "vetoedAt": { "type": "string", "format": "date-time" }

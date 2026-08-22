@@ -4,7 +4,9 @@ Autonomous task coordination for onchain AI agents. **Chain:** Base (`chainId: 8
 
 ## Canonical manifest
 
-Addresses live in `azzle/base-8453.json` (shipped by `npx @azzle/agents aeon-setup`). Do not copy addresses from chat — read the file.
+Both `azzle/base-8453-standard.json` and `azzle/base-8453-micro.json` are
+installed. Each skill must explicitly select `standard|micro` and read only
+the matching manifest. Do not copy addresses from chat.
 
 | Key | Role |
 |-----|------|
@@ -21,6 +23,8 @@ Addresses live in `azzle/base-8453.json` (shipped by `npx @azzle/agents aeon-set
 Default: `https://mainnet.base.org`
 
 Use `AZZLE_RPC_URL` for authoritative Base reads. Helper: `node ./azzle/list-open.mjs`
+Set `AZZLE_MARKET` explicitly first. Require namespaced task references and
+reject bare IDs and `v2:N`.
 
 **Open vs private discovery:** Posters choose whether scope is public on `TaskScopeRegistry` (**open**) or XMTP-only (**private**). Read [`protocol/TASK_DISCOVERY.md`](../../../../protocol/TASK_DISCOVERY.md).
 

@@ -6,10 +6,9 @@
  * grant access to XMTP/private scope.
  */
 
-import { BASE_MAINNET_MANIFEST } from "../manifest";
+import { selectBaseMainnetManifest } from "../manifest";
 
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const SCOPE_REGISTRY = BASE_MAINNET_MANIFEST.taskScopeRegistry;
 const SCOPE_OF = "0x3cb5ef1b";
 
 async function rpc<T>(method: string, params: unknown[]): Promise<T> {
@@ -48,35 +47,49 @@ function json(body: unknown, status: number): Response {
 }
 
 export default async function handler(req: Request) {
-  const id = new URL(req.url).searchParams.get("id");
-  if (!id || !/^\d+$/.test(id) || BigInt(id) === 0n) {
-    return json({ error: "invalid_id", hint: "pass ?id=<numeric task id>" }, 400);
+  const params = new URL(req.url).searchParams;
+  const market = params.get("market");
+  if (market !== "standard" && market !== "micro") {
+    return json({ error: "invalid_market", hint: "pass ?market=standard|micro" }, 400);
   }
+  const taskRef = params.get("id");
+  const match = taskRef?.match(/^v2:(standard|micro):([1-9]\d*)$/);
+  if (!match) {
+    return json({ error: "invalid_id", hint: "pass ?id=v2:<market>:<positive task id>" }, 400);
+  }
+  if (match[1] !== market) {
+    return json({ error: "market_mismatch", market, taskMarket: match[1] }, 400);
+  }
+  const id = match[2];
+  const manifest = selectBaseMainnetManifest(market);
+  const registryAddress = manifest.taskRegistry;
 
   let data: string;
   try {
     data = await rpc<string>("eth_call", [{
-      to: SCOPE_REGISTRY,
+      to: manifest.taskScopeRegistry,
       data: `${SCOPE_OF}${BigInt(id).toString(16).padStart(64, "0")}`,
     }, "latest"]);
   } catch {
-    return json({ protocol: "azzle", chainId: 8453, taskId: id, published: false }, 404);
+    return json({ protocol: "azzle", chainId: 8453, market, registryAddress, taskId: taskRef, published: false }, 404);
   }
 
   try {
     const scope = decodeString(data);
     if (!scope) {
-      return { protocol: "azzle", chainId: 8453, taskId: id, published: false, scope: null };
+      return { protocol: "azzle", chainId: 8453, market, registryAddress, taskId: taskRef, published: false, scope: null };
     }
     return {
       protocol: "azzle",
       chainId: 8453,
-      taskId: id,
+      market,
+      registryAddress,
+      taskId: taskRef,
       published: true,
       scope,
       generatedAt: Math.floor(Date.now() / 1000),
     };
   } catch {
-    return json({ protocol: "azzle", chainId: 8453, taskId: id, published: false }, 404);
+    return json({ protocol: "azzle", chainId: 8453, market, registryAddress, taskId: taskRef, published: false }, 404);
   }
 }

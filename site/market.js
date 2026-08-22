@@ -117,43 +117,80 @@
     }
   }
 
-  async function fetchOpenTasks() {
-    const query = new URLSearchParams({ limit: "100" });
-    const type = $("rd-market-filter-type")?.value.trim();
-    const capability = $("rd-market-filter-capability")?.value.trim();
-    const minimum = $("rd-market-filter-min")?.value.trim();
-    if (type) query.set("taskType", type);
-    if (capability) query.set("capability", capability);
-    if (minimum) query.set("minAmountAzlWei", (BigInt(Math.max(0, Number(minimum))) * 10n ** 18n).toString());
-    const res = await fetch("/api/get-open-tasks-v2?" + query, { cache: "no-store" });
-    const data = await parseJsonResponse(res);
-    if (!res.ok && data.error === "not_found") return [];
-    if (!res.ok) throw new Error(data.error || "Could not load open tasks");
-    const tasks = (data.tasks ?? []).map((task) => ({
+  function taskMarket(task) {
+    if (task?.market === "micro" || /^v2:micro:/i.test(String(task?.id || ""))) return "micro";
+    return "standard";
+  }
+
+  function displayTaskId(task) {
+    return String(task?.localTaskId || task?.id || "").replace(/^v2:(standard|micro):/i, "");
+  }
+
+  function namespacedTaskId(task) {
+    const id = String(task?.id || "");
+    if (/^v2:(standard|micro):[1-9]\d*$/i.test(id)) return id;
+    return "v2:" + taskMarket(task) + ":" + displayTaskId(task);
+  }
+
+  function normalizeListedTask(task, market) {
+    return {
       ...task,
-      id: task.id,
+      market: task.market || market,
       taskAmountAzl: task.totalAmountAzlWei,
       fundedAzl: task.fundedAzlWei,
       lockedAzl: task.fundedAzlWei,
-      registryAddress: task.registry,
+      registryAddress: task.registryAddress,
       state: task.state,
-    }));
+    };
+  }
+
+  async function fetchMarketTasks(params, market) {
+    const query = new URLSearchParams(params);
+    query.set("market", market);
+    const res = await fetch("/api/get-open-tasks-v2?" + query, { cache: "no-store" });
+    const data = await parseJsonResponse(res);
+    if (!res.ok) throw new Error(data.message || data.error || "Could not load " + market + " tasks");
+    return (data.tasks ?? []).map((task) => normalizeListedTask(task, market));
+  }
+
+  async function fetchBothMarkets(params) {
+    const results = await Promise.allSettled([
+      fetchMarketTasks(params, "standard"),
+      fetchMarketTasks(params, "micro"),
+    ]);
+    const tasks = [];
+    const errors = [];
+    results.forEach((result) => {
+      if (result.status === "fulfilled") tasks.push(...result.value);
+      else errors.push(result.reason);
+    });
+    if (!tasks.length && errors.length === 2) {
+      throw errors[0] || new Error("Could not load open tasks");
+    }
+    return tasks.sort(
+      (a, b) =>
+        Number(b.deadline || 0) - Number(a.deadline || 0) ||
+        Number(b.localTaskId || 0) - Number(a.localTaskId || 0)
+    );
+  }
+
+  async function fetchOpenTasks() {
+    const params = { limit: "100" };
+    const type = $("rd-market-filter-type")?.value.trim();
+    const capability = $("rd-market-filter-capability")?.value.trim();
+    const minimum = $("rd-market-filter-min")?.value.trim();
+    if (type) params.taskType = type;
+    if (capability) params.capability = capability;
+    if (minimum) params.minAmountAzlWei = (BigInt(Math.max(0, Number(minimum))) * 10n ** 18n).toString();
+    const tasks = await fetchBothMarkets(params);
     tasks.forEach((task) => v2Tasks.set(task.id, task));
     return tasks;
   }
 
   async function fetchRecentTasks() {
-    const res = await fetch("/api/get-open-tasks-v2?limit=50&state=ALL", { cache: "no-store" });
-    const data = await parseJsonResponse(res);
-    if (!res.ok && data.error === "not_found") return [];
-    if (!res.ok) throw new Error(data.error || "Could not load task history");
-    return (data.tasks ?? []).map((task) => ({
-      ...task,
-      taskAmountAzl: task.totalAmountAzlWei,
-      fundedAzl: task.fundedAzlWei,
-      lockedAzl: task.fundedAzlWei,
-      registryAddress: task.registry,
-    }));
+    const tasks = await fetchBothMarkets({ limit: "50", state: "ALL" });
+    tasks.forEach((task) => v2Tasks.set(task.id, task));
+    return tasks;
   }
 
   async function fetchLegacyTasks() {
@@ -204,18 +241,12 @@
 
   async function fetchTaskDetail(taskId) {
     if (currentView === "legacy" && legacyTasks.has(taskId)) return legacyTasks.get(taskId);
-    // V2 list rows are abbreviated; fetch the authoritative scope detail.
-    if (v2Tasks.has(taskId)) {
-      const res = await fetch("/api/get-task?id=" + encodeURIComponent(taskId), {
-        cache: "no-store",
-      });
-      const data = await parseJsonResponse(res);
-      if (!res.ok) throw new Error(data.error || "Could not load task");
-      return data.task;
-    }
-    const res = await fetch("/api/get-task?id=" + encodeURIComponent(taskId), {
-      cache: "no-store",
-    });
+    const cached = v2Tasks.get(taskId);
+    const market = cached?.market || (/^v2:micro:/i.test(String(taskId)) ? "micro" : "standard");
+    const res = await fetch(
+      "/api/get-task?id=" + encodeURIComponent(taskId) + "&market=" + encodeURIComponent(market),
+      { cache: "no-store" }
+    );
     const data = await parseJsonResponse(res);
     if (!res.ok) throw new Error(data.error || "Could not load task");
     return data.task;
@@ -257,7 +288,12 @@
 
     if (!grid || !task) return;
 
-    if (title) title.textContent = (task.protocolVersion === "v1-archived" ? "V1 archive task #" : "Task #") + task.id;
+    if (title) {
+      title.textContent =
+        task.protocolVersion === "v1-archived"
+          ? "V1 archive task #" + task.id
+          : (taskMarket(task) === "micro" ? "Micro" : "Standard") + " · Task #" + displayTaskId(task);
+    }
     if (sub) {
       if (task.protocolVersion === "v1-archived") {
         sub.textContent = "Archived V1 task · read-only historical reference · not actively maintained";
@@ -265,7 +301,7 @@
       sub.textContent = task.discoveryPrivate
         ? "Private listing · negotiate scope via XMTP before claiming"
         : task.claimable
-          ? "Open on the search market · claim access is an oracle-priced AZL fee; Action Credits cover eligible claims"
+          ? "Open on " + (taskMarket(task) === "micro" ? "Micro" : "Standard") + " · claim access is an oracle-priced AZL fee; Action Credits cover eligible claims"
           : "State: " + task.state;
       }
     }
@@ -296,6 +332,7 @@
       "</span>";
 
     grid.innerHTML =
+      detailRow("Market", taskMarket(task) === "micro" ? "Micro" : "Standard") +
       detailRow("Status", stateBadge) +
       detailRow(
         "Task amount",
@@ -361,7 +398,7 @@
       actions.hidden = !canClaim;
       if (canClaim) {
         $("rd-market-claim")?.addEventListener("click", () => claimTask(task));
-        showClaimReadiness(api, String(task.localTaskId ?? task.id).replace(/^v2:/, ""));
+        showClaimReadiness(api, namespacedTaskId(task));
       }
     }
   }
@@ -406,7 +443,7 @@
     if (button) button.disabled = true;
     try {
       setDetailStatus("Confirm the claim in your wallet…", "busy");
-      const result = await api.claimV2(String(task.localTaskId ?? task.id).replace(/^v2:/, ""), (message) => {
+      const result = await api.claimV2(namespacedTaskId(task), (message) => {
         setDetailStatus(message, "busy");
       });
       setDetailStatus("Claimed on Base: " + result.hash, "ok");
@@ -454,6 +491,7 @@
     openTaskId = null;
     syncUrl(null);
     document.body.classList.remove("rd-market-modal-open");
+    document.querySelector(".rd-market-detail-panel")?.scrollTo({ top: 0, behavior: "auto" });
   }
 
   async function openDetail(taskId) {
@@ -466,6 +504,7 @@
     if (closeModalTimer) window.clearTimeout(closeModalTimer);
     openTaskId = String(taskId);
     modal.hidden = false;
+    modal.querySelector(".rd-market-detail-panel")?.scrollTo({ top: 0, behavior: "auto" });
     modal.classList.remove("rd-market-detail-modal--open");
     requestAnimationFrame(() => {
       requestAnimationFrame(() => modal.classList.add("rd-market-detail-modal--open"));
@@ -488,6 +527,17 @@
     }
   }
 
+  function marketBadge(task) {
+    const micro = taskMarket(task) === "micro";
+    return (
+      '<span class="rd-market-lane' +
+      (micro ? " rd-market-lane--micro" : "") +
+      '">' +
+      (micro ? "Micro" : "Standard") +
+      "</span>"
+    );
+  }
+
   function renderOpenRows(tasks) {
     const tbody = $("rd-market-rows");
     if (!tbody) return;
@@ -495,13 +545,15 @@
       .map(
         (t) =>
           "<tr class=\"rd-market-row\" data-id=\"" +
-          t.id +
+          escapeHtml(t.id) +
           "\" tabindex=\"0\" role=\"button\" aria-label=\"Open task #" +
-          t.id +
+          escapeHtml(displayTaskId(t)) +
           "\">" +
           "<td><span class=\"rd-market-id\">#" +
-          t.id +
-          "</span></td>" +
+          escapeHtml(displayTaskId(t)) +
+          "</span>" +
+          marketBadge(t) +
+          "</td>" +
           "<td>" +
           amountCell(taskAmount(t)) +
           "</td>" +
@@ -527,13 +579,15 @@
       .map(
         (t) =>
           "<tr class=\"rd-market-row\" data-id=\"" +
-          t.id +
+          escapeHtml(t.id) +
           "\" tabindex=\"0\" role=\"button\" aria-label=\"Open task #" +
-          t.id +
+          escapeHtml(displayTaskId(t)) +
           "\">" +
           "<td><span class=\"rd-market-id\">#" +
-          t.id +
-          "</span></td>" +
+          escapeHtml(displayTaskId(t)) +
+          "</span>" +
+          marketBadge(t) +
+          "</td>" +
           "<td>" +
           stateBadge(t.state) +
           "</td>" +
@@ -579,7 +633,7 @@
     const empty = $("rd-market-empty");
     const foot = $("rd-market-foot");
 
-    setStatus("Loading open tasks…", "busy");
+    setStatus("Loading Standard and Micro tasks…", "busy");
     if (tableWrap) tableWrap.hidden = true;
     if (empty) empty.hidden = true;
     if (foot) foot.hidden = true;
@@ -587,7 +641,7 @@
     try {
       const [, tasks] = await Promise.all([fetchAzlUsdPrice(), fetchOpenTasks()]);
       if (!tasks.length) {
-        setStatus("No POSTED tasks on the search market.", undefined);
+        setStatus("No POSTED tasks on Standard or Micro.", undefined);
         if (empty) empty.hidden = false;
         if (currentView === "open") closeDetail();
         return;
@@ -597,7 +651,10 @@
       if (tableWrap) tableWrap.hidden = false;
       if (foot) foot.hidden = false;
       setStatus(
-        tasks.length + " open task" + (tasks.length === 1 ? "" : "s") + " on Base · click a row for details.",
+        tasks.length +
+          " open task" +
+          (tasks.length === 1 ? "" : "s") +
+          " on Standard and Micro · click a row for details.",
         "ok"
       );
 

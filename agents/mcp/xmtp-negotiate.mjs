@@ -24,10 +24,20 @@ import {
 } from "./xmtp-helpers.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const manifest = JSON.parse(
-  readFileSync(join(__dirname, "../deployments/base-8453.json"), "utf8")
-);
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+
+function selectManifest(flags) {
+  const market = flags.market;
+  if (market !== "standard" && market !== "micro") {
+    fail("--market standard|micro is required");
+  }
+  const manifest = JSON.parse(readFileSync(
+    join(__dirname, `../deployments/${market === "micro" ? "base-8453-micro.json" : "base-8453.json"}`),
+    "utf8"
+  ));
+  if (manifest.market !== market) fail("selected market does not match manifest");
+  return manifest;
+}
 
 function parseArgs(argv) {
   const positional = [];
@@ -77,7 +87,7 @@ Actions:
   send-proposal               Live XMTP send (PRIVATE_KEY required)
 
 Task flags (shared with mcp:prepare post):
-  --from --total-amount --deadline --criteria-text OR --acceptance-criteria-hash
+  --market standard|micro --from --total-amount --deadline --criteria-text OR --acceptance-criteria-hash
 
 Proposal / send:
   --counterparty <0x>   required for send-proposal
@@ -87,7 +97,7 @@ Verify:
   --preview-hash <bytes32>`;
 }
 
-async function cmdSendProposal(from, flags) {
+async function cmdSendProposal(from, flags, manifest) {
   const pk = process.env.PRIVATE_KEY;
   if (!pk) {
     fail("PRIVATE_KEY env required for live XMTP send-proposal");
@@ -104,6 +114,7 @@ async function cmdSendProposal(from, flags) {
   }
 
   const transport = await createNegotiationTransport(signer, {
+    market: flags.market,
     counterpartyEvm: ethers.getAddress(counterparty),
     clientOptions: {
       env: process.env.XMTP_ENV ?? "production",
@@ -138,6 +149,7 @@ async function main() {
   }
 
   const from = requireFrom(flags);
+  const manifest = selectManifest(flags);
   switch (action) {
     case "build-preview":
       output(buildTaskPreview(from, flags, manifest));
@@ -149,7 +161,7 @@ async function main() {
       output(verifyTaskPreviewHash(from, flags, manifest));
       break;
     case "send-proposal":
-      await cmdSendProposal(from, flags);
+      await cmdSendProposal(from, flags, manifest);
       break;
     default:
       fail(`Unknown action: ${action}\n\n${usage()}`);
