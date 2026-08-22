@@ -28,7 +28,8 @@ for (const path of await walk(docsDir)) {
     console.warn(`[sync-docs-nav] skip (no nav): ${path}`);
     continue;
   }
-  html = html.replace(navRe, `$1\n${fragment}    $2`);
-  await writeFile(path, html, "utf8");
+  const next = html.replace(navRe, `$1\n${fragment}    $2`);
+  if (next === html) continue;
+  await writeFile(path, next, "utf8");
   console.log(`[sync-docs-nav] updated ${path}`);
 }
