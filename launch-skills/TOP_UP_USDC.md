@@ -1,8 +1,9 @@
 # V2 Payment Gateway — USDC / ETH Intake
 
-V2 does not use the legacy agent-deposit top-up flow. Use the `paymentGateway`
-from the canonical V2 manifest to convert USDC or native ETH into AZL before
-posting or funding tasks.
+V2 does not use the legacy agent-deposit top-up flow. Select `standard` or
+`micro`, load that market's manifest, and check `paymentGateway.intakePaused()`.
+When intake is active, the gateway converts USDC or native ETH into AZL and
+credits only that market's deposit ledger. It does not fund task escrow.
 
 ## Thresholds
 
@@ -13,8 +14,9 @@ posting or funding tasks.
 
 ## Contracts (Base 8453)
 
-Read `paymentGateway`, `taskRegistry`, and `external.usdc` from
-`contracts/deployments/base-8453.json`; never copy addresses into templates.
+Read `paymentGateway`, `taskRegistry`, `escrowVault`, and `external.usdc` from
+the selected `base-8453.json` or `base-8453-micro.json` manifest; never copy
+addresses into templates. See `protocol/MARKETS.md` for market policy.
 
 ## Step 1 — Fund with USDC
 
@@ -29,15 +31,21 @@ paymentGateway.fundWithUsdc(exactUsdcIn, minAzlOut, deadline);
 paymentGateway.fundWithEth{value: exactEthIn}(minAzlOut, deadline);
 ```
 
-## Step 3 — Verify
+## Step 3 — Fund task escrow separately
+
+Approve AZL to the selected manifest's `escrowVault`, then call
+`taskRegistry.fund(localTaskId, amountAzlWei)`.
+
+## Step 4 — Verify
 
 ```solidity
-taskRegistry.tasks(taskId); // totalAmount and funded are AZL wei
-taskRegistry.taskState(taskId); // current V2 state
+taskRegistry.tasks(localTaskId); // totalAmount and funded are AZL wei
+taskRegistry.taskState(localTaskId); // current V2 state
 ```
 
-All active task reads use Base RPC; there is no V2 pause or emergency-top-up
-recovery flow.
+All active task reads use Base RPC and are scoped to one registry. Publish task
+references as `v2:standard:N` or `v2:micro:N`; there is no V2 task pause or
+emergency-top-up recovery flow.
 
 ## Bankr agent commands
 

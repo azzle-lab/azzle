@@ -7,6 +7,7 @@ import type { XmtpNegotiationTransport } from "./transport.js";
 import { assertCounterpartySignature } from "./settlement-verify.js";
 import { buildSettlementTypedData } from "./settlement-verify.js";
 import { validatePayload } from "./validation.js";
+import { parseTaskRef } from "../markets.js";
 
 export type AgentRole = "poster" | "worker";
 
@@ -241,7 +242,7 @@ export class NegotiationHandlers {
   }
 
   private async requireSettlementParties(taskId: string): Promise<void> {
-    const task = await this.config.azzle.getTask(BigInt(taskId));
+    const task = await this.config.azzle.getTask(this.localTaskId(taskId));
     const signer = (await this.config.evmSigner.getAddress()).toLowerCase();
     if (
       task.poster.toLowerCase() !== signer ||
@@ -252,6 +253,9 @@ export class NegotiationHandlers {
   }
 
   async handle(envelope: AzzleEnvelope): Promise<void> {
+    if (envelope.market !== this.config.azzle.market) {
+      throw new Error(`Envelope market '${envelope.market}' does not match client market '${this.config.azzle.market}'`);
+    }
     if ((MESSAGE_TYPES as readonly string[]).includes(envelope.type)) {
       validatePayload(envelope.type, envelope.payload);
     }
@@ -279,6 +283,10 @@ export class NegotiationHandlers {
       default:
         console.warn(`[negotiation] unhandled type ${envelope.type}`);
     }
+  }
+
+  private localTaskId(taskRef: string): bigint {
+    return parseTaskRef(taskRef, this.config.azzle.market).localIdBigInt;
   }
 
   async sendTaskProposal(negotiationId: string, task: Record<string, unknown>): Promise<void> {
@@ -330,6 +338,7 @@ export class NegotiationHandlers {
 
   async sendTaskAcceptance(
     negotiationId: string,
+    taskId: string,
     posterSignature: string,
     workerSignature: string,
     task?: Record<string, unknown>
@@ -338,8 +347,10 @@ export class NegotiationHandlers {
     await this.transport.send({
       type: "TaskAcceptance",
       negotiationId,
+      taskId,
       payload: {
         type: "azzle/TaskAcceptance",
+        taskId,
         settlementDigest: digest,
         posterSignature,
         workerSignature,
@@ -361,7 +372,7 @@ export class NegotiationHandlers {
     if (this.config.role !== "worker") {
       throw new Error("Only the worker may send DeliveryNotice");
     }
-    await this.config.azzle.markDelivered(BigInt(params.taskId));
+    await this.config.azzle.markDelivered(this.localTaskId(params.taskId));
     await this.transport.send({
       type: "DeliveryNotice",
       negotiationId,
@@ -450,7 +461,7 @@ export class NegotiationHandlers {
     if (this.config.role !== "poster") {
       throw new Error("Only the poster may send AcceptDelivery");
     }
-    await this.config.azzle.complete(BigInt(params.taskId));
+    await this.config.azzle.complete(this.localTaskId(params.taskId));
     await this.transport.send({
       type: "AcceptDelivery",
       negotiationId,
@@ -486,6 +497,7 @@ export class NegotiationHandlers {
 
   private async onTaskAcceptance(envelope: AzzleEnvelope): Promise<void> {
     const payload = envelope.payload as {
+      taskId: string;
       settlementDigest: string;
       posterSignature: string;
       workerSignature: string;
@@ -539,9 +551,10 @@ export class NegotiationHandlers {
       throw new Error("TaskAcceptance requires a bound, already-posted V2 task");
     }
 
-    const onChain = await this.config.azzle.getTask(BigInt(existingTaskId));
+    const onChain = await this.config.azzle.getTask(this.localTaskId(existingTaskId));
     if (
-      (envelope.taskId !== undefined && envelope.taskId !== existingTaskId) ||
+      envelope.taskId !== existingTaskId ||
+      payload.taskId !== existingTaskId ||
       onChain.poster.toLowerCase() !== poster ||
       onChain.worker.toLowerCase() !== worker
     ) {
@@ -575,7 +588,7 @@ export class NegotiationHandlers {
     const boundTaskId = this.requireBoundSettlementTask(envelope, payload.taskId);
     await this.requireSettlementParties(boundTaskId);
 
-    const taskId = BigInt(boundTaskId);
+    const taskId = this.localTaskId(boundTaskId);
     const task = await this.config.azzle.getTask(taskId);
     const verified = task.stateName === "ACTIVE" && task.deliveredAt > 0n;
 
@@ -623,7 +636,7 @@ export class NegotiationHandlers {
     const boundTaskId = this.requireBoundSettlementTask(envelope, payload.taskId);
     await this.requireSettlementParties(boundTaskId);
 
-    const task = await this.config.azzle.getTask(BigInt(boundTaskId));
+    const task = await this.config.azzle.getTask(this.localTaskId(boundTaskId));
     const onChainDelivered = task.stateName === "ACTIVE" && task.deliveredAt > 0n;
     const verified = onChainDelivered;
 
@@ -636,13 +649,13 @@ export class NegotiationHandlers {
         this.requireBoundSettlementTask(envelope, payload.taskId);
         await this.requireSettlementParties(boundTaskId);
         if (payload.releaseType === "full") {
-          await this.config.azzle.complete(BigInt(boundTaskId));
+          await this.config.azzle.complete(this.localTaskId(boundTaskId));
           return;
         }
         if (payload.amount === undefined || BigInt(payload.amount) <= 0n) {
           throw new Error("Partial PaymentRequest requires a positive AZL wei amount");
         }
-        await this.config.azzle.release(BigInt(boundTaskId), BigInt(payload.amount));
+        await this.config.azzle.release(this.localTaskId(boundTaskId), BigInt(payload.amount));
       },
     };
 

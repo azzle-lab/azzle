@@ -1,6 +1,7 @@
 {
   "version": "2.0.0",
   "chainId": "8453",
+  "market": "standard",
   "deploymentBlock": 49762587,
   "deployer": "0x56C1A78c58404B6C7356D4Aad3967859d8bc85E1",
   "governance": "0xB459145b74Ca4B198f73C0d573a161e85CA76D27",

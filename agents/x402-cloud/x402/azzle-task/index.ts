@@ -8,9 +8,8 @@
  */
 
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-import { BASE_MAINNET_MANIFEST } from "../manifest";
+import { selectBaseMainnetManifest } from "../manifest";
 
-const TASK_REGISTRY = BASE_MAINNET_MANIFEST.taskRegistry;
 const GET_TASK = "0x1d65e77e";
 const ZERO = "0x0000000000000000000000000000000000000000";
 const STATES = ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", "CANCELLED", "RESOLVED"];
@@ -43,25 +42,36 @@ function address(data: string, index: number): string {
 }
 
 export default async function handler(req: Request) {
-  const id = new URL(req.url).searchParams.get("id");
-  if (!id || !/^\d+$/.test(id)) {
-    // 400 → non-2xx, caller not charged.
-    return json({ error: "invalid_id", hint: "pass ?id=<numeric task id>" }, 400);
+  const params = new URL(req.url).searchParams;
+  const market = params.get("market");
+  if (market !== "standard" && market !== "micro") {
+    return json({ error: "invalid_market", hint: "pass ?market=standard|micro" }, 400);
   }
+  const taskRef = params.get("id");
+  const match = taskRef?.match(/^v2:(standard|micro):([1-9]\d*)$/);
+  if (!match) {
+    // 400 → non-2xx, caller not charged.
+    return json({ error: "invalid_id", hint: "pass ?id=v2:<market>:<positive task id>" }, 400);
+  }
+  if (match[1] !== market) {
+    return json({ error: "market_mismatch", market, taskMarket: match[1] }, 400);
+  }
+  const id = match[2];
+  const registryAddress = selectBaseMainnetManifest(market).taskRegistry;
 
   let data: string;
   try {
     data = await rpc<string>("eth_call", [{
-      to: TASK_REGISTRY,
+      to: registryAddress,
       data: `${GET_TASK}${BigInt(id).toString(16).padStart(64, "0")}`,
     }, "latest"]);
   } catch {
-    return json({ protocol: "azzle", chainId: 8453, id, found: false }, 404);
+    return json({ protocol: "azzle", chainId: 8453, market, registryAddress, id: taskRef, found: false }, 404);
   }
 
   const poster = address(data, 0);
   if (poster.toLowerCase() === ZERO) {
-    return json({ protocol: "azzle", chainId: 8453, id, found: false }, 404);
+    return json({ protocol: "azzle", chainId: 8453, market, registryAddress, id: taskRef, found: false }, 404);
   }
   const worker = address(data, 1);
   const totalAmount = BigInt(`0x${word(data, 2)}`);
@@ -72,11 +82,15 @@ export default async function handler(req: Request) {
     protocol: "azzle",
     protocolVersion: "v2",
     chainId: 8453,
+    market,
+    registryAddress,
     found: true,
     task: {
       protocolVersion: "v2",
       asset: "AZL",
-      id: `v2:${id}`,
+      id: taskRef,
+      market,
+      registryAddress,
       localTaskId: id,
       state: STATES[state] ?? "UNKNOWN",
       poster,

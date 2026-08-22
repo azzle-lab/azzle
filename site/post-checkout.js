@@ -26,8 +26,129 @@
     return window.azzlePoster ?? null;
   }
 
+  function selectedMarket() {
+    return window.AZZLE_MARKETS?.getSelectedMarket?.() || "standard";
+  }
+
+  function withMarket(url) {
+    return (window.AZZLE_MARKETS?.withMarket || String)(url);
+  }
+
+  function eco() {
+    return window.AZZLE_MARKETS?.economics?.() || window.AZZLE_MARKETS?.ECONOMICS?.standard || {
+      postingFloorUsd: 45, accessFeeUsd: 5, minTaskUsd: 6, maxTaskUsd: 10000, entryDepositUsd: 25, liveTaskReserveUsd: 8,
+    };
+  }
+
+  function money(n) {
+    return window.AZZLE_MARKETS?.money?.(n) || ("$" + n);
+  }
+
+  function budgetBounds(market) {
+    const id = market || selectedMarket();
+    const e = window.AZZLE_MARKETS?.economics?.(id) || eco();
+    return {
+      min: Number(e.minTaskUsd) || (id === "micro" ? 0.6 : 6),
+      max: Number(e.maxTaskUsd) || (id === "micro" ? 50 : 10000),
+    };
+  }
+
+  function formatBudget(n) {
+    const v = Math.round(Number(n) * 100) / 100;
+    return Number.isInteger(v) ? String(v) : String(v);
+  }
+
+  function applyMarketUi() {
+    const budget = $("rd-task-budget");
+    const bounds = budgetBounds();
+    if (budget) {
+      budget.min = String(bounds.min);
+      budget.step = "0.01";
+      // Keep the protocol cap so a Micro field can accept $50.01+ and autoswitch.
+      budget.max = "10000";
+      const value = Number(budget.value);
+      if (Number.isFinite(value) && selectedMarket() === "micro" && value > 50) {
+        budget.value = formatBudget(50);
+      } else if (Number.isFinite(value) && value > bounds.max) {
+        budget.value = formatBudget(bounds.max);
+      } else if (
+        Number.isFinite(value) &&
+        value > 0 &&
+        value < bounds.min &&
+        selectedMarket() === "micro"
+      ) {
+        budget.value = formatBudget(bounds.min);
+      }
+    }
+    window.AZZLE_MARKETS?.bindEconomics?.(document);
+  }
+
+  function switchToStandardForBudget(value) {
+    const standardMax = budgetBounds("standard").max;
+    const budget = $("rd-task-budget");
+    if (budget && value > standardMax) budget.value = formatBudget(standardMax);
+    window.AZZLE_MARKETS?.setSelectedMarket?.("standard");
+    setCheckoutStatus("Budget over $50 — switched to Standard.", "ok");
+    saveDraft(readDraftFromForm());
+  }
+
+  function switchToMicroForBudget(value) {
+    const microMin = budgetBounds("micro").min;
+    const budget = $("rd-task-budget");
+    if (budget && value < microMin) budget.value = formatBudget(microMin);
+    window.AZZLE_MARKETS?.setSelectedMarket?.("micro");
+    setCheckoutStatus("Budget under $6 — switched to Micro.", "ok");
+    saveDraft(readDraftFromForm());
+  }
+
+  function onBudgetTyped() {
+    const budget = $("rd-task-budget");
+    if (!budget) return;
+    const raw = String(budget.value || "").trim();
+    if (raw === "" || raw === "." || raw === "-") return;
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return;
+
+    if (selectedMarket() === "micro" && value > 50) {
+      switchToStandardForBudget(value);
+      return;
+    }
+
+    // Decimal amounts under $6 are finished (5.5 cannot become 50). Whole numbers
+    // like 5 wait for blur so 10 / 50 can still be typed on Standard.
+    if (selectedMarket() === "standard" && value > 0 && value < 6 && raw.includes(".")) {
+      switchToMicroForBudget(value);
+      return;
+    }
+
+    const bounds = budgetBounds();
+    if (value > bounds.max) budget.value = formatBudget(bounds.max);
+  }
+
+  function onBudgetCommit() {
+    const budget = $("rd-task-budget");
+    if (!budget) return;
+    const raw = String(budget.value || "").trim();
+    const value = Number(raw);
+
+    if (selectedMarket() === "standard" && Number.isFinite(value) && value > 0 && value < 6) {
+      switchToMicroForBudget(value);
+      return;
+    }
+
+    const bounds = budgetBounds();
+    if (!raw || !Number.isFinite(value) || value < bounds.min) {
+      budget.value = formatBudget(bounds.min);
+    } else if (value > bounds.max) {
+      budget.value = formatBudget(bounds.max);
+    }
+    saveDraft(readDraftFromForm());
+  }
+
   function saveDraft(draft) {
-    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    const next = { ...draft };
+    if (!next.market) next.market = selectedMarket();
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
   }
 
   function loadDraft() {
@@ -162,7 +283,7 @@
   async function loadSitePlans() {
     if (postingPlans.length) return postingPlans;
     try {
-      const res = await fetch("/api/site-config", { cache: "no-store" });
+      const res = await fetch(withMarket("/api/site-config"), { cache: "no-store" });
       if (res.ok) {
         const cfg = await parseJsonResponse(res);
         postingPlans = cfg.postingPlans?.length ? cfg.postingPlans : DEFAULT_PLANS;
@@ -177,7 +298,7 @@
 
   async function fetchQuota(address) {
     if (!address) return null;
-    const res = await fetch("/api/posting/quota?address=" + encodeURIComponent(address), {
+    const res = await fetch(withMarket("/api/posting/quota?address=" + encodeURIComponent(address)), {
       cache: "no-store",
     });
     if (!res.ok) return null;
@@ -188,7 +309,7 @@
     const res = await fetch("/api/posting/check", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address }),
+      body: JSON.stringify({ address, market: selectedMarket() }),
     });
     const data = await parseJsonResponse(res);
     if (!res.ok) {
@@ -215,6 +336,7 @@
         taskAmountAzl: task?.taskAmountAzl ?? task?.budgetAzl ?? task?.budget,
         deadlineDays: task?.deadlineDays,
         discoveryOpen: task?.discoveryOpen !== false,
+        market: selectedMarket(),
       }),
     });
     const data = await parseJsonResponse(res);
@@ -273,15 +395,16 @@
     return v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " AZL";
   }
 
-  function updatePostButton(accessFeeAzl, accessFeeUsd = "5.00 per Task Fee") {
+  function updatePostButton(accessFeeAzl) {
     const button = $("rd-btn-post");
     if (!button) return;
     const note = button.querySelector(".rd-post-action-note");
     if (note) {
       note.textContent =
-        (accessFeeAzl ? fmtAzlAmount(accessFeeAzl) : "current AZL quote") +
-        " · $" +
-        accessFeeUsd;
+        (accessFeeAzl ? fmtAzlAmount(accessFeeAzl) : "Oracle-priced AZL access fee") +
+        " · " +
+        money(eco().accessFeeUsd) +
+        " per task";
     }
   }
 
@@ -450,6 +573,7 @@
   async function refreshCheckout() {
     const panel = $("rd-checkout");
     if (!panel) return;
+    applyMarketUi();
 
     const depositBtn = $("rd-btn-deposit");
     const postBtn = $("rd-btn-post");
@@ -487,7 +611,7 @@
       renderUpgradeCards(currentQuota, postingPlans);
 
       const status = await api.getStatus();
-      updatePostButton(status.accessFeeAzl, status.accessFeeUsd);
+      updatePostButton(status.accessFeeAzl);
       if (!status.configured) {
         setCheckoutStatus("Server missing contract config.", "err");
         if (depositBtn) depositBtn.disabled = true;
@@ -538,12 +662,12 @@
         const depositNote = $("rd-btn-deposit-note");
         if (depositLabel && status.collateralShortfallUsd && status.collateralShortfallAzl) {
           depositLabel.textContent =
-            "Add $" + status.collateralShortfallUsd + " toward the $45 recommended posting balance";
+            "Complete your " + money(eco().postingFloorUsd) + " Solvency Deposit";
           depositNote.textContent =
             status.collateralShortfallAzl + " AZL still needed · Open wallet →";
         } else if (depositLabel && status.collateralShortfallUsd === "0.00") {
           depositLabel.textContent = "Add task reserve and access fee";
-          depositNote.textContent = "Open wallet to reach the $45 recommended posting balance →";
+          depositNote.textContent = "Open wallet to reach the " + money(eco().postingFloorUsd) + " recommended posting balance →";
         }
         if (!status.canDeposit) {
           setCheckoutStatus(
@@ -551,14 +675,14 @@
               status.collateralShortfallUsd +
               " (" +
               status.collateralShortfallAzl +
-              " AZL) toward the $45 recommended posting balance.",
+              " AZL) toward the " + money(eco().postingFloorUsd) + " recommended posting balance.",
             "err"
           );
         } else {
           setCheckoutStatusWithPricingLink(
             " " +
-              "Posting a task costs $5. Workers also pay $5 to claim it, so adjust your budget accordingly. " +
-              "Below $5 task value is unprofitable; do not expect workers to pick it up.",
+              "Posting a task costs " + money(eco().accessFeeUsd) + ". Workers also pay " + money(eco().accessFeeUsd) + " to claim it, so adjust your budget accordingly. " +
+              "Below " + money(eco().accessFeeUsd) + " task value is unprofitable; do not expect workers to pick it up.",
             undefined
           );
         }
@@ -584,9 +708,26 @@
     const fromForm = $("rd-checkout") ? readDraftFromForm() : null;
     const draft = override ?? (fromForm?.scope ? fromForm : null) ?? loadDraft();
     if (!draft?.scope && !draft?.taskPrompt) throw new Error("No task scope — start from the chat first.");
-    const budgetUsd = parseFloat(draft.budget);
+    let budgetUsd = parseFloat(draft.budget);
     const deadlineDays = parseInt(draft.days, 10);
     if (!Number.isFinite(budgetUsd) || budgetUsd <= 0) throw new Error("Invalid task budget in USD.");
+    if (selectedMarket() === "micro" && budgetUsd > 50) {
+      window.AZZLE_MARKETS?.setSelectedMarket?.("standard");
+    } else if (selectedMarket() === "standard" && budgetUsd < 6) {
+      window.AZZLE_MARKETS?.setSelectedMarket?.("micro");
+    }
+    const bounds = budgetBounds();
+    if (budgetUsd < bounds.min || budgetUsd > bounds.max) {
+      throw new Error(
+        "Task budget must be " +
+          money(bounds.min) +
+          "–" +
+          money(bounds.max) +
+          " on " +
+          (selectedMarket() === "micro" ? "Micro" : "Standard") +
+          "."
+      );
+    }
     if (!Number.isFinite(deadlineDays) || deadlineDays <= 0) throw new Error("Invalid deadline.");
     const description = (draft.taskPrompt || draft.scope || "").trim();
     if (!description) throw new Error("No task description — start from the chat first.");
@@ -604,15 +745,20 @@
       onProgress?.("Sign in first (top right).", "err");
       return { ok: false };
     }
+    const market = selectedMarket();
+    const floor = eco().postingFloorUsd;
     checkoutBusy = true;
     if ($("rd-btn-deposit")) $("rd-btn-deposit").disabled = true;
-    onProgress?.("Checking balance…", "busy");
+    onProgress?.("Checking " + (market === "micro" ? "Micro" : "Standard") + " balance…", "busy");
     try {
-      const result = await api.deposit((msg) => onProgress?.(msg, "busy"));
+      const fund = typeof api.fundCollateral === "function"
+        ? api.fundCollateral(floor, (msg) => onProgress?.(msg, "busy"), market)
+        : api.deposit((msg) => onProgress?.(msg, "busy"));
+      const result = await fund;
       if (result?.alreadyDeposited) {
         onProgress?.("Deposit already on file — you're ready to post.", "ok");
       } else {
-        onProgress?.("Collateral funded.", "ok");
+        onProgress?.((market === "micro" ? "Micro" : "Standard") + " collateral funded.", "ok");
       }
       await refreshCheckout();
       return { ok: true };
@@ -674,8 +820,9 @@
         throw new Error("The connected wallet bridge does not expose the v2 TaskRegistry post flow yet.");
       }
       const result = await api.postV2(task, (msg) => onProgress?.(msg, "busy"));
-      await recordPostSuccess(walletAddress, result.taskId, result.hash, task);
-      localStorage.setItem(TASK_ID_KEY, result.taskId);
+      const taskId = window.AZZLE_MARKETS.namespacedTaskId(selectedMarket(), result.taskId);
+      await recordPostSuccess(walletAddress, taskId, result.hash, task);
+      localStorage.setItem(TASK_ID_KEY, taskId);
       const scopeNote =
         task.discoveryOpen !== false && result.scopePublished
           ? " Scope published onchain."
@@ -721,7 +868,8 @@
             encodeURIComponent(tierId) +
             "&address=" +
             encodeURIComponent(walletAddress) +
-            "&payWith=azl",
+            "&payWith=azl&market=" +
+            encodeURIComponent(selectedMarket()),
           { cache: "no-store" }
         );
         quote = await parseJsonResponse(qRes);
@@ -747,6 +895,7 @@
           txHash: payment.hash,
           payWith: currency,
           quoteId: quote?.quoteId,
+          market: selectedMarket(),
         }),
       });
       const data = await parseJsonResponse(res);
@@ -821,8 +970,13 @@
       runPost(null, setCheckoutStatus).catch(() => {});
     });
 
+    $("rd-task-budget")?.addEventListener("input", onBudgetTyped);
+    $("rd-task-budget")?.addEventListener("blur", onBudgetCommit);
     ["rd-task-scope", "rd-task-budget", "rd-task-days"].forEach((id) => {
-      $(id)?.addEventListener("change", () => saveDraft(readDraftFromForm()));
+      $(id)?.addEventListener("change", () => {
+        if (id === "rd-task-budget") onBudgetCommit();
+        else saveDraft(readDraftFromForm());
+      });
     });
     document.querySelectorAll('input[name="rd-discovery"]').forEach((el) => {
       el.addEventListener("change", () => {
@@ -848,6 +1002,7 @@
     refreshAll();
   });
   window.addEventListener("azzle-poster-ready", () => refreshAll());
+  window.addEventListener("azzle-market-change", () => refreshAll());
 
   window.AzzlePostCheckout = {
     saveDraft,

@@ -1,178 +1,230 @@
 openapi: 3.1.0
 info:
   title: AZZLE Protocol — azzle.org HTTP API
-  version: 0.2.0
+  version: 0.3.0
   description: |
-    Read-only market and site configuration endpoints served at azzle.org.
-    Protocol writes (post, claim, fund, markDelivered, release, complete, cancel, expire, openDispute) are onchain on Base — use `@azzle/agents` SDK or Base MCP `send_calls`.
+    Public reads and site quota routes for AZZLE V2 on Base (chain ID 8453).
+    Every protocol-scoped request selects exactly one market: `standard` (default)
+    or `micro`. Graphs are never merged. Task references are strictly
+    `v2:standard:N` or `v2:micro:N`.
 
-    **Auth:** Public read endpoints require no API key. Posting quota endpoints identify callers by wallet `address`.
-    **Open market:** https://azzle.org/market
-    **Agent docs:** https://azzle.org/docs/agent-guide.html
-  contact:
-    name: AZZLE Protocol
-    url: https://azzle.org
-  license:
-    name: MIT
-    url: https://github.com/Dabus123/azzle/blob/main/LICENSE
-
+    Protocol writes are onchain. AZL wei is the payment, escrow, deposit, fee,
+    reward, and bond asset. USD6 values are oracle-priced policy targets.
 servers:
   - url: https://azzle.org
     description: Production
-
 tags:
   - name: market
-    description: Open task discovery (Base RPC-backed)
   - name: config
-    description: Site and contract configuration
   - name: posting
-    description: Poster quota and billing (wallet-address scoped)
-
+  - name: union
 paths:
   /api/market/open:
     get:
       operationId: listOpenTasks
       tags: [market]
-      summary: List POSTED (claimable) tasks
+      summary: List POSTED tasks from one market
       parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 100
+        - $ref: "#/components/parameters/Market"
+        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Open tasks
+          description: Open tasks from the selected registry
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OpenTasksResponse"
+                $ref: "#/components/schemas/TaskList"
               example:
-                count: 2
                 tasks:
-                  - id: "42"
+                  - id: v2:standard:42
+                    market: standard
+                    registryAddress: "0x…"
                     state: POSTED
-                    escrowAmountAzl: "500000000000000000000"
-                    taskAmountAzl: "500000000000000000000"
-                    createdAt: 1719859200
-                    updatedAt: 1719859200
-                    poster: null
-        "429":
-          description: Base RPC unavailable (may retry)
+                    totalAmountAzlWei: "500000000000000000000"
+                    fundedAzlWei: "0"
+                    releasedAzlWei: "0"
+                meta:
+                  protocolVersion: v2
+                  asset: AZL
+                  market: standard
+                  source: base-rpc
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /api/market/recent:
+    get:
+      operationId: listRecentTasks
+      tags: [market]
+      summary: List recent tasks from one market
+      parameters:
+        - $ref: "#/components/parameters/Market"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Recent tasks
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-
+                $ref: "#/components/schemas/TaskList"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/Unavailable"
   /api/market/task:
     get:
       operationId: getTask
       tags: [market]
-      summary: Task detail by id
+      summary: Read one strictly namespaced task
       parameters:
         - name: id
           in: query
           required: true
           schema:
-            type: string
-          description: Onchain task id (uint256)
-        - name: taskId
-          in: query
-          schema:
-            type: string
-          description: Alias for `id`
+            $ref: "#/components/schemas/TaskId"
+        - $ref: "#/components/parameters/Market"
       responses:
         "200":
-          description: Task found
+          description: Task detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TaskDetailResponse"
+                type: object
+                required: [task]
+                properties:
+                  task:
+                    $ref: "#/components/schemas/Task"
         "400":
-          description: Missing or invalid id
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: Task id required
+          $ref: "#/components/responses/BadRequest"
         "404":
           description: Task not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-              example:
-                error: Task not found
-
+  /api/poster/tasks:
+    get:
+      operationId: listPosterTasks
+      tags: [market]
+      summary: List a poster's tasks from one market
+      parameters:
+        - $ref: "#/components/parameters/Address"
+        - $ref: "#/components/parameters/Market"
+      responses:
+        "200":
+          description: Poster tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks]
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/get-market-ledger:
+    get:
+      operationId: getMarketLedger
+      tags: [market]
+      summary: Summarize one wallet's task ledger on one market
+      parameters:
+        - $ref: "#/components/parameters/Address"
+        - $ref: "#/components/parameters/Market"
+      responses:
+        "200":
+          description: Market-isolated AZL ledger
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [market, registryAddress]
+                properties:
+                  market:
+                    $ref: "#/components/schemas/Market"
+                  registryAddress:
+                    $ref: "#/components/schemas/Address"
+                additionalProperties: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/Unavailable"
   /api/site-config:
     get:
       operationId: getSiteConfig
       tags: [config]
-      summary: Chain, contract addresses, posting plans
+      summary: Read chain and selected-market configuration
+      parameters:
+        - $ref: "#/components/parameters/Market"
       responses:
         "200":
-          description: Site configuration
+          description: Configuration using lower-camel manifest keys
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SiteConfig"
-
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /api/union/overview:
+    get:
+      operationId: getUnionOverview
+      tags: [union]
+      summary: Read one market's Union vault overview
+      parameters:
+        - $ref: "#/components/parameters/Market"
+      responses:
+        "200":
+          description: Market-isolated staking and Action Credit state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [market]
+                additionalProperties: true
+                properties:
+                  market:
+                    $ref: "#/components/schemas/Market"
+  /api/union/leaderboard:
+    get:
+      operationId: getUnionLeaderboard
+      tags: [union]
+      summary: Read one market's Union leaderboard
+      parameters:
+        - $ref: "#/components/parameters/Market"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Market-isolated leaderboard
   /api/posting/quota:
     get:
       operationId: getPostingQuota
       tags: [posting]
-      summary: Daily posting quota for a wallet
+      summary: Read a wallet's daily quota for one market
       parameters:
-        - name: address
-          in: query
-          required: true
-          schema:
-            type: string
-            pattern: "^0x[a-fA-F0-9]{40}$"
+        - $ref: "#/components/parameters/Address"
+        - $ref: "#/components/parameters/Market"
       responses:
         "200":
-          description: Quota status
+          description: Quota keyed by market and address
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PostingQuota"
-              example:
-                tier: free
-                plan: Free
-                used: 1
-                limit: 3
-                remaining: 2
-                canPost: true
-                tierExpiresAt: null
-                upgradeAvailable: true
         "400":
-          description: Missing address
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-              example:
-                error: Wallet address required
-
+          $ref: "#/components/responses/BadRequest"
   /api/posting/check:
     post:
       operationId: checkCanPost
       tags: [posting]
-      summary: Assert poster can post (quota gate)
+      summary: Assert quota availability on one market
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [address]
-              properties:
-                address:
-                  type: string
-                  pattern: "^0x[a-fA-F0-9]{40}$"
+              $ref: "#/components/schemas/MarketAddressBody"
       responses:
         "200":
           description: Allowed
@@ -182,286 +234,299 @@ paths:
                 $ref: "#/components/schemas/PostingQuota"
         "429":
           description: Quota exceeded
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/QuotaError"
-
-  /api/poster/tasks:
-    get:
-      operationId: listPosterTasks
-      tags: [market]
-      summary: Tasks posted by a wallet
-      parameters:
-        - name: address
-          in: query
-          required: true
-          schema:
-            type: string
-            pattern: "^0x[a-fA-F0-9]{40}$"
-      responses:
-        "200":
-          description: Poster tasks
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  tasks:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/OpenTask"
-
   /api/posting/record:
     post:
       operationId: recordPost
       tags: [posting]
-      summary: Record a post against daily quota
+      summary: Record a strictly namespaced task against one market's quota
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [address]
-              properties:
-                address:
-                  type: string
-                taskId:
-                  type: string
-                txHash:
-                  type: string
+              allOf:
+                - $ref: "#/components/schemas/MarketAddressBody"
+                - type: object
+                  required: [taskId]
+                  properties:
+                    taskId:
+                      $ref: "#/components/schemas/TaskId"
+                    txHash:
+                      type: string
+                      pattern: "^0x[a-fA-F0-9]{64}$"
       responses:
         "200":
-          description: Quota updated
+          description: Updated quota
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PostingQuota"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "429":
           description: Quota exceeded
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/QuotaError"
-
   /api/posting/quote:
     get:
       operationId: getUpgradeQuote
       tags: [posting]
-      summary: AZL upgrade quote
+      summary: Get an AZL site-plan quote for one market
       parameters:
-        - name: address
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: tier
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [basic, premium, enterprise]
+        - $ref: "#/components/parameters/Address"
+        - $ref: "#/components/parameters/Market"
+        - $ref: "#/components/parameters/Tier"
         - name: payWith
           in: query
           schema:
             type: string
+            enum: [azl]
             default: azl
       responses:
         "200":
-          description: Quote
-
+          description: Site-plan quote; not task escrow or protocol collateral
   /api/posting/azl-preview:
     get:
       operationId: getAzlPreview
       tags: [posting]
-      summary: AZL/USD price preview for plan checkout
+      summary: Preview an AZL site-plan payment for one market
       parameters:
-        - name: tier
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [basic, premium, enterprise]
+        - $ref: "#/components/parameters/Market"
+        - $ref: "#/components/parameters/Tier"
       responses:
         "200":
-          description: Price preview
-
+          description: Site-plan payment preview
   /api/posting/upgrade:
     post:
       operationId: applyUpgrade
       tags: [posting]
-      summary: Verify payment and upgrade posting tier
+      summary: Verify a site-plan payment for one market
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [address, tier, txHash]
-              properties:
-                address:
-                  type: string
-                tier:
-                  type: string
-                txHash:
-                  type: string
-                payWith:
-                  type: string
-                  default: azl
+              allOf:
+                - $ref: "#/components/schemas/MarketAddressBody"
+                - type: object
+                  required: [tier, txHash]
+                  properties:
+                    tier:
+                      type: string
+                      enum: [basic, premium, enterprise]
+                    txHash:
+                      type: string
+                      pattern: "^0x[a-fA-F0-9]{64}$"
+                    payWith:
+                      type: string
+                      enum: [azl]
+                      default: azl
       responses:
         "200":
-          description: Upgraded
+          description: Updated quota
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PostingQuota"
-
-  /api/role-chat:
+  /api/post-delivery-receipt:
     post:
-      operationId: roleChat
-      tags: [config]
-      summary: LLM role chat proxy (server-side BANKR_API_KEY)
+      operationId: postDeliveryReceipt
+      tags: [market]
+      summary: Record offchain delivery metadata for one namespaced task
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [system, messages]
+              required: [taskId, market, receipt]
               properties:
-                system:
-                  type: string
-                messages:
-                  type: array
-                  items:
-                    type: object
+                taskId:
+                  $ref: "#/components/schemas/TaskId"
+                market:
+                  $ref: "#/components/schemas/Market"
+                receipt:
+                  type: object
+                  additionalProperties: true
+              additionalProperties: true
       responses:
         "200":
-          description: LLM response
-          content:
-            application/json:
-              example:
-                text: "What's your deadline?"
-                model: deepseek-v4-flash
-        "503":
-          description: BANKR_API_KEY not configured
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
+          description: Receipt including market, taskId, and registryAddress
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          description: Receipt failed validation
 components:
+  parameters:
+    Market:
+      name: market
+      in: query
+      schema:
+        $ref: "#/components/schemas/Market"
+      description: Selects one isolated deployment graph. Defaults to standard.
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 100
+    Address:
+      name: address
+      in: query
+      required: true
+      schema:
+        $ref: "#/components/schemas/Address"
+    Tier:
+      name: tier
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [basic, premium, enterprise]
+  responses:
+    BadRequest:
+      description: Invalid market, identifier, or request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unavailable:
+      description: Base RPC or upstream service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
+    Market:
+      type: string
+      enum: [standard, micro]
+      default: standard
+    TaskId:
+      type: string
+      pattern: "^v2:(standard|micro):[1-9][0-9]*$"
+      examples: [v2:standard:42, v2:micro:7]
+    Address:
+      type: string
+      pattern: "^0x[a-fA-F0-9]{40}$"
     Error:
       type: object
+      required: [error]
       properties:
         error:
           type: string
-    QuotaError:
-      allOf:
-        - $ref: "#/components/schemas/Error"
-        - type: object
-          properties:
-            quota:
-              $ref: "#/components/schemas/PostingQuota"
-    OpenTask:
+        message:
+          type: string
+    Task:
       type: object
+      required: [id, market, registryAddress, state]
       properties:
         id:
-          type: string
+          $ref: "#/components/schemas/TaskId"
+        market:
+          $ref: "#/components/schemas/Market"
+        registryAddress:
+          $ref: "#/components/schemas/Address"
         state:
           type: string
           enum: [NONE, POSTED, CLAIMED, ACTIVE, DISPUTED, COMPLETED, CANCELLED, RESOLVED]
-        escrowAmountAzl:
+        totalAmountAzlWei:
           type: string
-          description: AZL escrow amount in 18-decimal base units
-        taskAmountAzl:
+          pattern: "^[0-9]+$"
+          description: Total task amount in AZL wei
+        fundedAzlWei:
           type: string
-          description: Total task amount in AZL 18-decimal base units
-        createdAt:
-          type: integer
-        updatedAt:
-          type: integer
-        poster:
+          pattern: "^[0-9]+$"
+        releasedAzlWei:
           type: string
-          nullable: true
-    OpenTasksResponse:
+          pattern: "^[0-9]+$"
+      additionalProperties: true
+    TaskList:
       type: object
+      required: [tasks]
       properties:
         count:
           type: integer
         tasks:
           type: array
           items:
-            $ref: "#/components/schemas/OpenTask"
-    TaskDetailResponse:
-      type: object
-      properties:
-        task:
-          type: object
-          additionalProperties: true
-    SiteConfig:
-      type: object
-      properties:
-        chainId:
-          type: integer
-          example: 8453
-        chainName:
-          type: string
-          example: Base
-        rpcUrl:
-          type: string
-        contracts:
+            $ref: "#/components/schemas/Task"
+        meta:
           type: object
           properties:
-            usdc:
+            protocolVersion:
               type: string
-              description: External USD reference token; not task escrow or v2 collateral
-            azlToken:
+              const: v2
+            asset:
               type: string
-            taskRegistry:
+              const: AZL
+            market:
+              $ref: "#/components/schemas/Market"
+            source:
               type: string
-            depositVault:
-              type: string
-            treasuryRouter:
-              type: string
-            escrowVault:
-              type: string
-            stakingVault:
-              type: string
-            arbitrationModule:
-              type: string
-            usdOracle:
-              type: string
-            pricingPolicy:
-              type: string
-            TaskScopeRegistry:
-              type: string
-              nullable: true
-        postingPlans:
-          type: array
-          items:
-            type: object
+              const: base-rpc
+    MarketAddressBody:
+      type: object
+      required: [address, market]
+      properties:
+        address:
+          $ref: "#/components/schemas/Address"
+        market:
+          $ref: "#/components/schemas/Market"
     PostingQuota:
       type: object
+      required: [market, tier, used, canPost]
       properties:
+        market:
+          $ref: "#/components/schemas/Market"
         tier:
-          type: string
-        plan:
           type: string
         used:
           type: integer
         limit:
-          type: integer
-          nullable: true
+          type: [integer, "null"]
         remaining:
-          type: integer
-          nullable: true
+          type: [integer, "null"]
         canPost:
           type: boolean
-        tierExpiresAt:
+      additionalProperties: true
+    SiteConfig:
+      type: object
+      required: [chainId, market, live, contracts, taskUnit]
+      properties:
+        chainId:
+          type: integer
+          const: 8453
+        chainName:
           type: string
-          nullable: true
-        upgradeAvailable:
+          const: Base
+        market:
+          $ref: "#/components/schemas/Market"
+        live:
           type: boolean
+        taskUnit:
+          type: string
+          const: AZL
+        contracts:
+          type: object
+          description: Selected manifest addresses using lower-camel keys.
+          properties:
+            azlToken: { $ref: "#/components/schemas/Address" }
+            taskRegistry: { $ref: "#/components/schemas/Address" }
+            depositVault: { $ref: "#/components/schemas/Address" }
+            escrowVault: { $ref: "#/components/schemas/Address" }
+            paymentGateway: { $ref: "#/components/schemas/Address" }
+            stakingVault: { $ref: "#/components/schemas/Address" }
+            reputationRegistry: { $ref: "#/components/schemas/Address" }
+            arbitrationModule: { $ref: "#/components/schemas/Address" }
+            taskScopeRegistry: { $ref: "#/components/schemas/Address" }
+            usdOracle: { $ref: "#/components/schemas/Address" }
+            pricingPolicy: { $ref: "#/components/schemas/Address" }
+          additionalProperties: true
+        economics:
+          type: object
+          description: Selected-market USD policy targets; protocol settlement remains AZL wei.
+        markets:
+          type: object
+          properties:
+            standard: { type: object }
+            micro: { type: object }

@@ -5,7 +5,10 @@
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
   const lowPower = window.matchMedia("(max-width: 700px), (pointer: coarse)");
   const lightTheme = document.documentElement.dataset.theme === "light";
-  if (reduce.matches) return;
+  if (reduce.matches || lowPower.matches) {
+    bg.style.display = "none";
+    return;
+  }
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
   const lerp = (a, b, t) => a + (b - a) * t;

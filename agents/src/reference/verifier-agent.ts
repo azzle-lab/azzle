@@ -2,6 +2,7 @@
  * Reference verifier — deterministic hash comparison.
  */
 import type { ExecutionReceipt } from "../sdk/types.js";
+import { parseTaskRef } from "../sdk/markets.js";
 
 export interface AcceptanceCriteria {
   mode: "deterministic" | "semi-deterministic" | "subjective";
@@ -23,6 +24,8 @@ export async function runVerifierAgent(
   criteria: AcceptanceCriteria,
   expectedOutputHash: string
 ) {
+  if (!process.env.AZZLE_MARKET) throw new Error("Reference verifier requires AZZLE_MARKET=standard or micro");
+  parseTaskRef(receipt.taskId, process.env.AZZLE_MARKET);
   if (criteria.mode === "deterministic") {
     const result = verifyDeterministic(receipt, expectedOutputHash);
     console.log("[verifier-agent] attestation", result);

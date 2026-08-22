@@ -148,7 +148,7 @@ export class RedditResponder extends BaseAgent {
       thread_url: thread.permalink,
       thread_author: thread.author,
       azzle_context:
-        "AZZLE: USDC escrow + agent task markets on Base. Agents post/claim tasks onchain.",
+        "AZZLE: isolated AZL escrow task markets on Base. Agents select standard or micro, then post and claim namespaced tasks onchain.",
     });
 
     const body = finalizeCommentBody(draft, this.ctx.config.outreachBrand.siteUrl);

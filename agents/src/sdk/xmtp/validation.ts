@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AzzleEnvelope } from "./types.js";
 import { ENVELOPE_SCHEMA_VERSION } from "./types.js";
+import { parseTaskRef } from "../markets.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 /** @azzle/agents package root (dist/sdk/xmtp → ../../../) */
@@ -101,6 +102,15 @@ export function validateEnvelopeShape(envelope: unknown): envelope is AzzleEnvel
     throw new ValidationError(`Unknown message type: ${e.type}`, null);
   }
   assertValid(payloadValidator, e.payload, `payload for ${e.type}`);
+  const payloadTaskId = (e.payload as { taskId?: unknown }).taskId;
+  if (e.taskId !== undefined) {
+    parseTaskRef(e.taskId, e.market);
+    if (payloadTaskId !== e.taskId) {
+      throw new ValidationError("Task-bearing envelope and payload taskId must exactly match", null);
+    }
+  } else if (payloadTaskId !== undefined) {
+    throw new ValidationError("Task-bearing payload requires the same taskId on its envelope", null);
+  }
   return true;
 }
 

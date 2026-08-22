@@ -25,7 +25,14 @@ interface IUsdOracleGraphV2 {
     function sequencerUptimeFeed() external view returns (address);
     function maxFeedAge() external view returns (uint256);
 }
-interface IPricingPolicyGraphV2 { function oracle() external view returns (address); }
+interface IPricingPolicyGraphV2 {
+    function oracle() external view returns (address);
+    function entryDepositUsd6() external view returns (uint256);
+    function liveTaskReserveUsd6() external view returns (uint256);
+    function accessFeeUsd6() external view returns (uint256);
+    function exitCompensationUsd6() external view returns (uint256);
+    function exitProtocolShareUsd6() external view returns (uint256);
+}
 interface IFirstLegV2 {
     function usdc() external view returns (address);
     function weth() external view returns (address);
@@ -53,6 +60,8 @@ interface IGatewayGraphV2 {
     function executor() external view returns (address);
     function custodyVault() external view returns (address);
     function intakePaused() external view returns (bool);
+    function maxUsdcInput6() external view returns (uint256);
+    function maxEthInput() external view returns (uint256);
     function setIntakePaused(bool paused) external;
 }
 interface IDepositGraphV2 {
@@ -87,6 +96,8 @@ interface IStakingGraphV2 {
     function treasury() external view returns (address);
     function registry() external view returns (address);
     function rewardDuration() external view returns (uint256);
+    function creditCap() external view returns (uint256);
+    function creditBaseStake() external view returns (uint256);
     function setTreasury(address treasury) external;
     function setRegistry(address registry) external;
     function validateGraph() external view returns (bool);
@@ -99,6 +110,7 @@ interface IRegistryGraphV2 {
     function usdOracle() external view returns (address);
     function staking() external view returns (address);
     function openTaskCapUsd6() external view returns (uint256);
+    function maxTaskUsd6() external view returns (uint256);
     function scopeRegistry() external view returns (address);
     function configureArbitration(address arbitration) external;
     function configureStaking(address staking) external;

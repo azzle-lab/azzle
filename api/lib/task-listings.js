@@ -5,6 +5,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { parseTaskRef, requireLiveMarket } from "./markets.js";
 
 const ROOT = process.cwd();
 const DATA_DIR = process.env.VERCEL
@@ -56,12 +57,6 @@ async function saveAll(store) {
   await writeFile(LISTINGS_PATH, JSON.stringify(store, null, 2), "utf8");
 }
 
-function parseTaskId(raw) {
-  const id = String(raw ?? "").trim();
-  if (!/^\d+$/.test(id)) throw new Error("Invalid task id");
-  return id;
-}
-
 /**
  * @param {object} input
  * @param {string|number} input.taskId
@@ -72,12 +67,17 @@ function parseTaskId(raw) {
  * @param {string} [input.txHash]
  */
 export async function saveTaskListing(input) {
-  const taskId = parseTaskId(input.taskId);
+  const ref = parseTaskRef(input.taskId);
+  const { manifest } = requireLiveMarket(ref.market);
+  const taskId = ref.id;
   const description = String(input.description ?? "").trim().slice(0, MAX_DESCRIPTION);
   if (!description) return null;
 
   const listing = {
+    id: taskId,
     taskId,
+    market: ref.market,
+    registryAddress: manifest.taskRegistry,
     description,
     budgetUsdc:
       input.budgetUsdc != null && Number.isFinite(Number(input.budgetUsdc))
@@ -101,7 +101,11 @@ export async function saveTaskListing(input) {
 }
 
 export async function getTaskListing(taskIdRaw) {
-  const taskId = parseTaskId(taskIdRaw);
+  const ref = parseTaskRef(taskIdRaw);
+  const { manifest } = requireLiveMarket(ref.market);
   const store = await loadAll();
-  return store.listings?.[taskId] ?? null;
+  const listing = store.listings?.[ref.id] ?? null;
+  if (!listing) return null;
+  if (listing.market !== ref.market || listing.registryAddress !== manifest.taskRegistry) return null;
+  return listing;
 }

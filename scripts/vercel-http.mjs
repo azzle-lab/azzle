@@ -28,7 +28,7 @@ export function sendApiResult(res, result) {
   const headers = result.headers ?? { "Content-Type": "application/json", ...CORS };
   if (result.json == null) {
     res.writeHead(result.status, headers);
-    res.end();
+    res.end(result.text ?? "");
     return;
   }
   res.writeHead(result.status, headers);

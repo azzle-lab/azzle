@@ -21,10 +21,11 @@ export default async function handler(req, res) {
     res.end(JSON.stringify({ error: "address_required" }));
     return;
   }
+  const market = url.searchParams.get("market") ?? "standard";
   try {
     const [posterTasks, workerTasks] = await Promise.all([
-      listV2Tasks({ limit: 100, poster: address, state: undefined }),
-      listV2Tasks({ limit: 100, worker: address, state: undefined }),
+      listV2Tasks({ limit: 100, poster: address, state: undefined, market }),
+      listV2Tasks({ limit: 100, worker: address, state: undefined, market }),
     ]);
     const seen = new Set();
     const tasks = [...posterTasks.tasks, ...workerTasks.tasks].filter((task) => {
@@ -32,11 +33,12 @@ export default async function handler(req, res) {
       seen.add(task.id);
       return true;
     });
-    const ledger = summarizeLedger(tasks, address);
+    const ledger = summarizeLedger(tasks, address, market);
     res.writeHead(200, { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, s-maxage=30" });
     res.end(JSON.stringify(ledger));
   } catch (error) {
-    res.writeHead(503, { ...CORS, "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "v2_unavailable", message: error?.message ?? String(error) }));
+    const message = error?.message ?? String(error);
+    res.writeHead(/^Unknown market /.test(message) ? 400 : 503, { ...CORS, "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "v2_unavailable", message }));
   }
 }

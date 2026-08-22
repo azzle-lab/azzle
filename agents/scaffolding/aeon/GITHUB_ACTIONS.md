@@ -36,7 +36,7 @@ flowchart LR
 
 ```yaml
 skills:
-  azzle-market: { enabled: true, schedule: "0 8 * * *", var: "" }
+  azzle-market: { enabled: true, schedule: "0 8 * * *", market: standard, var: "" }
   azzle-worker: { enabled: false, schedule: "workflow_dispatch", var: "" }
 ```
 
@@ -51,9 +51,9 @@ From your Aeon fork:
 
 ```bash
 # Daily digest now
-gh workflow run aeon.yml -f skill=azzle-market
+gh workflow run aeon.yml -f skill=azzle-market -f var='market=standard'
 
-# Evaluate a specific task
+# Evaluate a specific namespaced task in its configured market
 gh workflow run aeon.yml -f skill=azzle-worker -f var=12345
 
 # Or use the AZZLE wrapper workflow (dropdown in Actions UI)

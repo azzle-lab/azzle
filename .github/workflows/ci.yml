@@ -59,7 +59,24 @@ jobs:
           cache-dependency-path: agents/package-lock.json
       - run: npm ci
       - run: npm run build
-      - run: npm run validate:schemas
+      - run: node scripts/validate-xmtp-schemas.mjs
+      - run: git diff --exit-code
+
+  force:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: azzle-force
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: azzle-force/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: git diff --exit-code
 
   surfaces:
     runs-on: ubuntu-latest
@@ -71,6 +88,13 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
-      - run: npm run sync:manifest-surfaces
+      - run: npm run check:manifest-surfaces
+      - run: npm run check:site-addresses
+      - run: npm run check:site-config
+      - run: npm run check:bankr-skill
       - run: npm run check:protocol-surface
+      - run: npm run check:v2-docs
+      - run: npm run check:openapi
+      - run: npm run check:site-links
       - run: npm run build
+      - run: git diff --exit-code

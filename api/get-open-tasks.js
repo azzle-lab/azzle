@@ -28,10 +28,11 @@ export default async function handler(req, res) {
     const host = req.headers?.host || "azzle.org";
     const url = new URL(req.url || "/api/get-open-tasks", "https://" + host);
     const limit = url.searchParams.get("limit");
-    const result = await listV2Tasks({ limit, state: "POSTED" });
+    const result = await listV2Tasks({ limit, state: "POSTED", market: url.searchParams.get("market") });
 
     sendJson(res, 200, result, { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" });
   } catch (err) {
-    sendJson(res, 502, { error: err?.message ?? String(err) });
+    const message = err?.message ?? String(err);
+    sendJson(res, /^Unknown market /.test(message) ? 400 : 502, { error: message });
   }
 }

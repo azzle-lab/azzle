@@ -7,6 +7,7 @@ import { baseCfg } from "./manifest.mjs";
 import { PLANS, AZL_PAY_DISCOUNT } from "./posting-plans.mjs";
 import { buildSiteConfigResponse } from "./site-config-handler.mjs";
 import { CORS, apiJson } from "./vercel-http.mjs";
+import { normalizeMarket, parseTaskRef } from "../api/lib/markets.js";
 
 export { loadEnvFile, loadManifest } from "./manifest.mjs";
 export { sendApiResult } from "./vercel-http.mjs";
@@ -21,6 +22,63 @@ async function azlPrice() {
 
 async function posterTasksMod() {
   return import("./poster-tasks.mjs");
+}
+
+function isBadBoundaryInput(error) {
+  return /^Unknown market |^Bare numeric task ids|^Unscoped task id|^Invalid task id|market does not match/.test(
+    error?.message ?? String(error)
+  );
+}
+
+async function handleSnap({ method, searchParams, body, headers, origin }) {
+  const { getVoteState, recordVote } = await import("../api/lib/snap-state.js");
+  const { buildSnapPayload, snapFallbackHtml } = await import("../api/lib/snap-payload.js");
+  const { SNAP_ACCEPT, SNAP_CORS, snapHtmlHeaders, snapJsonHeaders } = await import("../api/lib/snap-http.js");
+  const snapUrl = `${String(origin || "http://localhost:8080").replace(/\/$/, "")}/snap`;
+  const snapId = searchParams.get("i") || searchParams.get("id") || "global";
+  const variant = searchParams.get("v") || searchParams.get("variant") || null;
+  if (method === "OPTIONS") return { status: 204, headers: SNAP_CORS, json: null };
+  if (searchParams.get("health") === "1") {
+    const state = await getVoteState(snapId);
+    return {
+      status: 200,
+      headers: { ...SNAP_CORS, "Content-Type": "application/json" },
+      json: { ok: true, snapUrl, snapId, votes: { human: state.human, agent: state.agent } },
+    };
+  }
+  const fidValue = body?.user?.fid ?? body?.authenticatedUser?.fid ?? body?.fid;
+  const fid = fidValue != null ? Number(fidValue) : null;
+  if (method === "POST") {
+    const action = searchParams.get("action");
+    if (action === "human" || action === "agent") await recordVote(action, fid, snapId);
+    const state = await getVoteState(snapId);
+    return {
+      status: 200,
+      headers: snapJsonHeaders(snapUrl),
+      json: buildSnapPayload(state, { fid, snapUrl, snapId, variant }),
+    };
+  }
+  if (method !== "GET") {
+    return {
+      status: 405,
+      headers: { ...SNAP_CORS, "Content-Type": "application/json" },
+      json: { error: "method_not_allowed" },
+    };
+  }
+  if (String(headers?.accept || "").includes(SNAP_ACCEPT)) {
+    const state = await getVoteState(snapId);
+    return {
+      status: 200,
+      headers: snapJsonHeaders(snapUrl),
+      json: buildSnapPayload(state, { snapUrl, snapId, variant }),
+    };
+  }
+  return {
+    status: 200,
+    headers: snapHtmlHeaders(snapUrl),
+    json: null,
+    text: snapFallbackHtml(snapUrl, { snapId, variant }),
+  };
 }
 
 async function proxyRoleChat(body) {
@@ -70,10 +128,14 @@ async function proxyRoleChat(body) {
 }
 
 /**
- * @param {{ method: string, pathname: string, searchParams: URLSearchParams, body?: unknown }} req
+ * @param {{ method: string, pathname: string, searchParams: URLSearchParams, body?: unknown, headers?: object, origin?: string }} req
  */
-export async function handleSiteApi({ method, pathname, searchParams, body = {} }) {
+export async function handleSiteApi({ method, pathname, searchParams, body = {}, headers = {}, origin }) {
   const { BANKR_KEY, BANKR_BASE, MODEL, MANIFEST, BILLING_WALLET, BASE_RPC } = baseCfg();
+
+  if (pathname === "/snap" || pathname === "/snap/" || pathname === "/api/snap") {
+    return handleSnap({ method, searchParams, body, headers, origin });
+  }
 
   if (method === "OPTIONS") {
     return { status: 204, headers: CORS, json: null };
@@ -89,14 +151,25 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
     }
 
     if (method === "GET" && pathname === "/api/site-config") {
-      return buildSiteConfigResponse();
+      return buildSiteConfigResponse(searchParams);
     }
 
     if (method === "GET" && pathname === "/api/union/overview") {
       try {
         const { getUnionOverview } = await import("../api/lib/union-staking.js");
-        return apiJson(200, await getUnionOverview(), {
+        return apiJson(200, await getUnionOverview(searchParams.get("market") ?? "standard"), {
           "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+        });
+      } catch (e) {
+        return apiJson(502, { error: e.message ?? String(e) });
+      }
+    }
+
+    if (method === "GET" && (pathname === "/api/union/leaderboard" || pathname === "/api/get-union-leaderboard")) {
+      try {
+        const { getUnionLeaderboard } = await import("../api/lib/union-staking.js");
+        return apiJson(200, await getUnionLeaderboard(searchParams.get("market") ?? "standard"), {
+          "Cache-Control": "no-store, max-age=0",
         });
       } catch (e) {
         return apiJson(502, { error: e.message ?? String(e) });
@@ -139,7 +212,7 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       try {
         if (payWith !== "azl") throw new Error("Only payWith=azl is supported for quotes.");
         const { createUpgradeQuote } = await postingLimits();
-        const quote = await createUpgradeQuote({ address, tier });
+        const quote = await createUpgradeQuote({ address, tier, market: searchParams.get("market") });
         return apiJson(200, quote);
       } catch (e) {
         return apiJson(400, { error: e.message ?? String(e) });
@@ -157,22 +230,22 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       }
     }
 
-    if (method === "GET" && pathname === "/api/posting/quota") {
+    if (method === "GET" && (pathname === "/api/posting/quota" || pathname === "/api/get-posting-quota")) {
       const address = searchParams.get("address");
       try {
         const { getQuota } = await postingLimits();
-        const quota = await getQuota(address);
+        const quota = await getQuota(address, searchParams.get("market"));
         return apiJson(200, quota);
       } catch (e) {
         return apiJson(400, { error: e.message ?? String(e) });
       }
     }
 
-    if (method === "GET" && pathname === "/api/poster/tasks") {
+    if (method === "GET" && (pathname === "/api/poster/tasks" || pathname === "/api/get-poster-tasks")) {
       const address = searchParams.get("address");
       try {
         const { getPosterTasks } = await posterTasksMod();
-        const tasks = await getPosterTasks(address);
+        const tasks = await getPosterTasks(address, searchParams.get("market"));
         return apiJson(200, { tasks });
       } catch (e) {
         return apiJson(400, { error: e.message ?? String(e) });
@@ -195,25 +268,26 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
           verificationMode: searchParams.get("verificationMode") ?? undefined,
           beforeDeadline: searchParams.get("beforeDeadline") ?? undefined,
           metadataUri: searchParams.get("metadataUri") ?? undefined,
+          market: searchParams.get("market") ?? undefined,
         });
         return apiJson(200, result, {
           "Cache-Control": "no-store",
         });
       } catch (e) {
-        return apiJson(503, { error: "v2_unavailable", message: e.message ?? String(e) });
+        return apiJson(isBadBoundaryInput(e) ? 400 : 503, { error: "v2_unavailable", message: e.message ?? String(e) });
       }
     }
 
     if (method === "GET" && (pathname === "/api/get-open-tasks" || pathname === "/api/market/open")) {
       try {
-        const { getOpenTasks } = await import("../api/lib/open-tasks.js");
+        const { listV2Tasks } = await import("../api/lib/tasks-rpc-v2.js");
         const limit = searchParams.get("limit");
-        const tasks = await getOpenTasks(limit);
-        return apiJson(200, { tasks, count: tasks.length }, {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        const result = await listV2Tasks({ limit, state: "POSTED", market: searchParams.get("market") });
+        return apiJson(200, result, {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
         });
       } catch (e) {
-        return apiJson(502, { error: e.message ?? String(e) });
+        return apiJson(isBadBoundaryInput(e) ? 400 : 502, { error: e.message ?? String(e) });
       }
     }
 
@@ -221,12 +295,12 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       try {
         const { getRecentTasks } = await import("../api/lib/recent-tasks.js");
         const limit = searchParams.get("limit");
-        const tasks = await getRecentTasks(limit);
+        const tasks = await getRecentTasks(limit, searchParams.get("market"));
         return apiJson(200, { tasks, count: tasks.length }, {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         });
       } catch (e) {
-        return apiJson(502, { error: e.message ?? String(e) });
+        return apiJson(isBadBoundaryInput(e) ? 400 : 502, { error: e.message ?? String(e) });
       }
     }
 
@@ -235,11 +309,11 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
         const { getTaskDetail } = await import("../api/lib/task-detail.js");
         const id = searchParams.get("id") ?? searchParams.get("taskId");
         if (!id) return apiJson(400, { error: "Task id required" });
-        const task = await getTaskDetail(id);
+        const task = await getTaskDetail(id, searchParams.get("market") ?? undefined);
         if (!task) return apiJson(404, { error: "Task not found" });
         return apiJson(200, { task });
       } catch (e) {
-        return apiJson(503, { error: e.message ?? String(e) });
+        return apiJson(isBadBoundaryInput(e) ? 400 : 503, { error: e.message ?? String(e) });
       }
     }
 
@@ -270,6 +344,8 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
           description: body.description,
           budgetUsdc: body.budgetUsdc,
           deadlineDays: body.deadlineDays,
+          discoveryOpen: body.discoveryOpen,
+          market: body.market,
         });
         return apiJson(200, quota);
       } catch (e) {
@@ -278,38 +354,31 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       }
     }
 
-    if (method === "POST" && pathname === "/api/posting-check") {
-      try {
-        const { assertCanPost } = await postingLimits();
-        const quota = await assertCanPost(body.address);
-        return apiJson(200, quota);
-      } catch (e) {
-        return apiJson(429, { error: e.message, quota: e.quota ?? null });
-      }
-    }
-
     if (method === "POST" && (pathname === "/api/posting/check" || pathname === "/api/posting-check")) {
       try {
         const { assertCanPost } = await postingLimits();
-        const quota = await assertCanPost(body.address);
+        const quota = await assertCanPost(body.address, body.market);
         return apiJson(200, quota);
       } catch (e) {
-        return apiJson(429, { error: e.message, quota: e.quota ?? null });
+        return apiJson(e.code === "QUOTA_EXCEEDED" ? 429 : 400, { error: e.message, quota: e.quota ?? null });
       }
     }
 
     if (method === "POST" && pathname === "/api/posting/upgrade") {
       try {
-        if (!BILLING_WALLET) throw new Error("Billing wallet not configured on server.");
-        if (!MANIFEST?.external?.usdc) throw new Error("USDC address missing from V2 manifest.");
+        const selected = normalizeMarket(body.market);
+        const selectedCfg = baseCfg(selected);
+        if (!selectedCfg.BILLING_WALLET) throw new Error("Billing wallet not configured on server.");
+        if (!selectedCfg.MANIFEST?.external?.usdc) throw new Error("USDC address missing from V2 manifest.");
         const { applyUpgrade } = await postingLimits();
         const quota = await applyUpgrade({
           address: body.address,
+          market: selected,
           tier: body.tier,
           txHash: body.txHash,
-          billingWallet: BILLING_WALLET,
-          usdcAddress: MANIFEST.external.usdc,
-          azlAddress: MANIFEST.external.azl,
+          billingWallet: selectedCfg.BILLING_WALLET,
+          usdcAddress: selectedCfg.MANIFEST.external.usdc,
+          azlAddress: selectedCfg.MANIFEST.external.azl,
           rpcUrl: BASE_RPC,
           payWith: body.payWith ?? "usdc",
           quoteId: body.quoteId,
@@ -320,8 +389,72 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {} 
       }
     }
 
+    if (method === "GET" && pathname === "/api/get-market-ledger") {
+      try {
+        const address = searchParams.get("address");
+        if (!address) return apiJson(400, { error: "address_required" });
+        const market = normalizeMarket(searchParams.get("market"));
+        const { listV2Tasks } = await import("../api/lib/tasks-rpc-v2.js");
+        const { summarizeLedger } = await import("../api/lib/market-ledger.js");
+        const [posterTasks, workerTasks] = await Promise.all([
+          listV2Tasks({ limit: 100, poster: address, market }),
+          listV2Tasks({ limit: 100, worker: address, market }),
+        ]);
+        const seen = new Set();
+        const tasks = [...posterTasks.tasks, ...workerTasks.tasks].filter((task) => {
+          if (seen.has(task.id)) return false;
+          seen.add(task.id);
+          return true;
+        });
+        return apiJson(200, summarizeLedger(tasks, address, market), {
+          "Cache-Control": "public, s-maxage=30",
+        });
+      } catch (e) {
+        return apiJson(isBadBoundaryInput(e) ? 400 : 503, { error: "v2_unavailable", message: e.message ?? String(e) });
+      }
+    }
+
+    if (method === "POST" && pathname === "/api/post-delivery-receipt") {
+      try {
+        const ref = parseTaskRef(body.taskId);
+        if (body.market != null && ref.market !== normalizeMarket(body.market)) {
+          throw new Error("Task id market does not match selected market");
+        }
+        const { getTaskDetail } = await import("../api/lib/task-detail.js");
+        const { deliveryState, validateDeliveryReceipt } = await import("../api/lib/delivery-state.js");
+        const task = await getTaskDetail(ref.id, ref.market);
+        if (!task) return apiJson(404, { error: "task_not_found" });
+        const validation = validateDeliveryReceipt(body.receipt, ref.localId, task.worker);
+        return apiJson(validation.valid ? 200 : 422, {
+          protocolVersion: "v2",
+          market: ref.market,
+          taskId: ref.id,
+          registryAddress: task.registryAddress,
+          accepted: validation.valid,
+          validation,
+          delivery: deliveryState(task, body.receipt),
+          nextAction: validation.valid ? "worker_must_call_markDelivered_then_poster_releases" : "correct_receipt",
+        });
+      } catch (e) {
+        return apiJson(400, { error: "invalid_receipt", message: e.message ?? String(e) });
+      }
+    }
+
+    if (method === "POST" && pathname === "/api/wallet-swap") {
+      try {
+        const { handleWalletSwap } = await import("../api/lib/wallet-swap.js");
+        return apiJson(200, await handleWalletSwap(body, headers));
+      } catch (e) {
+        const status = e.status && e.status < 600 ? e.status : 400;
+        return apiJson(status, {
+          error: e.message ?? String(e),
+          ...(e.detail && e.detail !== e.message ? { detail: e.detail } : {}),
+        });
+      }
+    }
+
     return apiJson(404, { error: "not_found" });
   } catch (err) {
-    return apiJson(500, { error: err.message ?? String(err) });
+    return apiJson(isBadBoundaryInput(err) ? 400 : 500, { error: err.message ?? String(err) });
   }
 }

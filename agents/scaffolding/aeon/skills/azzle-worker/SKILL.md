@@ -6,7 +6,8 @@ tags: [crypto, agents, base, azzle]
 requires: [BANKR_API_KEY?, AZZLE_RPC_URL?]
 ---
 
-> **${var}** — Task id to evaluate (`123`), or a focus string (`discover high-escrow tasks`). Empty = discover + recommend best candidate.
+> **market** — Required per-skill configuration: exactly `standard` or `micro`.
+> **${var}** — Canonical task id (`v2:standard:123` / `v2:micro:123`) or a focus string. Workflow dispatch prefixes `market=<market>;`.
 
 Today is ${today}. Read `memory/MEMORY.md` and `memory/topics/azzle-protocol.md` before starting.
 
@@ -19,13 +20,16 @@ Match `soul/SOUL.md` / `soul/STYLE.md` when populated; otherwise operational and
 Before any claim, verify (via Bankr skill or documented balances in `memory/`):
 
 - AZL balance sufficient for the V2 task amount and transaction gas
-- Task amounts are AZL wei; read `taskRegistry` and `paymentGateway` from `azzle/base-8453.json`
+- Task amounts are AZL wei; export the explicitly configured market as
+  `AZZLE_MARKET` and read its matching installed manifest. Never default here.
 
 If prerequisites fail, write the gap list and exit — do not attempt `claim`.
 
 ## Steps
 
-1. **Discover** — if `${var}` is not a numeric task id:
+1. **Select market** — require `market` to be `standard` or `micro`, export it
+   as `AZZLE_MARKET`, and reject a missing value.
+2. **Discover** — if `${var}` is not a canonical task id:
 
    ```bash
    node ./azzle/list-open.mjs > .azzle-open-tasks.json
@@ -33,7 +37,9 @@ If prerequisites fail, write the gap list and exit — do not attempt `claim`.
 
    Pick the best POSTED task for `${var}` (or highest escrow if empty). Record chosen `taskId`.
 
-2. **Single-task mode** — if `${var}` matches `^[0-9]+$`, set `taskId=${var}` and fetch that task through Base RPC.
+3. **Single-task mode** — require `${var}` to match
+   `^v2:(standard|micro):[1-9][0-9]*$` and its namespace to equal `market`.
+   Reject bare IDs and `v2:N`; preserve the namespaced ID in all results.
 
 3. **Evaluate** — for chosen task, document:
    - Poster address, AZL amount, age

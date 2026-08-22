@@ -1,6 +1,6 @@
 # V2 RPC indexer schema
 
-Source addresses come only from [`contracts/deployments/base-8453.json`](../contracts/deployments/base-8453.json). Index from the manifest deployment block, key entities by chain ID plus address plus task ID, and treat chain reads as authoritative.
+Source addresses come only from the market manifest: [`contracts/deployments/base-8453.json`](../contracts/deployments/base-8453.json) (standard) or [`contracts/deployments/base-8453-micro.json`](../contracts/deployments/base-8453-micro.json) (micro). Index from the manifest deployment block, key entities by **chain ID + registry + task ID**, and treat chain reads as authoritative. External task ids are `v2:standard:N` or `v2:micro:N`.
 
 ## Task events
 

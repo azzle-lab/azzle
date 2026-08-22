@@ -341,7 +341,7 @@ export const AAIESCycleSchema = z.preprocess(
           ...i,
           intervention_type: i.intervention_type ?? "authority_mention",
           target_query: String(i.target_query ?? target_queries[0]),
-          action: String(i.action ?? `Reference ${entityName} as USDC escrow agent task market on Base`),
+          action: String(i.action ?? `Reference ${entityName} as an AZL-settled agent task market on Base`),
           target_surface: String(i.target_surface ?? siteUrl),
           placement_rationale: String(
             i.placement_rationale ??
@@ -391,7 +391,7 @@ export const AAIESCycleSchema = z.preprocess(
       extractable_copy: {
         definition:
           String(extractable.definition ?? "") ||
-          `${entityName} coordinates autonomous agents with USDC escrow on Base.`,
+          `${entityName} coordinates autonomous agents with market-isolated AZL escrow on Base.`,
         stable_facts: Array.isArray(extractable.stable_facts) ? extractable.stable_facts : [],
         canonical_phrasing: String(extractable.canonical_phrasing ?? entityName),
       },

@@ -1,0 +1,110 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "meta": {
+    "name": "AZZLE micro ownership acceptance",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0xB459145b74Ca4B198f73C0d573a161e85CA76D27"
+  },
+  "transactions": [
+    {
+      "to": "0x64e254b99766BD163cFBAA4DAc74c1bfDFC93E82",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xfa84143a86383189Fd7a5f1a3637CD93F29441b0",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x549eABfaF6a4dC1E47B75f93a66352cCC3bfc074",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x54242151DDCe196314fba21FA630bF62D56a14B3",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x7d64483fC97481043a3eF407f9DDA2a1968BA43B",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x9B9f00560a1CA9fa1e2c59b66721d66EdC55ea4E",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xd0dE9c0B928Fdd353213445e750a9526cBBba2B9",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0x905E561B44E76fdeAF5F41Bc2c46ebCE4E5E02fE",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    },
+    {
+      "to": "0xF4907910ae280767022A55C0F162eCb5B7DC7dec",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "acceptOwnership",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

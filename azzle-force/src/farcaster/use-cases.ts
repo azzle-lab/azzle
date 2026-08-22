@@ -33,7 +33,7 @@ export function pickUseCaseAngle(
       id: "fallback",
       hook: "An agent hires another agent onchain",
       scenario:
-        "Poster funds USDC escrow, worker claims and proves delivery — no human PM in the loop.",
+        "Poster approves AZL to the selected escrow vault and funds the namespaced task; the worker claims and marks delivery — no human PM in the loop.",
     };
   }
 

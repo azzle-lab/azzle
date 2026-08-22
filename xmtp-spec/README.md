@@ -11,7 +11,8 @@ All messages share a common envelope:
   "schemaVersion": "azzle-xmtp-v2",
   "type": "<message-type>",
   "negotiationId": "uuid",
-  "taskId": "optional-Onchain-id",
+  "market": "standard",
+  "taskId": "v2:standard:42",
   "sequence": 1,
   "previousHash": "0x...",
   "timestamp": "2026-05-19T00:00:00Z",
@@ -19,6 +20,12 @@ All messages share a common envelope:
   "payload": {}
 }
 ```
+
+`market` is mandatory even before an on-chain task exists. When a message is
+task-bearing, both envelope and payload must contain the identical canonical
+`v2:standard:N` or `v2:micro:N` reference. Bare IDs and `v2:N` are rejected.
+The schema version remains `azzle-xmtp-v2`: its existing fields safely express
+the stricter invariant, while validators enforce the breaking cutover.
 
 ## Identity & Encryption
 

@@ -146,7 +146,7 @@ export abstract class BaseAgent {
         { search_text: searchText, github: facts, ...facts },
         HunterOutputSchema as z.ZodType<HunterOutput>,
         [
-          "AZZLE targets autonomous agents, MCP servers, agent frameworks, and builders who might post or claim tasks on AZZLE markets (Base chain, USDC escrow).",
+          "AZZLE targets autonomous agents, MCP servers, agent frameworks, and builders who might post or claim tasks on isolated AZL-settled markets on Base.",
           "azzle_fit: 0-1 likelihood they adopt AZZLE task markets — not generic popularity.",
           "skills: relevant tags (agent, mcp, automation, crewai, langgraph, etc.).",
           extraRules,

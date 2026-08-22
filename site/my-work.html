@@ -9,27 +9,6 @@
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
     <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
@@ -38,12 +17,17 @@
       <li><a href="/my-tasks">My tasks</a></li><li><a href="/my-work" class="azzle-nav-on">My work</a></li>
       <li><a href="/wallet">Wallet</a></li><li><a href="/pricing">Pricing</a></li>
     </ul></div>
-    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.2" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a><a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a><div data-rd-wallet-mount></div><button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button></div>
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a><a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a><div data-rd-wallet-mount></div><button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button></div>
   </nav>
   <div class="rd-subpage-inner rd-subpage-inner--wide">
     <section class="rd-mytasks rd-command-page rd-command-page--work" id="rd-mywork">
       <div class="rd-checkout-head rd-mytasks-head"><div><span class="rd-page-kicker">WORKSPACE / CONTRIBUTOR</span><h4>My work</h4><p>Claimed work, funding status, private delivery notices, and settlement progress.</p></div><a href="/market" class="rd-action rd-action--primary rd-mytasks-new">Find work</a></div>
       <p class="rd-checkout-status" id="rd-mywork-status">Sign in (top right) to load claimed tasks.</p>
+      <div class="rd-market-view-seg" role="tablist" aria-label="Market filter">
+        <button type="button" class="rd-market-view-tab on" data-market-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="rd-market-view-tab" data-market-filter="standard" role="tab" aria-selected="false">Standard</button>
+        <button type="button" class="rd-market-view-tab" data-market-filter="micro" role="tab" aria-selected="false">Micro</button>
+      </div>
       <div class="rd-mytasks-list" id="rd-mywork-list" hidden></div>
       <p class="rd-mytasks-empty" id="rd-mywork-empty" hidden>No claimed tasks yet. <a href="/market">Browse the open market</a>.</p>
     </section>
@@ -61,6 +45,7 @@
   </form>
 </dialog>
 <script type="module" src="role-wallet.bundle.js"></script>
+<script src="markets.js"></script>
 <script src="my-work.js"></script><script src="azl-nav-ticker.js"></script><script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>
 </body></html>

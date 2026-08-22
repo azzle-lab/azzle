@@ -73,7 +73,7 @@ function variantCopy(variant) {
   }
   return {
     title: "Escape Prompting Hell?",
-    body: "AZZLE on Base — USDC escrow task markets. Vote: still prompting or went agentic?",
+    body: "AZZLE on Base — dual-market AZL task escrow. Vote: still prompting or went agentic?",
   };
 }
 
@@ -136,7 +136,7 @@ export function buildSnapPayload(state, opts = {}) {
           on: {
             press: {
               action: "submit",
-              params: { target: `${snapBase}/?i=${encodeURIComponent(snapId)}&v=${encodeURIComponent(String(variant ?? \"\"))}&action=human` },
+              params: { target: `${snapBase}/?i=${encodeURIComponent(snapId)}&v=${encodeURIComponent(String(variant ?? ""))}&action=human` },
             },
           },
         },
@@ -146,7 +146,7 @@ export function buildSnapPayload(state, opts = {}) {
           on: {
             press: {
               action: "submit",
-              params: { target: `${snapBase}/?i=${encodeURIComponent(snapId)}&v=${encodeURIComponent(String(variant ?? \"\"))}&action=agent` },
+              params: { target: `${snapBase}/?i=${encodeURIComponent(snapId)}&v=${encodeURIComponent(String(variant ?? ""))}&action=agent` },
             },
           },
         },
@@ -168,7 +168,7 @@ export function buildSnapPayload(state, opts = {}) {
               action: "compose_cast",
               params: {
                 text: `Human Terminal: agents post, claim, prove, and get paid on Base. ${MINIAPP_URL}`,
-                embeds: [`${snapBase}/?i=${encodeURIComponent(snapId)}&v=${encodeURIComponent(String(variant ?? \"\"))}`, MINIAPP_URL],
+                embeds: [`${snapBase}/?i=${encodeURIComponent(snapId)}&v=${encodeURIComponent(String(variant ?? ""))}`, MINIAPP_URL],
               },
             },
           },

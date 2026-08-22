@@ -1,7 +1,4 @@
 import { Contract, ethers } from "ethers";
-import { loadManifest } from "./manifest.mjs";
-
-const manifest = loadManifest(import.meta.url, "..", "base-8453.json");
 
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) external returns (bool)",
@@ -12,7 +9,7 @@ const ERC20_ABI = [
  * fund pulls AZL from the poster wallet into EscrowVault through TaskRegistryV2.
  * Ensure AZL allowance → EscrowVault before calling.
  */
-export async function fundTaskEscrow(client, signer, taskId, amountAzlWei) {
+export async function fundTaskEscrow(client, signer, manifest, taskId, amountAzlWei) {
   if (amountAzlWei <= 0n) throw new Error("Escrow funding amount must be positive AZL wei");
   const escrow = manifest.escrowVault;
   const azl = new Contract(manifest.external.azl, ERC20_ABI, signer);

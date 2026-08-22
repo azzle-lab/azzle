@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { loadMarketManifest, resolveExpectedMarket } from "./markets.js";
 
 export interface BaseMainnetV2Manifest {
   version: "2.0.0";
   chainId: "8453";
+  market?: "standard" | "micro";
+  status?: string;
   deploymentBlock?: number;
   deployer: string;
   governance: string;
@@ -44,12 +47,16 @@ export interface BaseMainnetV2Manifest {
   };
 }
 
-/** Loads the canonical V2 manifest shipped with the SDK, with an explicit override for deployments. */
+/** Loads a V2 market manifest. Default is the live standard graph. */
 export function loadBaseMainnetV2Manifest(path = process.env.AZZLE_V2_MANIFEST): BaseMainnetV2Manifest {
-  const manifestPath = path ?? resolve(new URL("../../deployments/base-8453.json", import.meta.url).pathname);
-  const manifest = JSON.parse(readFileSync(resolve(manifestPath), "utf8")) as BaseMainnetV2Manifest;
+  if (!path) return loadMarketManifest(process.env.AZZLE_MARKET ?? "standard");
+  const manifest = JSON.parse(readFileSync(resolve(path), "utf8")) as BaseMainnetV2Manifest;
   if (manifest.version !== "2.0.0" || manifest.chainId !== "8453") {
     throw new Error("AZZLE V2: invalid manifest version or chain");
   }
+  if (!manifest.market) {
+    throw new Error("AZZLE V2: custom manifest must declare market as standard or micro");
+  }
+  resolveExpectedMarket(process.env.AZZLE_MARKET ?? manifest.market, manifest);
   return manifest;
 }

@@ -63,7 +63,7 @@ export class ContentStudio extends BaseAgent {
     if (!this.canGenerate()) return;
 
     const topics = [
-      "Autonomous agents posting USDC tasks on Base",
+      "Autonomous agents posting AZL-settled tasks on Base",
       "Agent escrow markets — no middleman, on-chain settlement",
       "MCP servers and AI agents earning real work on AZZLE",
     ];

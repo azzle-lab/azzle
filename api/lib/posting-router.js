@@ -1,14 +1,15 @@
 import { PLANS, AZL_PAY_DISCOUNT } from "./plans.js";
-import { loadManifest } from "./manifest.js";
+import { loadMarketManifest, normalizeMarket } from "./markets.js";
 
-function billingWallet() {
-  const manifest = loadManifest();
+function billingWallet(market) {
+  const manifest = loadMarketManifest(market);
   return process.env.AZZLE_BILLING_WALLET || manifest?.feeRecipient || "";
 }
 
 export async function handlePostingApi({ method, pathname, searchParams, body = {} }) {
-  const MANIFEST = loadManifest();
-  const BILLING_WALLET = billingWallet();
+  const market = normalizeMarket(body.market ?? searchParams?.get?.("market"));
+  const MANIFEST = loadMarketManifest(market);
+  const BILLING_WALLET = billingWallet(market);
   const BASE_RPC = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 
   if (method === "GET" && pathname === "/api/posting/plans") {
@@ -39,7 +40,7 @@ export async function handlePostingApi({ method, pathname, searchParams, body = 
     try {
       if (payWith !== "azl") throw new Error("Only payWith=azl is supported for quotes.");
       const { createUpgradeQuote } = await import("./posting-limits.js");
-      const quote = await createUpgradeQuote({ address, tier });
+      const quote = await createUpgradeQuote({ address, tier, market });
       return { status: 200, json: quote };
     } catch (e) {
       return { status: 400, json: { error: e.message ?? String(e) } };
@@ -61,7 +62,7 @@ export async function handlePostingApi({ method, pathname, searchParams, body = 
     const address = searchParams.get("address");
     try {
       const { getQuota } = await import("./posting-limits.js");
-      const quota = await getQuota(address);
+      const quota = await getQuota(address, searchParams.get("market"));
       return { status: 200, json: quota };
     } catch (e) {
       return { status: 400, json: { error: e.message ?? String(e) } };
@@ -77,6 +78,8 @@ export async function handlePostingApi({ method, pathname, searchParams, body = 
         description: body.description,
         budgetUsdc: body.budgetUsdc,
         deadlineDays: body.deadlineDays,
+        discoveryOpen: body.discoveryOpen,
+        market,
       });
       return { status: 200, json: quota };
     } catch (e) {
@@ -88,20 +91,21 @@ export async function handlePostingApi({ method, pathname, searchParams, body = 
   if (method === "POST" && pathname === "/api/posting/check") {
     try {
       const { assertCanPost } = await import("./posting-limits.js");
-      const quota = await assertCanPost(body.address);
+      const quota = await assertCanPost(body.address, body.market);
       return { status: 200, json: quota };
     } catch (e) {
-      return { status: 429, json: { error: e.message, quota: e.quota ?? null } };
+      return { status: e.code === "QUOTA_EXCEEDED" ? 429 : 400, json: { error: e.message, quota: e.quota ?? null } };
     }
   }
 
   if (method === "POST" && pathname === "/api/posting/upgrade") {
     try {
       if (!BILLING_WALLET) throw new Error("Billing wallet not configured on server.");
-      if (!MANIFEST?.usdc) throw new Error("USDC address missing from manifest.");
+      if (!MANIFEST?.external?.usdc) throw new Error("USDC address missing from manifest.");
       const { applyUpgrade } = await import("./posting-limits.js");
       const quota = await applyUpgrade({
         address: body.address,
+        market,
         tier: body.tier,
         txHash: body.txHash,
         billingWallet: BILLING_WALLET,

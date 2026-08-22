@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "meta": {
+    "name": "AZZLE micro intake activation",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0xB459145b74Ca4B198f73C0d573a161e85CA76D27"
+  },
+  "prerequisites": [
+    "Accept all micro-graph ownership transfers.",
+    "Shared standard TWAP/USD oracle is already live.",
+    "Graph/manifest checks pass."
+  ],
+  "transactions": [
+    {
+      "to": "0xF4907910ae280767022A55C0F162eCb5B7DC7dec",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "name": "paused",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ],
+        "name": "setIntakePaused",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "paused": "false"
+      }
+    }
+  ]
+}

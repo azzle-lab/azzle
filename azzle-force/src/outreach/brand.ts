@@ -39,7 +39,9 @@ export function outreachBrandRules(brand: OutreachBrand): string {
     `Official brand: ${brand.fromName}. Website: ${brand.siteUrl} only.`,
     `Never use azzle.xyz, azzle.com, or any other domain.`,
     `If you include a link or signature, use ${brand.siteUrl} and sign as ${brand.fromName}.`,
-    `Token fee: always write "1,000 $AZL" (not "1,000 AZZLE"). AZZLE is the protocol; $AZL is the token.`,
-    `Access fee format: $5 USDC + 1,000 $AZL per post/claim/dismiss/leave.`,
+    `AZL wei is the task payment, escrow, deposit, fee, reward, and bond asset. USD6 figures are policy targets, not payment assets.`,
+    `Never quote fixed economics. Link to ${brand.siteUrl}/docs/markets.html and name standard or micro explicitly.`,
+    `Task references must be v2:standard:N or v2:micro:N. Never publish bare numeric or v2:N task ids.`,
+    `Do not claim USDC task escrow, subgraph discovery, direct hire, milestones, streaming, proof review, or pause/delete recovery.`,
   ].join("\n");
 }

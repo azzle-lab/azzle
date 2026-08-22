@@ -4,6 +4,8 @@
   let address = null;
   let activeTask = null;
   let busy = false;
+  let allTasks = [];
+  let marketFilter = "all";
   const $ = (id) => document.getElementById(id);
 
   function api() { return window.azzlePoster ?? null; }
@@ -25,18 +27,53 @@
     if (!response.ok) throw new Error(data.error ?? "Could not load work");
     return data;
   }
-  function taskId(task) { return String(task.localTaskId ?? task.id).replace(/^v2:/, ""); }
+  function taskMarket(task) {
+    return task.market || (String(task.id).match(/^v2:(standard|micro):/i) || [])[1]?.toLowerCase() || "standard";
+  }
+  function localId(task) {
+    return String(task.localTaskId ?? task.id).replace(/^v2:(standard|micro):/i, "");
+  }
+  function taskId(task) {
+    return String(task.id);
+  }
+
+  async function fetchMarketWork(worker, market) {
+    try {
+      const response = await fetch(
+        "/api/get-open-tasks-v2?state=ALL&worker=" + encodeURIComponent(worker) + "&limit=100&market=" + encodeURIComponent(market),
+        { cache: "no-store" }
+      );
+      const data = await json(response);
+      return (data.tasks ?? []).map((task) => ({ ...task, market }));
+    } catch {
+      return [];
+    }
+  }
+
+  function visibleTasks(tasks) {
+    if (marketFilter === "micro" || marketFilter === "standard") {
+      return tasks.filter((task) => taskMarket(task) === marketFilter);
+    }
+    return tasks;
+  }
 
   async function load() {
     if (!address) return;
     status("Loading your claimed tasks…", "busy");
     try {
-      const response = await fetch("/api/get-open-tasks-v2?state=ALL&worker=" + encodeURIComponent(address) + "&limit=100", { cache: "no-store" });
-      const tasks = (await json(response)).tasks ?? [];
+      const [standard, micro] = await Promise.all([
+        fetchMarketWork(address, "standard"),
+        fetchMarketWork(address, "micro"),
+      ]);
+      allTasks = [...standard, ...micro];
+      const tasks = visibleTasks(allTasks);
       const list = $("rd-mywork-list");
       const empty = $("rd-mywork-empty");
       if (!tasks.length) {
-        list.hidden = true; empty.hidden = false; status("No claimed tasks.", "ok"); return;
+        list.hidden = true;
+        empty.hidden = false;
+        status(allTasks.length ? "No claimed tasks in this market." : "No claimed tasks.", "ok");
+        return;
       }
       list.innerHTML = tasks.map(render).join("");
       list.hidden = false; empty.hidden = true;
@@ -58,7 +95,7 @@
       canDeliver ? "Deliver the agreed artifact and notify the poster privately." :
       "No worker action is available right now.";
     return '<article class="rd-mytasks-card rd-mytasks-card--live">' +
-      '<div class="rd-mytasks-card-top"><span class="rd-mytasks-id">Task #' + taskId(task) + '</span><span class="rd-mytasks-badge">' + task.state + '</span></div>' +
+      '<div class="rd-mytasks-card-top"><span class="rd-mytasks-id">Task #' + localId(task) + '</span><span class="rd-mytasks-market">' + (taskMarket(task) === "micro" ? "Micro" : "Standard") + '</span><span class="rd-mytasks-badge">' + task.state + '</span></div>' +
       '<div class="rd-mytasks-meta"><span>Amount ' + formatAzl(task.totalAmountAzlWei) + '</span><span>Poster ' + shortAddress(task.poster) + '</span><span>Deadline ' + formatDate(task.deadline) + '</span></div>' +
       '<p class="rd-mytasks-hint">' + next + '</p>' +
       (canDeliver ? '<div class="rd-mytasks-actions"><button type="button" class="rd-action rd-action--primary rd-mytasks-btn" data-deliver="' + taskId(task) + '">Send delivery notice</button></div>' : '') +
@@ -67,7 +104,7 @@
 
   function openReceipt() {
     if (!activeTask) return;
-    $("rd-receipt-task").textContent = "Task #" + taskId(activeTask) + " → " + shortAddress(activeTask.poster);
+    $("rd-receipt-task").textContent = (taskMarket(activeTask) === "micro" ? "Micro" : "Standard") + " · Task #" + localId(activeTask) + " → " + shortAddress(activeTask.poster);
     $("rd-receipt-status").textContent = "";
     $("rd-receipt-dialog").showModal();
   }
@@ -114,6 +151,17 @@
   });
   document.addEventListener("DOMContentLoaded", () => {
     $("rd-receipt-form").addEventListener("submit", submitReceipt);
+    document.querySelectorAll("[data-market-filter]").forEach((button) => {
+      button.addEventListener("click", () => {
+        marketFilter = button.getAttribute("data-market-filter") || "all";
+        document.querySelectorAll("[data-market-filter]").forEach((tab) => {
+          const on = tab === button;
+          tab.classList.toggle("on", on);
+          tab.setAttribute("aria-selected", String(on));
+        });
+        if (address) load();
+      });
+    });
     document.addEventListener("azzle-poster-ready", () => {
       address = api()?.address ?? null;
       if (address) load();

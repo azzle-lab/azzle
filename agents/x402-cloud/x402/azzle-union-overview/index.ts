@@ -2,10 +2,9 @@
  * x402 Cloud service: azzle-union-overview
  * Paid, agent-readable Union Staking and Action Credits launch state.
  */
-import { BASE_MAINNET_MANIFEST } from "../manifest";
+import { selectBaseMainnetManifest } from "../manifest";
 
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
-const VAULT = BASE_MAINNET_MANIFEST.stakingVault;
 const SELECTORS = {
   stakingActive: "0xa6ac4b35",
   totalStaked: "0x817b1cd2",
@@ -15,10 +14,10 @@ const SELECTORS = {
   creditIssuanceClosed: "0x0d22a470",
 };
 
-async function call(data: string): Promise<string> {
+async function call(vault: string, data: string): Promise<string> {
   const response = await fetch(RPC_URL, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: VAULT, data }, "latest"] }),
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: vault, data }, "latest"] }),
   });
   if (!response.ok) throw new Error(`Base RPC HTTP ${response.status}`);
   const json = await response.json() as { result?: string; error?: { message: string } };
@@ -26,12 +25,24 @@ async function call(data: string): Promise<string> {
   return json.result;
 }
 
-export default async function handler() {
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export default async function handler(req: Request) {
+  const market = new URL(req.url).searchParams.get("market");
+  if (market !== "standard" && market !== "micro") {
+    return json({ error: "invalid_market", hint: "pass ?market=standard|micro" }, 400);
+  }
+  const vault = selectBaseMainnetManifest(market).stakingVault;
   const [active, staked, issued, spent, remaining, closed] = await Promise.all(
-    Object.values(SELECTORS).map(call)
+    Object.values(SELECTORS).map((selector) => call(vault, selector))
   );
   return {
-    protocol: "azzle", chainId: 8453, vault: VAULT, generatedAt: Math.floor(Date.now() / 1000),
+    protocol: "azzle", chainId: 8453, market, vault, generatedAt: Math.floor(Date.now() / 1000),
     stakingActive: BigInt(active) !== 0n,
     totalStakedAzl: BigInt(staked).toString(),
     totalCreditsIssued: BigInt(issued).toString(),

@@ -24,7 +24,7 @@ export function aiInclusionRules(brand: OutreachBrand): string {
     "Map retrieval opportunities to query patterns: Best..., How do I..., What is..., Top companies for...,",
     "Alternatives to..., Who offers..., How can businesses...",
     "",
-    "Core topics to associate with brand: agent task markets, USDC escrow, autonomous agents on Base,",
+    "Core topics to associate with brand: agent task markets, AZL escrow, autonomous agents on Base,",
     "on-chain task settlement, agent-to-agent payments, decentralized work protocols.",
     "",
     "If two opportunities have similar marketing value, choose the one with higher AI inclusion probability.",

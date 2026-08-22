@@ -71,10 +71,42 @@ function formatTxError(err) {
   if (lower.includes("rate limit") || lower.includes("over rate limit") || lower.includes("429")) {
     return "Base RPC is rate-limited — retrying with a backup RPC. Please try again in a few seconds.";
   }
+  if (lower.includes("trv2: cancel")) {
+    return "Cancel is only available on unfunded POSTED or CLAIMED tasks.";
+  }
+  if (lower.includes("trv2: delivery grace")) {
+    return "The agent delivered on time — wait for the one-day grace window before expiring.";
+  }
+  if (lower.includes("trv2: expire")) {
+    return "Expire is only available after the deadline or funding window, and not while disputed.";
+  }
   if (lower.includes("execution reverted") || lower.includes("revert")) {
-    return "Transaction failed onchain — check you have $20 USDC and ETH for gas on Base.";
+    return "Transaction failed onchain — check the selected market's AZL requirements and keep ETH for gas on Base.";
   }
   return msg.length > 140 ? msg.slice(0, 140) + "…" : msg;
+}
+
+function parseTaskRef(taskId) {
+  const value = String(taskId ?? "").trim();
+  const namespaced = value.match(/^v2:(standard|micro):([1-9]\d*)$/i);
+  if (namespaced) {
+    return { market: namespaced[1].toLowerCase(), localId: namespaced[2] };
+  }
+  if (/^v2:\d+$/i.test(value)) {
+    throw new Error("Unscoped task id v2:N is illegal. Use v2:standard:N or v2:micro:N.");
+  }
+  if (/^\d+$/.test(value)) {
+    throw new Error("Bare numeric task ids are illegal. Use v2:standard:N or v2:micro:N.");
+  }
+  throw new Error("Invalid task id");
+}
+
+function parseRegistryTaskId(taskId) {
+  return BigInt(parseTaskRef(taskId).localId);
+}
+
+async function loadConfigForTask(taskId) {
+  return loadSiteConfig(parseTaskRef(taskId).market);
 }
 
 function parseEthAddress(addr) {
@@ -385,6 +417,20 @@ const REGISTRY_ABI = [
   },
   {
     type: "function",
+    name: "cancel",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "expire",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "openDispute",
     stateMutability: "nonpayable",
     inputs: [
@@ -408,10 +454,10 @@ const REGISTRY_ABI = [
           { name: "totalAmount", type: "uint256" },
           { name: "funded", type: "uint256" },
           { name: "released", type: "uint256" },
+          { name: "deadline", type: "uint64" },
+          { name: "fundingDeadline", type: "uint64" },
+          { name: "deliveredAt", type: "uint64" },
           { name: "state", type: "uint8" },
-          { name: "deadline", type: "uint256" },
-          { name: "fundingDeadline", type: "uint256" },
-          { name: "deliveredAt", type: "uint256" },
         ],
       },
     ],
@@ -486,7 +532,7 @@ const TASK_STATE = [
   "RESOLVED",
 ];
 
-let siteConfig = null;
+let siteConfigByMarket = {};
 
 function normalizeSiteConfig(config) {
   const rawContracts = config?.contracts ?? {};
@@ -501,12 +547,113 @@ function normalizeSiteConfig(config) {
   return { ...config, contracts };
 }
 
-export async function loadSiteConfig() {
-  if (siteConfig) return siteConfig;
-  const res = await fetch("/api/site-config", { cache: "no-store" });
+function selectedMarket() {
+  if (typeof window !== "undefined" && window.AZZLE_MARKETS?.getSelectedMarket) {
+    return window.AZZLE_MARKETS.getSelectedMarket();
+  }
+  return "standard";
+}
+
+function resolveMarket(market) {
+  if (market === "micro" || market === "standard") return market;
+  return selectedMarket();
+}
+
+function postingFloorUsd6(config, market) {
+  const raw = config?.economics?.postingFloorUsd6;
+  if (raw != null) return BigInt(raw);
+  return resolveMarket(market) === "micro" ? 5_000_000n : 45_000_000n;
+}
+
+function emptyVaultPosition(market) {
+  return {
+    market,
+    configured: false,
+    usdcVault: "0",
+    usdcVaultUsd: "0",
+    usdcVaultMarketUsd: "0",
+    usdcVaultMeetsMinimum: false,
+    usdcVaultAllowance: "0",
+    needsUsdcApprove: true,
+    maxVaultWithdraw: "0",
+  };
+}
+
+async function readVaultPosition(market, address) {
+  try {
+    const cfg = await loadSiteConfig(market);
+    const c = cfg.contracts;
+    if (!c?.depositVault || !c?.paymentGateway || !c?.usdc) return emptyVaultPosition(market);
+    requireConfiguredAddress("deposit vault", c.depositVault);
+    const publicClient = getPublicClient(cfg);
+    const results = await Promise.allSettled([
+      publicClient.readContract({
+        address: c.depositVault,
+        abi: VAULT_ABI,
+        functionName: "deposits",
+        args: [address],
+      }),
+      publicClient.readContract({
+        address: c.depositVault,
+        abi: VAULT_ABI,
+        functionName: "withdrawable",
+        args: [address],
+      }),
+      publicClient.readContract({
+        address: c.usdc,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address, c.paymentGateway],
+      }),
+    ]);
+    const valueOf = (result) => (result.status === "fulfilled" ? result.value : null);
+    const vaultAmt = valueOf(results[0]) ?? 0n;
+    const maxWithdrawAmt = valueOf(results[1]) ?? 0n;
+    const usdcAllowance = valueOf(results[2]) ?? 0n;
+    let vaultUsd = 0n;
+    let vaultMarketUsd = 0n;
+    try {
+      [vaultUsd, vaultMarketUsd] = await Promise.all([
+        publicClient.readContract({
+          address: c.usdOracle,
+          abi: ORACLE_ABI,
+          functionName: "quoteUsdForAzl",
+          args: [vaultAmt],
+        }),
+        publicClient.readContract({
+          address: c.usdOracle,
+          abi: ORACLE_ABI,
+          functionName: "quoteUsdForAzlPar",
+          args: [vaultAmt],
+        }),
+      ]);
+    } catch {
+      /* Preserve balance rendering if the oracle is temporarily unavailable. */
+    }
+    return {
+      market,
+      configured: true,
+      usdcVault: formatUnits(vaultAmt, 18),
+      usdcVaultUsd: formatUnits(vaultUsd ?? 0n, 6),
+      usdcVaultMarketUsd: formatUnits(vaultMarketUsd ?? 0n, 6),
+      usdcVaultMeetsMinimum: (vaultUsd ?? 0n) >= postingFloorUsd6(cfg, market),
+      usdcVaultAllowance: formatUnits(usdcAllowance, 6),
+      needsUsdcApprove: usdcAllowance === 0n,
+      maxVaultWithdraw: formatUnits(maxWithdrawAmt, 18),
+    };
+  } catch {
+    return emptyVaultPosition(market);
+  }
+}
+
+export async function loadSiteConfig(marketOverride) {
+  const market = resolveMarket(marketOverride);
+  if (siteConfigByMarket[market]) return siteConfigByMarket[market];
+  const res = await fetch(`/api/site-config?market=${encodeURIComponent(market)}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Could not load site config");
-  siteConfig = normalizeSiteConfig(await res.json());
-  return siteConfig;
+  const loaded = normalizeSiteConfig(await res.json());
+  siteConfigByMarket[market] = loaded;
+  return loaded;
 }
 
 function scopeHash(description) {
@@ -524,7 +671,7 @@ async function readOnchainScope(publicClient, scopeRegistry, taskId) {
       address: scopeRegistry,
       abi: SCOPE_REGISTRY_ABI,
       functionName: "scopeOf",
-      args: [BigInt(taskId)],
+      args: [parseRegistryTaskId(taskId)],
     });
     const text = String(scope ?? "").trim();
     return text || null;
@@ -540,7 +687,7 @@ async function writeSetScope(walletClient, publicClient, scopeRegistry, taskId, 
       address: scopeRegistry,
       abi: SCOPE_REGISTRY_ABI,
       functionName: "publish",
-      args: [BigInt(taskId), scope.trim()],
+      args: [parseRegistryTaskId(taskId), scope.trim()],
     });
     return publicClient.waitForTransactionReceipt({ hash });
   }, onProgress);
@@ -975,7 +1122,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         taskFloorMin: formatUnits(liveTaskReserve, 18),
         listingFeeUsdc: formatUnits(accessFee, 18),
         accessFeeAzl: formatUnits(accessFee, 18),
-        accessFeeUsd: "5.00 per Task Fee",
+        accessFeeUsd: selectedMarket() === "micro" ? "0.50 per task" : "5 per task",
         entryDepositMin: formatUnits(entryDeposit, 18),
         collateralShortfallAzl: formatUnits(collateralShortfallAzl, 18),
         collateralShortfallUsd: formatUnits(collateralShortfallUsd, 6),
@@ -984,103 +1131,60 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async getWalletBalances() {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadSiteConfig("standard");
       const c = cfg.contracts;
       if (!c?.taskRegistry) return { signedIn: true, configured: false };
       requireBalanceConfig(c, address);
 
       const publicClient = getPublicClient(cfg);
-      // Keep these as independent concurrent reads. Some Base RPC providers
-      // resolve eth_call immediately but queue a large multicall for seconds.
-      const results = await Promise.allSettled([
-        publicClient.getBalance({ address }),
-        publicClient.readContract({
-          address: c.usdc,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address],
-        }),
-        publicClient.readContract({
-          address: c.azlToken,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address],
-        }),
-        publicClient.readContract({
-          address: c.depositVault,
-          abi: VAULT_ABI,
-          functionName: "deposits",
-          args: [address],
-        }),
-        publicClient.readContract({
-          address: c.depositVault,
-          abi: VAULT_ABI,
-          functionName: "withdrawable",
-          args: [address],
-        }),
-        publicClient.readContract({
-          address: c.usdc,
-          abi: ERC20_ABI,
-          functionName: "allowance",
-          args: [address, c.paymentGateway],
-        }),
+      const [tokenReads, standardVault, microVault] = await Promise.all([
+        Promise.allSettled([
+          publicClient.getBalance({ address }),
+          publicClient.readContract({
+            address: c.usdc,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address],
+          }),
+          publicClient.readContract({
+            address: c.azlToken,
+            abi: ERC20_ABI,
+            functionName: "balanceOf",
+            args: [address],
+          }),
+        ]),
+        readVaultPosition("standard", address),
+        readVaultPosition("micro", address),
       ]);
-      const [ethRead, usdcRead, azlRead, vaultRead, maxWRead, allowanceRead] = results;
-      const valueOf = (result) => result.status === "fulfilled" ? result.value : null;
-      const eth = valueOf(ethRead);
-      const usdc = valueOf(usdcRead);
-      const azl = valueOf(azlRead);
-      const vault = valueOf(vaultRead);
-      const maxW = valueOf(maxWRead);
-      const usdcAllowGateway = valueOf(allowanceRead);
-      const failedReads = results.filter((result) => result.status === "rejected");
-      if (failedReads.length === results.length) {
+      const valueOf = (result) => (result.status === "fulfilled" ? result.value : null);
+      const eth = valueOf(tokenReads[0]);
+      const usdc = valueOf(tokenReads[1]);
+      const azl = valueOf(tokenReads[2]);
+      const failedReads = tokenReads.filter((result) => result.status === "rejected");
+      if (failedReads.length === tokenReads.length) {
         throw failedReads[0].reason;
-      }
-
-      const vaultAmt = vault ?? 0n;
-      const maxWithdrawAmt = maxW ?? 0n;
-      const usdcAllowance = usdcAllowGateway ?? 0n;
-      let vaultUsd = 0n;
-      let vaultMarketUsd = 0n;
-      try {
-        [vaultUsd, vaultMarketUsd] = await Promise.all([
-          publicClient.readContract({
-            address: c.usdOracle,
-            abi: ORACLE_ABI,
-            functionName: "quoteUsdForAzl",
-            args: [vaultAmt],
-          }),
-          publicClient.readContract({
-            address: c.usdOracle,
-            abi: ORACLE_ABI,
-            functionName: "quoteUsdForAzlPar",
-            args: [vaultAmt],
-          }),
-        ]);
-      } catch {
-        /* Preserve balance rendering if the oracle is temporarily unavailable. */
       }
 
       return {
         signedIn: true,
         configured: true,
         address,
-        eth: formatUnits(eth, 18),
+        eth: formatUnits(eth ?? 0n, 18),
         usdcWallet: formatUnits(usdc ?? 0n, 6),
-        usdcVault: formatUnits(vaultAmt, 18),
-        usdcVaultUsd: formatUnits(vaultUsd ?? 0n, 6),
-        usdcVaultMarketUsd: formatUnits(vaultMarketUsd ?? 0n, 6),
-        usdcVaultMeetsMinimum: (vaultUsd ?? 0n) >= 45_000_000n,
-        usdcVaultAllowance: formatUnits(usdcAllowance, 6),
-        needsUsdcApprove: usdcAllowance === 0n,
-        maxVaultWithdraw: formatUnits(maxWithdrawAmt, 18),
         azlWallet: formatUnits(azl ?? 0n, 18),
+        usdcVault: standardVault.usdcVault,
+        usdcVaultUsd: standardVault.usdcVaultUsd,
+        usdcVaultMarketUsd: standardVault.usdcVaultMarketUsd,
+        usdcVaultMeetsMinimum: standardVault.usdcVaultMeetsMinimum,
+        usdcVaultAllowance: standardVault.usdcVaultAllowance,
+        needsUsdcApprove: standardVault.needsUsdcApprove,
+        maxVaultWithdraw: standardVault.maxVaultWithdraw,
+        markets: { standard: standardVault, micro: microVault },
         entryDepositMin: "oracle-priced AZL",
         taskFloorMin: "oracle-priced AZL",
         listingFeeUsdc: "oracle-priced AZL",
-        depositReady: vaultAmt > 0n,
-        canPost: vaultAmt > 0n,
+        depositReady: Number(standardVault.usdcVault) > 0 || Number(microVault.usdcVault) > 0,
+        canPost: Number(standardVault.usdcVault) > 0,
         needsPostTopUp: false,
         partial: failedReads.length > 0,
       };
@@ -1126,8 +1230,8 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       return { hash: receipt.transactionHash };
     },
 
-    async fundCollateral(amountUsdc, onProgress) {
-      const cfg = await loadSiteConfig();
+    async fundCollateral(amountUsdc, onProgress, market) {
+      const cfg = await loadSiteConfig(resolveMarket(market));
       const c = cfg.contracts;
       const publicClient = getPublicClient(cfg);
       requireConfiguredAddress("USDC token", c?.usdc);
@@ -1193,8 +1297,8 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       return { hash: receipt.transactionHash };
     },
 
-    async fundWithEth(amountEth, onProgress) {
-      const cfg = await loadSiteConfig();
+    async fundWithEth(amountEth, onProgress, market) {
+      const cfg = await loadSiteConfig(resolveMarket(market));
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1243,8 +1347,8 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       );
     },
 
-    async withdrawCollateral(amountAzl, onProgress) {
-      const cfg = await loadSiteConfig();
+    async withdrawCollateral(amountAzl, onProgress, market) {
+      const cfg = await loadSiteConfig(resolveMarket(market));
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1342,7 +1446,9 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async deposit(onProgress) {
-      return this.fundCollateral(25, onProgress);
+      const market = selectedMarket();
+      const floor = market === "micro" ? 5 : 45;
+      return this.fundCollateral(floor, onProgress, market);
     },
 
     async postV2({ description, taskAmountUsd, taskAmountAzl, deadlineDays, discoveryOpen = true }, onProgress) {
@@ -1438,7 +1544,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async setTaskScope(taskId, scope, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       if (!c.taskScopeRegistry) {
         throw new Error("Task scope registry not configured");
@@ -1541,7 +1647,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async fundV2(taskId, amountAzl, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1569,18 +1675,18 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         address: c.taskRegistry,
         abi: REGISTRY_ABI,
         functionName: "fund",
-        args: [BigInt(taskId), amount],
+        args: [parseRegistryTaskId(taskId), amount],
       });
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       return { hash: receipt.transactionHash };
     },
 
     async claimReadiness(taskId) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const publicClient = getPublicClient(cfg);
       if (taskId === undefined || taskId === null) throw new Error("Task ID is required");
-      const id = BigInt(taskId);
+      const id = parseRegistryTaskId(taskId);
       const [reads, eth] = await Promise.all([
         publicClient.multicall({
           contracts: [
@@ -1634,7 +1740,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async claimV2(taskId, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1644,7 +1750,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           address: c.taskRegistry,
           abi: REGISTRY_ABI,
           functionName: "claim",
-          args: [BigInt(taskId)],
+          args: [parseRegistryTaskId(taskId)],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
@@ -1652,10 +1758,10 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async getTaskDetail(taskId) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const publicClient = getPublicClient(cfg);
-      const id = BigInt(taskId);
+      const id = parseRegistryTaskId(taskId);
       const [task, locked] = await publicClient.multicall({
         contracts: [
           { address: c.taskRegistry, abi: REGISTRY_ABI, functionName: "tasks", args: [id] },
@@ -1689,7 +1795,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async markDeliveredV2(taskId, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1699,7 +1805,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           address: c.taskRegistry,
           abi: REGISTRY_ABI,
           functionName: "markDelivered",
-          args: [BigInt(taskId)],
+          args: [parseRegistryTaskId(taskId)],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
@@ -1737,7 +1843,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async activateV2(taskId, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1747,7 +1853,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         address: c.taskRegistry,
           abi: REGISTRY_ABI,
         functionName: "activate",
-          args: [BigInt(taskId)],
+          args: [parseRegistryTaskId(taskId)],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
@@ -1755,7 +1861,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async completeV2(taskId, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1765,7 +1871,43 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         address: c.taskRegistry,
           abi: REGISTRY_ABI,
         functionName: "complete",
-        args: [BigInt(taskId)],
+        args: [parseRegistryTaskId(taskId)],
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async cancelV2(taskId, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const c = cfg.contracts;
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Cancelling unfunded task…");
+      const receipt = await runTx("cancel", async () => {
+        const hash = await walletClient.writeContract({
+          address: c.taskRegistry,
+          abi: REGISTRY_ABI,
+          functionName: "cancel",
+          args: [parseRegistryTaskId(taskId)],
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async expireV2(taskId, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const c = cfg.contracts;
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Expiring task — remaining escrow refunds to you…");
+      const receipt = await runTx("expire", async () => {
+        const hash = await walletClient.writeContract({
+          address: c.taskRegistry,
+          abi: REGISTRY_ABI,
+          functionName: "expire",
+          args: [parseRegistryTaskId(taskId)],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
@@ -1773,7 +1915,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
     },
 
     async openDispute(taskId, onProgress) {
-      const cfg = await loadSiteConfig();
+      const cfg = await loadConfigForTask(taskId);
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1784,16 +1926,32 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         address: c.taskRegistry,
           abi: REGISTRY_ABI,
           functionName: "openDispute",
-          args: [BigInt(taskId), evidenceHash],
+          args: [parseRegistryTaskId(taskId), evidenceHash],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
       return { hash: receipt.transactionHash };
     },
 
-    async getUnionPosition() {
-      const cfg = await loadSiteConfig();
+    async getUnionPosition(market) {
+      const cfg = await loadSiteConfig(market);
       const c = cfg.contracts;
+      const vault = String(c.stakingVault || "").toLowerCase();
+      if (!vault || vault === "0x0000000000000000000000000000000000000000" || cfg.status === "pending") {
+        return {
+          signedIn: true,
+          live: false,
+          active: false,
+          walletAzl: "0",
+          stakedAzl: "0",
+          credits: "0",
+          wholeCredits: "0",
+          creditsRemaining: "0",
+          claimableAzl: "0",
+          pendingPayoutAzl: "0",
+          pendingUnstakeAzl: "0",
+        };
+      }
       const publicClient = getPublicClient(cfg);
       const [active, walletAzl, staked, credits, remaining, accrued, totalStaked, accRewardPerShare, rewardRate, rewardFinish, lastUpdate, rewardDebt, pending] = await publicClient.multicall({
         contracts: [
@@ -1827,6 +1985,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         - (rewardDebt.result ?? 0n);
       return {
         signedIn: true,
+        live: true,
         active: Boolean(active.result),
         walletAzl: formatUnits(walletAzl.result ?? 0n, 18),
         stakedAzl: formatUnits(staked.result ?? 0n, 18),
@@ -1835,11 +1994,16 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         creditsRemaining: formatUnits(remaining.result ?? 0n, 18),
         claimableAzl: formatUnits(liveAccrued > 0n ? liveAccrued : 0n, 18),
         pendingPayoutAzl: formatUnits(pending.result ?? 0n, 18),
+        pendingUnstakeAzl: formatUnits(pending.result ?? 0n, 18),
       };
     },
 
-    async unionTx(action, value, onProgress) {
-      const cfg = await loadSiteConfig();
+    async unionTx(action, value, onProgress, market) {
+      const cfg = await loadSiteConfig(market);
+      const vault = String(cfg.contracts?.stakingVault || "").toLowerCase();
+      if (!vault || vault === "0x0000000000000000000000000000000000000000" || cfg.status === "pending") {
+        throw new Error("That Union vault is not live yet.");
+      }
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
@@ -1855,6 +2019,17 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           })
         : amount;
       if (action === "stake") {
+        const active = await publicClient.readContract({
+          address: c.stakingVault,
+          abi: STAKING_ABI,
+          functionName: "stakingActive",
+        });
+        if (!active) {
+          throw new Error(
+            (market === "micro" ? "Micro" : "Standard") +
+              " Union staking is not activated yet. Stake stays closed until the owner calls activateStaking."
+          );
+        }
         const allowance = await publicClient.readContract({
           address: c.azlToken,
           abi: ERC20_ABI,

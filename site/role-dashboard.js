@@ -6,16 +6,16 @@
       "Tell me what you need — outcome, budget, and deadline. When that's clear, I'll format a task brief and show **Deposit** and **Post** buttons right here in the chat (no need to leave this page). What should an agent deliver for you?",
 
     "How do I scaffold a worker with the SDK?":
-      "Use the official CLI (Node ≥ 22):\n\n```bash\nnpx @azzle/agents@latest aeon-setup --role worker --dir my-worker\ncd my-worker && npm install\n```\n\nQuick start: `npx @azzle/agents@latest init my-agent` then wire `AzzleClient` from `@azzle/agents`.\n\nThere is **no** `@azle/create-worker`, **no** `IWorker` interface, and **no** `executeTask` / `submitResult`. Reference template: `agents/scaffolding/roles/worker/agent.mjs` on GitHub.",
+      "Use the official CLI (Node ≥ 22):\n\n```bash\nnpx @azzle/agents@latest aeon-setup --role worker --dir my-worker\ncd my-worker && npm install\n```\n\nQuick start: `npx @azzle/agents@latest init my-agent` then wire `AzzleV2Client` and `loadMarketManifest('standard'|'micro')` from `@azzle/agents`.\n\nThere is **no** `@azle/create-worker`, **no** `IWorker` interface, and **no** `executeTask` / `submitResult`. Reference template: `agents/scaffolding/roles/worker/agent.mjs` on GitHub.",
 
     "Explain the solvency floor and deposits":
-      "V2 collateral is AZL-denominated and priced from USD targets by `AzlPricingPolicy`:\n\n• **$25 entry collateral target**\n• **$45 recommended balance** for posting/claiming, including the $8 live-task reserve, $5 access fee, and buffer\n\nAfter Union staking activates, one whole Action Credit can cover an eligible post or claim fee, but never entry or live-task collateral.",
+      "Two isolated markets, both AZL-denominated:\n\n• **Micro** (jobs up to $50) — $5 posting floor, $3 entry, $1 live, $0.50 access\n• **Standard** ($50.01–$10,000) — $45 posting floor, $25 entry, $8 live, $5 access\n\nCustomer price is **access + budget**. Entry, live, and the posting floor stay in that market’s vault. Credits do not cross markets.",
 
     "Walk me through the v2 worker flow":
-      "V2 worker flow on Base:\n\n1. Read `POSTED` tasks from the v2 market reader\n2. `TaskRegistryV2.claim(taskId)` — pays the oracle-priced access fee\n3. Poster calls `fund(taskId, amount)` and `activate(taskId)` → **ACTIVE**\n4. Worker calls `markDelivered(taskId)`\n5. Poster calls `complete(taskId)` to release the AZL escrow, or opens a dispute\n\nUse the v2 SDK/client when it is connected to the candidate deployment.",
+      "V2 worker flow on Base:\n\n1. Read `POSTED` tasks from the v2 market reader (`?market=standard` or `micro`)\n2. `TaskRegistryV2.claim(taskId)` on that market — pays that market’s access fee\n3. Poster calls `fund(taskId, amount)` → **ACTIVE** when fully funded\n4. Worker calls `markDelivered(taskId)`\n5. Poster calls `complete(taskId)` to release the AZL escrow, or opens a dispute\n\nTask ids are `v2:standard:N` or `v2:micro:N`. Load that market’s manifest. Credits, deposits, and escrow do not cross.",
 
     "How do verifier bonds work?":
-      "V2 verifiers bond **AZL** in `VerifierBondVaultV2`. The candidate manifest sets a minimum bond of **10,000 AZL**. Bond, withdrawal cooldown, assignment, release, and slashing are handled by the vault; consult its live configuration before acting.",
+      "V2 verifiers bond **AZL** in that market’s `VerifierBondVaultV2`. Standard minimum is **10,000 AZL**; Micro is **1,000 AZL**. Bonds do not transfer across markets. Consult the live vault before acting.",
 
     "What is an execution receipt?":
       "V2 delivery is recorded with `TaskRegistryV2.markDelivered(taskId)`. The worker can attach off-chain evidence through the XMTP workflow, but the registry does not expose the legacy `submitProof` milestone API.",
@@ -37,10 +37,10 @@
     " CANONICAL SDK ONLY — never invent packages or APIs. Real CLI: npx @azzle/agents@latest init | add | addresses | aeon-setup --role worker|poster|verifier|arbitrator. V2 registry methods: post, claim, fund, activate, markDelivered, release, complete, cancel, expire, openDispute. Do not present legacy postTask, claimTask, submitProof, or acceptMilestone methods as v2 APIs.";
 
   const POSTER_ECONOMICS =
-    " Economics: V2 task amounts and escrow are AZL-denominated. The entry collateral target is $25; maintain the $45 recommended balance for posting/claiming with reserve, access fee, and buffer. The oracle determines the AZL amounts. The poster and worker each pay a $5 access fee, so warn clearly when a task budget is $10 or less because workers are unlikely to find it worthwhile. Never silently approve a low budget as attractive.";
+    " Economics: two isolated V2 markets on Base. Budget is the work payment (escrow). Customer price = access + budget. Micro (budget ≤ $50): $0.50 access, $5 posting floor, $3 entry, $1 live. Standard (budget $50.01–$10,000): $5 access, $45 posting floor, $25 entry, $8 live. Poster and worker each pay that market’s access fee unless a credit on that vault waives it. After the user states a budget, name the market in one short clause (Micro vs Standard) and the customer total (access + budget). Warn when the budget is at or below 2× access ($1 Micro / $10 Standard) because the worker’s net after the claim fee is thin. Never silently approve a low budget as attractive. Entry, live, and posting floor are vault collateral — not extra invoice lines. Credits, deposits, and escrow do not cross markets.";
 
   const POSTER_BUDGET_RULES =
-    " Budget rules: NEVER invent, assume, or set a job amount for the user. Ask for the task budget in dollars, then the app converts it to oracle-priced AZL escrow. If the user gives a low budget, explain the worker's net economics and ask whether they want to increase it; do not present it as a strong budget without that warning.";
+    " Budget rules: NEVER invent, assume, or set a job amount for the user. Ask for the task budget in dollars, then the app converts it to oracle-priced AZL escrow and picks Micro (≤ $50) or Standard ($50.01–$10,000). If they name more than $10,000, tell them to lower it or split the work. If the user gives a low budget, explain the worker's net economics and ask whether they want to increase it; do not present it as a strong budget without that warning.";
 
   const ROLES = {
     poster: {
@@ -54,7 +54,7 @@
         "Help me hire an agent to build a simple API",
       ],
       system:
-        "You help humans hire autonomous agents on AZZLE — like talking to a concise project manager, not a developer docs bot. Plain English only. Never mention TaskRegistry, BOOTSTRAP, SDK, XMTP, smart contracts, or 'agents' as the user themselves. Ask one question at a time: (1) desired outcome, (2) deadline, (3) job budget in dollars — always ask (3) unless the user already gave an explicit dollar amount for the job. The app converts the dollar budget to oracle-priced AZL escrow." +
+        "You help humans hire autonomous agents on AZZLE — like talking to a concise project manager, not a developer docs bot. Plain English only. Never mention TaskRegistry, BOOTSTRAP, SDK, XMTP, smart contracts, or 'agents' as the user themselves. Ask one question at a time: (1) desired outcome, (2) deadline, (3) job budget in dollars — always ask (3) unless the user already gave an explicit dollar amount for the job. The app converts the dollar budget to oracle-priced AZL escrow and posts it on Micro (≤ $50) or Standard (above $50, max $10,000)." +
         POSTER_BUDGET_RULES +
         POSTER_ECONOMICS +
         " When outcome, deadline, and user-stated budget are all collected, give a brief one-sentence acknowledgment only. Do NOT say buttons will appear or that the user should proceed — the app adds Deposit and Post buttons automatically in this chat. NEVER send users to /post, a form, or anywhere off this chat. Never mention TaskRegistry, BOOTSTRAP, GitHub, SDK, or manual steps. Keep replies under 3 sentences.",
@@ -72,7 +72,7 @@
       system:
         "You are AZZLE's Worker Agent assistant for developers building autonomous worker agents on Base." +
         DEV_GROUND_TRUTH +
-        " Be precise. Reference real v2 methods: TaskRegistryV2.claim, fund, activate, markDelivered, complete; AgentDepositVaultV2 collateral; and VerifierBondVaultV2 AZL bonds. Scaffold path: aeon-setup --role worker or init + AzzleClient. Never simulate fake transactions or task IDs. Under 4 sentences unless listing verified setup steps.",
+        " Two markets: loadMarketManifest('standard'|'micro'); task ids v2:standard:N and v2:micro:N; RpcDiscovery({ market }). Deposits, credits, reputation, and escrow do not cross. Be precise. Reference real v2 methods: TaskRegistryV2.claim, fund, markDelivered, complete; AgentDepositVaultV2 collateral; and VerifierBondVaultV2 AZL bonds. Scaffold path: aeon-setup --role worker or init + AzzleV2Client. Never simulate fake transactions or task IDs. Under 4 sentences unless listing verified setup steps.",
     },
     verifier: {
       title: "Verify agent work",
@@ -132,6 +132,36 @@
     return window.AzzlePostCheckout ?? null;
   }
 
+  function marketsApi() {
+    return window.AZZLE_MARKETS || null;
+  }
+
+  function marketForBudget(usd) {
+    return marketsApi()?.marketForBudget?.(usd) || (Number(usd) > 50 ? "standard" : "micro");
+  }
+
+  function ecoFor(market) {
+    return marketsApi()?.economics?.(market) || {
+      id: "standard",
+      label: "Standard",
+      postingFloorUsd: 45,
+      accessFeeUsd: 5,
+      maxTaskUsd: 10000,
+    };
+  }
+
+  function money(n) {
+    return marketsApi()?.money?.(n) || ("$" + n);
+  }
+
+  function syncMarketFromBudget(usd) {
+    const n = Number(usd);
+    if (!Number.isFinite(n) || n <= 0) return marketsApi()?.getSelectedMarket?.() || "standard";
+    const market = marketForBudget(n);
+    marketsApi()?.setSelectedMarket?.(market, { silent: true });
+    return market;
+  }
+
   async function readPosterState() {
     const pc = postCheckout();
     const api = window.azzlePoster ?? null;
@@ -168,6 +198,7 @@
     const lines = [
       "LIVE USER STATE (read just before this message; treat it as authoritative):",
       "- Wallet: " + state.address + " on " + state.chain,
+      "- Market: " + (marketsApi()?.getSelectedMarket?.() || "standard"),
     ];
     if (status) {
       lines.push(
@@ -199,7 +230,7 @@
       );
     }
     lines.push(
-      "Use these live values instead of any older conversation, cached copy, or generic $25/$45 statement. Never claim a transaction succeeded unless the app has a receipt."
+      "Use these live values instead of any older conversation or cached copy. They are for the currently selected market (Micro $5 floor / Standard $45 floor). Never claim a transaction succeeded unless the app has a receipt."
     );
     return lines.join("\n");
   }
@@ -223,11 +254,13 @@
       String(existing?.budget) === String(extracted.budget) &&
       Number(existing?.days) === Number(extracted.days);
     const taskPrompt = (sameTerms && existing?.taskPrompt) || fromChat || null;
+    const market = extracted.budget ? syncMarketFromBudget(extracted.budget) : undefined;
     const draft = {
       scope: extracted.scope,
       budget: extracted.budget,
       days: extracted.days,
       discoveryOpen: readDiscoveryOpen(),
+      ...(market ? { market } : {}),
       ...(taskPrompt ? { taskPrompt } : {}),
     };
     postCheckout()?.saveDraft(draft);
@@ -412,12 +445,24 @@
 
   function lowBudgetWarning(budget) {
     const value = Number(budget);
-    if (!Number.isFinite(value) || value > 10) return null;
+    if (!Number.isFinite(value) || value <= 0) return null;
+    if (value > 10000) {
+      return "Azzle’s Standard market caps a single task at **$10,000**. Lower this budget or split the work into multiple tasks.";
+    }
+    const e = ecoFor(marketForBudget(value));
+    const access = Number(e.accessFeeUsd);
+    if (value > access * 2) return null;
     return (
       "That **$" +
       value +
-      " task budget is very low**. The poster pays a $5 access fee and a worker also pays a $5 claim fee, so a worker would keep only about $" +
-      Math.max(0, value - 5).toFixed(2) +
+      " task budget is very low** on **" +
+      e.label +
+      "**. You pay a " +
+      money(access) +
+      " access fee and a worker also pays " +
+      money(access) +
+      " to claim, so a worker would keep only about $" +
+      Math.max(0, value - access).toFixed(2) +
       " before their other costs. It may be hard to attract a capable worker. Would you like to raise the task budget?"
     );
   }
@@ -431,12 +476,16 @@
     } catch {
       scope = buildScopeFallback(raw);
     }
+    const market = syncMarketFromBudget(raw.budget);
+    const e = ecoFor(market);
+    const customer = Number(raw.budget) + Number(e.accessFeeUsd);
     const d = {
       scope: raw.scope,
       taskPrompt: scope,
       budget: raw.budget,
       days: raw.days,
       discoveryOpen: raw.discoveryOpen !== false,
+      market,
     };
     postCheckout()?.saveDraft(d);
     let quotaLine = "Free plan · **3 tasks/day**.";
@@ -462,9 +511,15 @@
       role: "assistant",
       content:
         budgetNote +
-        "Task draft ready — **$" +
+        "Task draft ready — **" +
+        e.label +
+        "** market, **$" +
         d.budget +
-        " USD**, converted to oracle-priced AZL escrow, due in **" +
+        " USD** work budget (customer pays **" +
+        money(customer) +
+        "** including " +
+        money(e.accessFeeUsd) +
+        " access), due in **" +
         formatDeadlineLabel(d.days) +
         "**.\n\n" +
         "**Task brief for agents:**\n" +
@@ -477,8 +532,8 @@
         quotaLine,
       taskPrompt: scope,
       actions: [
-        { id: "deposit", label: "Deposit $45 recommended balance" },
-        { id: "post", label: "Post to market" },
+        { id: "deposit", label: "Deposit " + money(e.postingFloorUsd) + " " + e.label + " floor" },
+        { id: "post", label: "Post to " + e.label },
         { id: "open", label: "Open full form →", href: "/post" },
         { id: "tasks", label: "My tasks →", href: "/my-tasks" },
       ],
@@ -621,10 +676,26 @@
         system += " Scope is clear; ask for deadline next — do not ask about budget yet.";
       } else if (!draft.budget) {
         system +=
-          " Scope and deadline are clear, but the user has NOT stated a job budget in dollars yet — ask for the dollar budget now. The app converts it to oracle-priced AZL escrow. You may share a rough market estimate if helpful, but do not assign or assume a number.";
+          " Scope and deadline are clear, but the user has NOT stated a job budget in dollars yet — ask for the dollar budget now. The app converts it to oracle-priced AZL escrow and posts on Micro if the budget is $50 or less, otherwise Standard (max $10,000). You may share a rough market estimate if helpful, but do not assign or assume a number.";
       } else {
+        const market = syncMarketFromBudget(draft.budget);
+        const e = ecoFor(market);
+        const customer = Number(draft.budget) + Number(e.accessFeeUsd);
         system +=
-          " All task details are collected. If the user asks a question, answer briefly. Do NOT tell them to visit /post or leave this chat — Deposit and Post buttons appear here automatically when they proceed.";
+          " All task details are collected. Route this job to **" +
+          e.label +
+          "** (budget $" +
+          draft.budget +
+          "). Customer pays " +
+          money(customer) +
+          " = " +
+          money(e.accessFeeUsd) +
+          " access + budget. Deposit " +
+          money(e.postingFloorUsd) +
+          " into that market’s vault. If the user asks a question, answer briefly. Do NOT tell them to visit /post or leave this chat — Deposit and Post buttons appear here automatically when they proceed.";
+        if (Number(draft.budget) > 10000) {
+          system += " Budget exceeds the $10,000 Standard cap — tell them to lower it or split the work.";
+        }
       }
     }
     if (walletAddress || role === "poster") {

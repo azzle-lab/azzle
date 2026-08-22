@@ -28,10 +28,11 @@ export default async function handler(req, res) {
     const host = req.headers?.host || "azzle.org";
     const url = new URL(req.url || "/api/get-recent-tasks", "https://" + host);
     const limit = url.searchParams.get("limit");
-    const tasks = await getRecentTasks(limit);
+    const tasks = await getRecentTasks(limit, url.searchParams.get("market"));
 
     sendJson(res, 200, { tasks, count: tasks.length }, { "Cache-Control": CACHE_CONTROL });
   } catch (err) {
-    sendJson(res, 502, { error: err?.message ?? String(err) });
+    const message = err?.message ?? String(err);
+    sendJson(res, /^Unknown market /.test(message) ? 400 : 502, { error: message });
   }
 }

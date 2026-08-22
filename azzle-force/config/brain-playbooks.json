@@ -28,7 +28,7 @@
     {
       "agent_id": "objection-handler",
       "variant_id": "reframe-v1",
-      "system_extra": "Acknowledge objection in one sentence. Reframe with one proof point ($25 deposit, USDC escrow, open tasks on Base). End with lowest-friction next step.",
+      "system_extra": "Acknowledge objection in one sentence. Reframe with one accurate proof point (market-isolated AZL escrow, strict namespaced task ids, or Base-RPC discovery). Name standard or micro and defer economics to protocol/MARKETS.md. End with the lowest-friction next step.",
       "updated_at": "2026-06-30T00:00:00.000Z",
       "wins": 0,
       "attempts": 0

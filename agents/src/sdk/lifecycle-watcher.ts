@@ -1,4 +1,5 @@
 import type { AzzleV2Client } from "./client-v2.js";
+import type { TaskRef } from "./markets.js";
 
 export type LifecycleEvent =
   | "funding-expiring"
@@ -8,7 +9,7 @@ export type LifecycleEvent =
   | "action-required";
 
 export interface LifecycleObservation {
-  taskId: bigint;
+  taskId: TaskRef | string;
   state: string;
   event: LifecycleEvent;
   action: "fund" | "mark-delivered" | "release" | "expire" | "open-dispute" | "none";
@@ -37,7 +38,7 @@ export class LifecycleWatcher {
     this.now = options.now ?? (() => Math.floor(Date.now() / 1000));
   }
 
-  async inspect(taskId: bigint): Promise<LifecycleObservation[]> {
+  async inspect(taskId: TaskRef | string): Promise<LifecycleObservation[]> {
     const row = await this.client.getTask(taskId);
     const now = this.now();
     const state = STATE_NAMES[row.state] ?? `UNKNOWN(${row.state})`;
@@ -66,7 +67,7 @@ export class LifecycleWatcher {
     return observations;
   }
 
-  start(taskIds: bigint[]) {
+  start(taskIds: Array<TaskRef | string>) {
     void Promise.all(taskIds.map((taskId) => this.inspect(taskId)));
     this.timer = setInterval(() => void Promise.all(taskIds.map((taskId) => this.inspect(taskId))), this.intervalMs);
     return this;

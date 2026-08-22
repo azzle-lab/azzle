@@ -28,7 +28,7 @@
 
   <div id="file-warn" class="card wide warn-card" hidden style="margin-bottom:14px">
     <p class="sub warn-text">
-      <strong>file:// blocked.</strong> Browsers cannot fetch the subgraph from a local file.
+      <strong>file:// blocked.</strong> Browsers cannot fetch Base RPC-backed API data from a local file.
       Run <code>cd agents && npm run gateway</code> then open
       <a href="http://localhost:4020/market.html">http://localhost:4020/market.html</a>
     </p>
@@ -100,7 +100,7 @@ import {
   isFileProtocol,
   fetchOpenTasks,
   fetchRecentTasks,
-  fmtUsdc6,
+  fmtAzl,
   shortAddr,
   ago,
   X402_CLOUD_BASE,
@@ -127,7 +127,7 @@ async function load() {
     `<tr><td colspan="5" class="sub">Loading…</td></tr>`;
   try {
     const [open, recent] = await Promise.all([fetchOpenTasks(), fetchRecentTasks(30)]);
-    const via = isFileProtocol() ? `gateway ${DEFAULT_GATEWAY}` : "subgraph v0.3";
+    const via = isFileProtocol() ? `gateway ${DEFAULT_GATEWAY}` : "Base RPC";
     document.getElementById("meta").textContent =
       `${open.length} POSTED · ${via} · ${new Date().toLocaleTimeString()}`;
     const rows = document.getElementById("rows");
@@ -137,7 +137,7 @@ async function load() {
       rows.innerHTML = open.map((t) => `
         <tr>
           <td>${taskLink(t.id)}</td>
-          <td>${fmtUsdc6(t.escrowAmount)}</td>
+          <td>${fmtAzl(t.escrowAmount)}</td>
           <td>${shortAddr(t.poster.id)}</td>
           <td>${ago(t.createdAt)}</td>
           <td>${stateBadge(t.state)}</td>
@@ -148,7 +148,7 @@ async function load() {
       <tr>
         <td>${t.id}</td>
         <td>${stateBadge(t.state)}</td>
-        <td>${fmtUsdc6(t.escrowAmount)}</td>
+        <td>${fmtAzl(t.escrowAmount)}</td>
         <td>${shortAddr(t.poster?.id)}</td>
         <td>${t.worker ? shortAddr(t.worker.id) : "—"}</td>
       </tr>`).join("")

@@ -19,6 +19,7 @@ export default async function handler(req, res) {
     const quote = await createUpgradeQuote({
       address: url.searchParams.get("address"),
       tier: url.searchParams.get("tier"),
+      market: url.searchParams.get("market"),
     });
     sendJson(res, 200, quote);
   } catch (err) {

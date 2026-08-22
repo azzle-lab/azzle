@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "meta": {
+    "name": "AZZLE V2 TreasuryRouter reward distribution",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0xB459145b74Ca4B198f73C0d573a161e85CA76D27"
+  },
+  "prerequisites": [
+    "The TreasuryRouter owner/Safe is executing this transaction.",
+    "TreasuryRouterV2.distributableRevenue() is at least 13000000000000000000000000 AZL wei.",
+    "The TreasuryRouter has sufficient AZL balance and the staking graph is configured."
+  ],
+  "transactions": [
+    {
+      "to": "0x0c89ed8e1f416e038c81f6Ba3335E302281bBAD3",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          }
+        ],
+        "name": "distribute",
+        "payable": false
+      },
+      "contractInputsValues": {
+        "amount": "13000000000000000000000000"
+      }
+    }
+  ]
+}

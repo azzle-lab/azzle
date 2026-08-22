@@ -17,12 +17,13 @@ export default async function handler(req, res) {
       capability: url.searchParams.getAll("capability"),
       verificationMode: url.searchParams.get("verificationMode") ?? undefined,
       beforeDeadline: url.searchParams.get("beforeDeadline") ?? undefined,
-      metadataUri: url.searchParams.get("metadataUri") ?? undefined,
+      market: url.searchParams.get("market") ?? undefined,
     });
     res.writeHead(200, { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" });
     res.end(JSON.stringify(result));
   } catch (error) {
-    res.writeHead(503, { ...CORS, "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "v2_unavailable", message: error?.message ?? String(error) }));
+    const message = error?.message ?? String(error);
+    res.writeHead(/^Unknown market /.test(message) ? 400 : 503, { ...CORS, "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "v2_unavailable", message }));
   }
 }

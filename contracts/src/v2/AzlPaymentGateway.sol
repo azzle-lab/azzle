@@ -63,6 +63,8 @@ contract AzlPaymentGateway is V2Ownable2Step, ReentrancyGuard {
 
     uint256 public constant MAX_USDC_INPUT6 = 500_000_000;
     uint256 public constant MAX_ETH_INPUT = 10 ether;
+    uint256 public immutable maxUsdcInput6;
+    uint256 public immutable maxEthInput;
     uint256 public constant MAX_DEADLINE_WINDOW = 10 minutes;
     uint256 private constant BPS = 10_000;
 
@@ -97,13 +99,18 @@ contract AzlPaymentGateway is V2Ownable2Step, ReentrancyGuard {
         address _oracle,
         address _executor,
         address _custodyVault,
-        address initialOwner
+        address initialOwner,
+        uint256 _maxUsdcInput6,
+        uint256 _maxEthInput
     ) V2Ownable2Step(initialOwner) {
         require(
             _usdc.code.length != 0 && _azl.code.length != 0 && _oracle.code.length != 0
-                && _executor.code.length != 0 && _custodyVault.code.length != 0,
+                && _executor.code.length != 0 && _custodyVault.code.length != 0 && _maxUsdcInput6 > 0
+                && _maxEthInput > 0,
             "AzlGateway: config"
         );
+        maxUsdcInput6 = _maxUsdcInput6;
+        maxEthInput = _maxEthInput;
         IFixedAzlExactInputExecutor fixedExecutor = IFixedAzlExactInputExecutor(_executor);
         require(fixedExecutor.usdc() == _usdc && fixedExecutor.azl() == _azl, "AzlGateway: executor");
         require(fixedExecutor.ethUsdReference() == _oracle, "AzlGateway: reference");
@@ -133,7 +140,7 @@ contract AzlPaymentGateway is V2Ownable2Step, ReentrancyGuard {
     {
         _validateCommon(exactUsdcIn, minAzlOut, deadline);
         uint256 usdcDepthCap = oracle.quoteEthUsd6(executor.maxAdmissibleWethInput());
-        require(exactUsdcIn <= MAX_USDC_INPUT6 && exactUsdcIn <= usdcDepthCap, "AzlGateway: input cap");
+        require(exactUsdcIn <= maxUsdcInput6 && exactUsdcIn <= usdcDepthCap, "AzlGateway: input cap");
         uint256 usdcBefore = usdc.balanceOf(address(this));
         usdc.safeTransferFrom(msg.sender, address(this), exactUsdcIn);
         require(usdc.balanceOf(address(this)) == usdcBefore + exactUsdcIn, "AzlGateway: USDC transfer");
@@ -158,9 +165,9 @@ contract AzlPaymentGateway is V2Ownable2Step, ReentrancyGuard {
     {
         _validateCommon(msg.value, minAzlOut, deadline);
         uint256 wethDepthCap = executor.maxAdmissibleWethInput();
-        require(msg.value <= MAX_ETH_INPUT && msg.value <= wethDepthCap, "AzlGateway: input cap");
+        require(msg.value <= maxEthInput && msg.value <= wethDepthCap, "AzlGateway: input cap");
         uint256 inputUsd6 = oracle.quoteEthUsd6(msg.value);
-        require(inputUsd6 != 0 && inputUsd6 <= MAX_USDC_INPUT6, "AzlGateway: input cap");
+        require(inputUsd6 != 0 && inputUsd6 <= maxUsdcInput6, "AzlGateway: input cap");
         uint256 ethBefore = address(this).balance - msg.value;
         uint256 azlBefore = azl.balanceOf(address(this));
         uint256 reported = executor.executeEthExactInput{value: msg.value}(minAzlOut, deadline);

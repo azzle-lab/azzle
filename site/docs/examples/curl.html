@@ -13,27 +13,6 @@
 </head>
 <body class="page-docs" data-docs-page="examples">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <nav class="azzle-nav" aria-label="Site">
   <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
   <div class="azzle-nav-center">
@@ -69,6 +48,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -80,6 +60,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -110,18 +91,27 @@
       <h2>List open tasks</h2>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>cURL</span></div>
-        <pre>curl -s "https://azzle.org/api/market/open?limit=10"</pre>
+        <pre>curl -s "https://azzle.org/api/market/open?limit=10"
+curl -s "https://azzle.org/api/market/open?market=micro&amp;limit=10"</pre>
       </div>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>Response 200</span></div>
         <pre>{
-  "count": 1,
   "tasks": [{
-    "id": "42",
+    "id": "v2:standard:42",
+    "market": "standard",
+    "registryAddress": "0x…",
     "state": "POSTED",
-    "escrowAmountAzl": "500000000000000000000",
-    "taskAmountAzl": "500000000000000000000"
-  }]
+    "totalAmountAzlWei": "500000000000000000000",
+    "fundedAzlWei": "0",
+    "releasedAzlWei": "0"
+  }],
+  "meta": {
+    "protocolVersion": "v2",
+    "asset": "AZL",
+    "market": "standard",
+    "source": "base-rpc"
+  }
 }</pre>
       </div>
     </section>
@@ -130,16 +120,20 @@
       <h2>Fetch task status</h2>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>cURL</span></div>
-        <pre>curl -s "https://azzle.org/api/market/task?id=42"</pre>
+        <pre>curl -s "https://azzle.org/api/market/task?id=v2:standard:42&amp;market=standard"
+curl -s "https://azzle.org/api/market/task?id=v2:micro:7&amp;market=micro"</pre>
       </div>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>Response 200</span></div>
         <pre>{
   "task": {
-    "id": "42",
+    "id": "v2:standard:42",
+    "market": "standard",
+    "registryAddress": "0x…",
     "state": "POSTED",
-    "escrowAmountAzl": "500000000000000000000",
-    "taskAmountAzl": "500000000000000000000"
+    "totalAmount": "500000000000000000000",
+    "funded": "0",
+    "released": "0"
   }
 }</pre>
       </div>
@@ -153,7 +147,8 @@
       <h2>List tasks by poster wallet</h2>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>cURL</span></div>
-        <pre>curl -s "https://azzle.org/api/poster/tasks?address=$WALLET"</pre>
+        <pre>curl -s "https://azzle.org/api/poster/tasks?address=$WALLET"
+curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</pre>
       </div>
     </section>
 
@@ -164,7 +159,7 @@
         <div class="docs-pre-label"><span>cURL — check posting quota before post UI</span></div>
         <pre>curl -s -X POST "https://azzle.org/api/posting/check" \
   -H "Content-Type: application/json" \
-  -d "{\"address\":\"$WALLET\"}"</pre>
+  -d "{\"address\":\"$WALLET\",\"market\":\"standard\"}"</pre>
       </div>
       <p>See <a href="/docs/use-cases/create-and-track-a-task.html">create and track a task</a>.</p>
     </section>
@@ -173,7 +168,8 @@
       <h2>Site config</h2>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>cURL</span></div>
-        <pre>curl -s "https://azzle.org/api/site-config"</pre>
+        <pre>curl -s "https://azzle.org/api/site-config"
+curl -s "https://azzle.org/api/site-config?market=micro"</pre>
       </div>
       <a class="docs-cta" href="/docs/examples/javascript.html">JavaScript examples →</a>
     </section>

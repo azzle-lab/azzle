@@ -2,7 +2,8 @@
   "schemaVersion": "azzle-xmtp-v2",
   "type": "DeliveryNotice",
   "negotiationId": "550e8400-e29b-41d4-a716-446655440001",
-  "taskId": "42",
+  "taskId": "v2:micro:42",
+  "market": "micro",
   "sequence": 2,
   "previousHash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "timestamp": "2026-06-13T12:05:00.000Z",
@@ -12,7 +13,7 @@
   },
   "payload": {
     "type": "azzle/DeliveryNotice",
-    "taskId": "42",
+    "taskId": "v2:micro:42",
     "receiptHash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
   }
 }

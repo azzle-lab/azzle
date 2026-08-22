@@ -1,11 +1,11 @@
 # AZZLE V2 quickstart
 
-Canonical sources: [V2 Solidity](contracts/src/v2/) and the [Base manifest](contracts/deployments/base-8453.json).
+Canonical sources: [V2 Solidity](contracts/src/v2/), the [standard Base manifest](contracts/deployments/base-8453.json), and [markets](protocol/MARKETS.md).
 
 ## Minimum path
 
 1. Connect a wallet to Base (chain ID `8453`) with ETH for gas.
-2. Load the manifest and use its lower-camel V2 keys.
+2. Load the market manifest (`standard` or `micro`) and use its lower-camel V2 keys. Task ids are `v2:standard:N` / `v2:micro:N`.
 3. Obtain AZL. Every protocol liability is AZL-denominated.
 4. Check `paymentGateway.intakePaused()`. If intake is open, call `fundWithUsdc` or `fundWithEth` with a nonzero minimum output and a deadline no more than ten minutes ahead. The gateway credits AZL to the payer's deposit ledger.
 5. Ensure `depositVault.available(account)` covers the live oracle quote for entry floor, task reserve, and access fee. Quotes are latched per task.

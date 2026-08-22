@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    const task = await getTaskDetail(id);
+    const task = await getTaskDetail(id, url.searchParams.get("market") ?? undefined);
     if (!task) {
       sendJson(res, 404, { error: "Task not found" });
       return;
@@ -39,6 +39,8 @@ export default async function handler(req, res) {
 
     sendJson(res, 200, { task });
   } catch (err) {
-    sendJson(res, 503, { error: err?.message ?? String(err) });
+    const message = err?.message ?? String(err);
+    const badInput = /^Unknown market |^Bare numeric task ids|^Unscoped task id|^Invalid task id|market does not match/.test(message);
+    sendJson(res, badInput ? 400 : 503, { error: message });
   }
 }

@@ -13,27 +13,6 @@
 </head>
 <body class="page-docs" data-docs-page="examples">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <nav class="azzle-nav" aria-label="Site">
   <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
   <div class="azzle-nav-center">
@@ -69,6 +48,7 @@
         <span class="docs-sidebar-label">Reference</span>
         <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
@@ -80,6 +60,7 @@
       </div>
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
@@ -113,11 +94,15 @@
         <pre>const res = await fetch("https://azzle.org/api/market/open?limit=5");
 if (!res.ok) throw new Error(await res.text());
 const data = await res.json();
-console.log(data.count, data.tasks[0]?.id);</pre>
+console.log(data.tasks.length, data.tasks[0]?.id, data.tasks[0]?.market, data.tasks[0]?.registryAddress);
+
+const micro = await fetch("https://azzle.org/api/market/open?market=micro&amp;limit=5");
+console.log((await micro.json()).tasks[0]?.id);</pre>
       </div>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>Expected output</span></div>
-        <pre>1 42</pre>
+        <pre>1 v2:standard:42 standard 0x…
+v2:micro:7</pre>
       </div>
     </section>
 
@@ -127,15 +112,16 @@ console.log(data.count, data.tasks[0]?.id);</pre>
         <div class="docs-pre-label"><span>TypeScript</span></div>
         <pre>import { RpcDiscovery } from "@azzle/agents";
 
-const indexer = new RpcDiscovery();
+const market = "standard"; // or "micro"; never merge graph result sets
+const indexer = new RpcDiscovery({ market });
 const tasks = await indexer.getOpenTasks();
 for (const t of tasks.slice(0, 3)) {
-  console.log(t.id, t.state, t.taskAmountAzl ?? "—", "AZL");
+  console.log(t.id, t.market, t.registryAddress, t.state, t.totalAmountAzlWei);
 }</pre>
       </div>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>Expected output (example)</span></div>
-        <pre>42 POSTED 500000000000000000000 AZL</pre>
+        <pre>v2:standard:42 standard 0x… POSTED 500000000000000000000</pre>
       </div>
     </section>
 

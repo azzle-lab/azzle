@@ -5,8 +5,11 @@ import { createRoot } from "react-dom/client";
 import {
   PrivyProvider,
   usePrivy,
+  useSessionSigners,
   useSign7702Authorization,
   useWallets,
+  useAuthorizationSignature,
+  useFiatOnramp,
 } from "@privy-io/react-auth";
 import { base } from "viem/chains";
 import { createPosterApi } from "./azzle-chain.js";
@@ -16,10 +19,26 @@ function shortAddr(addr) {
   return addr.slice(0, 6) + "…" + addr.slice(-4);
 }
 
-function emitWallet(address) {
+function linkedPrivyWallet(wallet, user) {
+  const address = String(wallet?.address || "").toLowerCase();
+  return (
+    user?.linkedAccounts?.find(
+      (account) =>
+        account?.type === "wallet" &&
+        account?.walletClientType === "privy" &&
+        String(account.address || "").toLowerCase() === address
+    ) ?? null
+  );
+}
+
+function isWalletDelegated(wallet, user) {
+  return Boolean(linkedPrivyWallet(wallet, user)?.delegated);
+}
+
+function emitWallet(address, extra = {}) {
   window.dispatchEvent(
     new CustomEvent("azzle-wallet-change", {
-      detail: { address: address ?? null, chainId: base.id },
+      detail: { address: address ?? null, chainId: base.id, ...extra },
     })
   );
 }
@@ -36,18 +55,91 @@ function pickWallet(wallets) {
   );
 }
 
-function PosterBridge() {
-  const { ready, authenticated, logout } = usePrivy();
+function PosterBridge({ signerId, usdcAddress }) {
+  const { ready, authenticated, logout, user, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
+  const { addSessionSigners } = useSessionSigners();
+  const { generateAuthorizationSignature } = useAuthorizationSignature();
   const { signAuthorization } = useSign7702Authorization();
+  const { fund } = useFiatOnramp();
   const wallet = pickWallet(wallets);
 
   useEffect(() => {
     window.azzleLogout = authenticated ? () => logout() : null;
+    window.azzleGetAccessToken = authenticated ? () => getAccessToken() : null;
+    window.azzleSignWalletApi =
+      authenticated && wallet?.walletClientType === "privy"
+        ? (input) => generateAuthorizationSignature(input)
+        : null;
+    window.azzleEnableSwaps =
+      authenticated && wallet?.walletClientType === "privy"
+        ? async () => {
+            if (!isWalletDelegated(wallet, user)) {
+              const quorumId = String(signerId || "").trim();
+              if (!quorumId) {
+                throw new Error(
+                  "Add PRIVY_SIGNER_ID from Privy Dashboard → Wallet infrastructure → Authorization keys, then restart the site."
+                );
+              }
+              await addSessionSigners({
+                address: wallet.address,
+                signers: [{ signerId: quorumId, policyIds: [] }],
+              });
+            }
+            window.azzleWalletMeta = {
+              ...(window.azzleWalletMeta || {}),
+              address: wallet.address,
+              walletClientType: "privy",
+              walletDelegated: true,
+            };
+            emitWallet(wallet.address, {
+              walletClientType: "privy",
+              walletDelegated: true,
+            });
+            return true;
+          }
+        : null;
+    window.azzleFundUsdc =
+      authenticated && wallet
+        ? async ({ amount } = {}) => {
+            const dest = String(usdcAddress || "").trim();
+            if (!/^0x[a-fA-F0-9]{40}$/i.test(dest)) {
+              throw new Error("USDC is not configured.");
+            }
+            return fund({
+              source: {
+                assets: ["usd", "eur", "gbp"],
+                defaultAsset: "usd",
+              },
+              destination: {
+                asset: dest,
+                chain: `eip155:${base.id}`,
+                address: wallet.address,
+              },
+              environment: "production",
+              defaultAmount: String(amount || "50"),
+            });
+          }
+        : null;
     return () => {
       window.azzleLogout = null;
+      window.azzleGetAccessToken = null;
+      window.azzleSignWalletApi = null;
+      window.azzleEnableSwaps = null;
+      window.azzleFundUsdc = null;
     };
-  }, [authenticated, logout]);
+  }, [
+    authenticated,
+    logout,
+    getAccessToken,
+    addSessionSigners,
+    generateAuthorizationSignature,
+    fund,
+    wallet,
+    user,
+    signerId,
+    usdcAddress,
+  ]);
 
   useEffect(() => {
     window.azzlePoster = createPosterApi({
@@ -56,8 +148,13 @@ function PosterBridge() {
       wallet: authenticated ? wallet : null,
       signAuthorization: authenticated ? signAuthorization : null,
     });
+    window.azzleWalletMeta = {
+      address: authenticated ? wallet?.address ?? null : null,
+      walletClientType: authenticated ? wallet?.walletClientType ?? null : null,
+      walletDelegated: authenticated ? isWalletDelegated(wallet, user) : false,
+    };
     window.dispatchEvent(new Event("azzle-poster-ready"));
-  }, [ready, authenticated, wallet, signAuthorization]);
+  }, [ready, authenticated, wallet, user, signAuthorization]);
 
   return null;
 }
@@ -84,8 +181,12 @@ function WalletControlsInner() {
 
   useEffect(() => {
     if (!ready) return;
-    emitWallet(authenticated ? address : null);
-  }, [ready, authenticated, address]);
+    const wallet = pickWallet(wallets);
+    emitWallet(authenticated ? address : null, {
+      walletClientType: authenticated ? wallet?.walletClientType ?? null : null,
+      walletDelegated: authenticated ? isWalletDelegated(wallet, user) : false,
+    });
+  }, [ready, authenticated, address, wallets, user]);
 
   if (authenticated && address) {
     return (
@@ -126,7 +227,7 @@ const PRIVY_CONFIG = {
   },
 };
 
-function WalletTree({ appId, clientId, mountNodes }) {
+function WalletTree({ appId, clientId, signerId, usdcAddress, mountNodes }) {
   if (!appId) {
     return mountNodes.map((node, i) =>
       createPortal(<WalletControlsUnconfigured key={"off-" + i} />, node)
@@ -135,7 +236,7 @@ function WalletTree({ appId, clientId, mountNodes }) {
 
   return (
     <PrivyProvider appId={appId} clientId={clientId || undefined} config={PRIVY_CONFIG}>
-      <PosterBridge />
+      <PosterBridge signerId={signerId} usdcAddress={usdcAddress} />
       {mountNodes.map((node, i) =>
         createPortal(<WalletControlsInner key={"in-" + i} />, node)
       )}
@@ -152,6 +253,8 @@ async function loadPrivyConfig() {
         return {
           appId: cfg.privyAppId,
           clientId: cfg.privyClientId ?? "",
+          signerId: cfg.privySignerId ?? "",
+          usdcAddress: cfg.contracts?.usdc ?? "",
         };
       }
     }
@@ -167,6 +270,8 @@ async function loadPrivyConfig() {
         return {
           appId: cfg.privyAppId,
           clientId: cfg.privyClientId ?? "",
+          signerId: cfg.privySignerId ?? "",
+          usdcAddress: cfg.contracts?.usdc ?? cfg.usdc ?? "",
         };
       }
     }
@@ -174,14 +279,14 @@ async function loadPrivyConfig() {
     /* offline / missing */
   }
 
-  return { appId: "", clientId: "" };
+  return { appId: "", clientId: "", signerId: "", usdcAddress: "" };
 }
 
 async function boot() {
   const mountNodes = [...document.querySelectorAll("[data-rd-wallet-mount]")];
   if (!mountNodes.length) return;
 
-  const { appId, clientId } = await loadPrivyConfig();
+  const { appId, clientId, signerId, usdcAddress } = await loadPrivyConfig();
 
   const host = document.createElement("div");
   host.id = "rd-wallet-host";
@@ -189,7 +294,7 @@ async function boot() {
   document.body.appendChild(host);
 
   createRoot(host).render(
-    <WalletTree appId={appId} clientId={clientId} mountNodes={mountNodes} />
+    <WalletTree appId={appId} clientId={clientId} signerId={signerId} usdcAddress={usdcAddress} mountNodes={mountNodes} />
   );
 }
 

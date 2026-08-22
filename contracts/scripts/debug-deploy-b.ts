@@ -96,18 +96,21 @@ async function main() {
   await push("observationOracle", "AzlV4ObservationOracle", [BASE.poolManager, poolKey, DEFAULTS.twapWindow, DEFAULTS.maxObservationGap]);
   await push("twapAdapter", "AzlEthTwapAdapter", [predicted.observationOracle, DEFAULTS.minimumActiveLiquidity, factoryAddress]);
   await push("usdOracle", "AzlUsdOracle", [predicted.twapAdapter, BASE.ethUsdFeed, DEFAULTS.maxFeedAge, "0xBCF85224fc0756B9Fa45aA7892530B47e10b6433"]);
-  await push("pricingPolicy", "AzlPricingPolicy", [predicted.usdOracle]);
+  await push("pricingPolicy", "AzlPricingPolicy", [
+    predicted.usdOracle,
+    25_000_000n, 8_000_000n, 5_000_000n, 2_500_000n, 2_500_000n,
+  ]);
   await push("depositVault", "AgentDepositVaultV2", [BASE.azl, predicted.pricingPolicy, factoryAddress]);
   await push("escrowVault", "EscrowVaultV2", [BASE.azl, factoryAddress]);
   await push("reputationRegistry", "ReputationRegistryV2", [factoryAddress]);
   await push("verifierBondVault", "VerifierBondVaultV2", [BASE.azl, DEFAULTS.minimumVerifierBondAzl, 7 * 24 * 60 * 60, predicted.treasuryRouter, factoryAddress]);
-  await push("stakingVault", "UnionStakingVaultV2", [BASE.azl, DEFAULTS.stakingRewardDuration, factoryAddress]);
+  await push("stakingVault", "UnionStakingVaultV2", [BASE.azl, DEFAULTS.stakingRewardDuration, ethers.parseEther("600000"), ethers.parseEther("100000000"), factoryAddress]);
   await push("treasuryRouter", "TreasuryRouterV2", [BASE.azl, burnRecipient, factoryAddress]);
-  await push("taskRegistry", "TaskRegistryV2", [predicted.depositVault, predicted.escrowVault, predicted.reputationRegistry, predicted.usdOracle, DEFAULTS.openTaskCapUsd6, factoryAddress]);
+  await push("taskRegistry", "TaskRegistryV2", [predicted.depositVault, predicted.escrowVault, predicted.reputationRegistry, predicted.usdOracle, DEFAULTS.openTaskCapUsd6, DEFAULTS.openTaskCapUsd6, factoryAddress]);
   await push("arbitrationModule", "ArbitrationModuleV2", [predicted.taskRegistry, predicted.escrowVault, predicted.reputationRegistry, predicted.verifierBondVault, predicted.treasuryRouter, DEFAULTS.evidenceWindow, DEFAULTS.rulingWindow, DEFAULTS.slashCapBps, panel, factoryAddress]);
   await push("usdcWethLeg", "BaseUsdcWethExactInputLeg", []);
   await push("exactInputExecutor", "BaseAzlExactInputExecutor", [predicted.usdcWethLeg, predicted.usdOracle, DEFAULTS.creditContext, DEFAULTS.maxExecutionDeviationBps, factoryAddress]);
-  await push("paymentGateway", "AzlPaymentGateway", [BASE.usdc, BASE.azl, predicted.usdOracle, predicted.exactInputExecutor, predicted.depositVault, factoryAddress]);
+  await push("paymentGateway", "AzlPaymentGateway", [BASE.usdc, BASE.azl, predicted.usdOracle, predicted.exactInputExecutor, predicted.depositVault, factoryAddress, 500_000_000n, ethers.parseEther("10")]);
   await push("taskScopeRegistry", "TaskScopeRegistryV2", [predicted.taskRegistry]);
 
   const config = {

@@ -44,7 +44,7 @@ export async function evolvePlaybooks(ctx: ForceContext): Promise<string[]> {
     const extra = [
       "Prioritize hooks that mirror top-performing outreach:",
       `- Reply rate ${(best.reply_rate * 100).toFixed(0)}% vs ${(worst.reply_rate * 100).toFixed(0)}% baseline.`,
-      "- Lead with concrete Base/USDC escrow outcome, not protocol jargon.",
+      "- Lead with a concrete Base/AZL escrow outcome and name standard or micro.",
       "- One CTA only: reply, /post, or book 15m.",
     ].join("\n");
 

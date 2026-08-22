@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "chainId": "8453",
+  "meta": {
+    "name": "AZZLE micro Union staking activation",
+    "txBuilderVersion": "1.18.0",
+    "createdFromSafeAddress": "0xB459145b74Ca4B198f73C0d573a161e85CA76D27"
+  },
+  "prerequisites": [
+    "Ownership is accepted.",
+    "Intake may be paused or open independently."
+  ],
+  "transactions": [
+    {
+      "to": "0x7d64483fC97481043a3eF407f9DDA2a1968BA43B",
+      "value": "0",
+      "data": null,
+      "contractMethod": {
+        "inputs": [],
+        "name": "activateStaking",
+        "payable": false
+      },
+      "contractInputsValues": {}
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import {
   checkWorkerPreflight,
   logPreflightReport,
 } from "@azzle/agents";
-import { loadManifest } from "./lib/manifest.mjs";
+import { loadManifest, requireTaskRef } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
 loadDotEnv(import.meta.url);
@@ -60,7 +60,7 @@ function requireSigner() {
 }
 
 function connectClient(signer) {
-  return new AzzleV2Client(manifest, rpcUrl).connect(signer);
+  return new AzzleV2Client(manifest, rpcUrl, process.env.AZZLE_MARKET).connect(signer);
 }
 
 async function runPreflight() {
@@ -71,25 +71,24 @@ async function runPreflight() {
     azlToken: manifest.external.azl,
   });
   logPreflightReport(report);
-  await warnIfBelowFloor(signer.provider, wallet);
+  await warnIfBelowFloor(signer.provider, wallet, manifest);
 }
 
 async function listOpen() {
-  const indexer = new RpcDiscovery({ rpcUrl: process.env.AZZLE_RPC_URL ?? "https://mainnet.base.org" });
+  const indexer = new RpcDiscovery({ rpcUrl, market: process.env.AZZLE_MARKET, manifest });
   const tasks = await indexer.getOpenTasks();
   console.log(JSON.stringify({ count: tasks.length, tasks }, null, 2));
 }
 
 async function claimFlow(taskIdArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: npm run claim -- <taskId> or set TASK_ID");
+  const taskId = requireTaskRef(taskIdArg ?? process.env.TASK_ID);
 
   const signer = requireSigner();
   const wallet = await signer.getAddress();
   const client = connectClient(signer);
 
   await runPreflightChecks(signer, wallet);
-  await warnIfBelowFloor(signer.provider, wallet);
+  await warnIfBelowFloor(signer.provider, wallet, manifest);
 
   const { createNegotiationLayer } = await import("./lib/xmtp-setup.mjs");
   const { transport } = await createNegotiationLayer(signer);
@@ -114,8 +113,7 @@ async function markDeliveredFlow(client, taskId) {
 }
 
 async function deliverFlow(taskIdArg) {
-  const taskId = BigInt(taskIdArg ?? process.env.TASK_ID ?? "0");
-  if (taskId === 0n) throw new Error("Usage: node agent.mjs deliver <taskId>");
+  const taskId = requireTaskRef(taskIdArg ?? process.env.TASK_ID);
   const signer = requireSigner();
   const client = connectClient(signer);
   return markDeliveredFlow(client, taskId);
@@ -156,8 +154,8 @@ async function main() {
   console.log("Commands:");
   console.log("  npm run preflight   # AZL deposit and wallet balance checks");
   console.log("  npm run list-open   # POSTED tasks from Base RPC");
-  console.log("  npm run claim -- <taskId>");
-  console.log("  node agent.mjs deliver <taskId>  # wait ACTIVE, then markDelivered");
+  console.log("  npm run claim -- <v2:standard:N|v2:micro:N>");
+  console.log("  node agent.mjs deliver <v2:market:N>  # wait ACTIVE, then markDelivered");
   console.log("");
   console.log("Flow: claim → wait ACTIVE after full funding → markDelivered → poster release / complete");
   console.log("Set USE_XMTP_LIVE=true for XmtpNegotiationTransport (default: NegotiationBus)");

@@ -24,7 +24,7 @@ export function aaiesRules(brand: OutreachBrand): string {
     "",
     "FAILURE MODES TO REJECT: SEO-only, generic PR, non-extractable content, one-off mentions, isolated signals, non-query-aligned content.",
     "",
-    `Category terms to co-mention: agent task markets, USDC escrow, autonomous agents, Base L2, on-chain task settlement, agent-to-agent payments.`,
+    `Category terms to co-mention: agent task markets, AZL escrow, autonomous agents, Base L2, on-chain task settlement, agent-to-agent payments.`,
     `Entity name (exact): ${brand.fromName}. Canonical URL: ${brand.siteUrl}.`,
   ].join("\n");
 }

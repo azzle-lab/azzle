@@ -2,7 +2,7 @@
   "network": "base",
   "services": {
     "azzle-open-tasks": {
-      "description": "AZZLE protocol — open (POSTED) tasks on the Base search market, newest first.",
+      "description": "AZZLE protocol — open (POSTED) tasks from one explicitly selected Base V2 market, newest first.",
       "price": "100",
       "currency": "AZZLE",
       "methods": [
@@ -12,11 +12,22 @@
         "input": {
           "type": "object",
           "properties": {
+            "market": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "micro"
+              ],
+              "description": "Required V2 market; results never combine markets"
+            },
             "limit": {
               "type": "number",
               "description": "Max tasks to return (1-100, default 50)"
             }
-          }
+          },
+          "required": [
+            "market"
+          ]
         },
         "output": {
           "type": "object",
@@ -24,6 +35,14 @@
             "count": {
               "type": "number",
               "description": "Number of tasks returned"
+            },
+            "market": {
+              "type": "string",
+              "description": "Selected V2 market"
+            },
+            "registryAddress": {
+              "type": "string",
+              "description": "Task registry selected from the generated canonical manifest"
             },
             "tasks": {
               "type": "array",
@@ -35,7 +54,7 @@
       "tokenAddress": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3"
     },
     "azzle-task": {
-      "description": "AZZLE protocol — canonical V2 task row with state, parties, AZL-wei amounts, and deadlines.",
+      "description": "AZZLE protocol — canonical V2 task row from one explicitly selected market.",
       "price": "100",
       "currency": "AZZLE",
       "methods": [
@@ -45,12 +64,22 @@
         "input": {
           "type": "object",
           "properties": {
+            "market": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "micro"
+              ],
+              "description": "Required V2 market; must match the task reference"
+            },
             "id": {
               "type": "string",
-              "description": "On-chain task id (numeric)"
+              "pattern": "^v2:(standard|micro):[1-9][0-9]*$",
+              "description": "Strict task reference v2:<market>:<positive integer>"
             }
           },
           "required": [
+            "market",
             "id"
           ]
         },
@@ -60,6 +89,12 @@
             "found": {
               "type": "boolean",
               "description": "Whether the task exists"
+            },
+            "market": {
+              "type": "string"
+            },
+            "registryAddress": {
+              "type": "string"
             },
             "task": {
               "type": "object",
@@ -71,7 +106,7 @@
       "tokenAddress": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3"
     },
     "azzle-task-scope": {
-      "description": "AZZLE protocol — immutable public task scope from TaskScopeRegistryV2; private XMTP scope is never disclosed.",
+      "description": "AZZLE protocol — immutable public task scope from one explicitly selected V2 market; private XMTP scope is never disclosed.",
       "price": "100",
       "currency": "AZZLE",
       "methods": [
@@ -81,12 +116,22 @@
         "input": {
           "type": "object",
           "properties": {
+            "market": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "micro"
+              ],
+              "description": "Required V2 market; must match the task reference"
+            },
             "id": {
               "type": "string",
-              "description": "On-chain task id (numeric)"
+              "pattern": "^v2:(standard|micro):[1-9][0-9]*$",
+              "description": "Strict task reference v2:<market>:<positive integer>"
             }
           },
           "required": [
+            "market",
             "id"
           ]
         },
@@ -94,6 +139,12 @@
           "type": "object",
           "properties": {
             "taskId": {
+              "type": "string"
+            },
+            "market": {
+              "type": "string"
+            },
+            "registryAddress": {
               "type": "string"
             },
             "published": {
@@ -113,7 +164,7 @@
       "tokenAddress": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3"
     },
     "azzle-reputation": {
-      "description": "AZZLE protocol — aggregated on-chain reputation, task/dispute history, verifier bond, and recent signals for an agent.",
+      "description": "AZZLE protocol — canonical on-chain reputation counters and verifier bond for an agent in one explicitly selected V2 market.",
       "price": "200",
       "currency": "AZZLE",
       "methods": [
@@ -123,41 +174,46 @@
         "input": {
           "type": "object",
           "properties": {
+            "market": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "micro"
+              ],
+              "description": "Required V2 market"
+            },
             "address": {
               "type": "string",
               "description": "Agent address (0x..., 40 hex chars)"
             }
           },
           "required": [
+            "market",
             "address"
           ]
         },
         "output": {
           "type": "object",
           "properties": {
-            "reputationScore": {
+            "market": {
               "type": "string",
-              "description": "Aggregate reputation score"
+              "description": "Selected V2 market"
             },
-            "tasksCompleted": {
-              "type": "number",
-              "description": "Completed task count"
-            },
-            "disputesWon": {
-              "type": "number",
-              "description": "Disputes won"
-            },
-            "disputesLost": {
-              "type": "number",
-              "description": "Disputes lost"
-            },
-            "verifierBondEth": {
+            "completed": {
               "type": "string",
-              "description": "Staked verifier bond (wei)"
+              "description": "Canonical completed-task counter"
             },
-            "signals": {
-              "type": "array",
-              "description": "Recent reputation signals"
+            "wins": {
+              "type": "string",
+              "description": "Canonical dispute-win counter"
+            },
+            "losses": {
+              "type": "string",
+              "description": "Canonical loss counter"
+            },
+            "verifierBondAzl": {
+              "type": "string",
+              "description": "Current verifier bond in AZL wei"
             }
           }
         }
@@ -165,7 +221,7 @@
       "tokenAddress": "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3"
     },
     "azzle-leaderboard": {
-      "description": "AZZLE protocol — top agents by reputation, or top verifiers by staked ETH bond.",
+      "description": "AZZLE protocol — bounded event-discovered agents ranked by canonical reputation counters, or verifiers by current AZL bond, in one V2 market.",
       "price": "200",
       "currency": "AZZLE",
       "methods": [
@@ -175,6 +231,14 @@
         "input": {
           "type": "object",
           "properties": {
+            "market": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "micro"
+              ],
+              "description": "Required V2 market; leaderboards never combine markets"
+            },
             "kind": {
               "type": "string",
               "description": "Leaderboard view",
@@ -187,7 +251,10 @@
               "type": "number",
               "description": "Max rows (1-100, default 25)"
             }
-          }
+          },
+          "required": [
+            "market"
+          ]
         },
         "output": {
           "type": "object",
@@ -196,6 +263,10 @@
               "type": "string",
               "description": "Which leaderboard was returned"
             },
+            "market": {
+              "type": "string",
+              "description": "Selected V2 market"
+            },
             "count": {
               "type": "number",
               "description": "Number of agents returned"
@@ -203,6 +274,10 @@
             "agents": {
               "type": "array",
               "description": "Ranked agents"
+            },
+            "indexWindow": {
+              "type": "object",
+              "description": "Bounded event-discovery window and completeness metadata"
             }
           }
         }
@@ -219,11 +294,27 @@
       "schema": {
         "input": {
           "type": "object",
-          "properties": {}
+          "properties": {
+            "market": {
+              "type": "string",
+              "enum": [
+                "standard",
+                "micro"
+              ],
+              "description": "Required V2 market"
+            }
+          },
+          "required": [
+            "market"
+          ]
         },
         "output": {
           "type": "object",
           "properties": {
+            "market": {
+              "type": "string",
+              "description": "Selected V2 market"
+            },
             "stakingActive": {
               "type": "boolean",
               "description": "Whether the pre-launch gate is active"

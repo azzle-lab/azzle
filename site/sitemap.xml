@@ -8,12 +8,16 @@
   <url><loc>https://azzle.org/getting-started</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/contracts.html</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/contracts</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://azzle.org/docs/markets.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://azzle.org/docs/markets</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/api.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/api</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/api-reference</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/authentication.html</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
   <url><loc>https://azzle.org/docs/reliability.html</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
   <url><loc>https://azzle.org/docs/agent-guide.html</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://azzle.org/docs/integrate.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://azzle.org/docs/integrate</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
   <url><loc>https://azzle.org/docs/projects.html</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
   <url><loc>https://azzle.org/docs/agents.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://azzle.org/docs/x402-cloud.html</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>

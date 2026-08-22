@@ -6,8 +6,15 @@ import { NegotiationBus } from "../sdk/xmtp-local-bus.js";
 import { buildSettlementDigest } from "../sdk/settlement.js";
 import { buildEnvelope } from "../sdk/xmtp/envelope.js";
 import type { TaskTerms } from "../sdk/types.js";
+import { loadBaseMainnetV2Manifest, type BaseMainnetV2Manifest } from "../sdk/manifest-v2.js";
+import { resolveExpectedMarket } from "../sdk/markets.js";
 
-export async function runPosterAgent(terms: TaskTerms) {
+export async function runPosterAgent(
+  terms: TaskTerms,
+  manifest: BaseMainnetV2Manifest = loadBaseMainnetV2Manifest()
+) {
+  if (!process.env.AZZLE_MARKET) throw new Error("Reference poster requires AZZLE_MARKET=standard or micro");
+  const market = resolveExpectedMarket(process.env.AZZLE_MARKET, manifest);
   const bus = new NegotiationBus();
   const negotiationId = bus.createNegotiation();
   const digest = buildSettlementDigest(terms);
@@ -16,6 +23,7 @@ export async function runPosterAgent(terms: TaskTerms) {
     buildEnvelope({
       type: "TaskProposal",
       negotiationId,
+      market,
       sequence: 1,
       sender: {
         evmAddress: terms.poster.toLowerCase(),
@@ -33,7 +41,7 @@ export async function runPosterAgent(terms: TaskTerms) {
           },
           compensation: {
             amount: terms.totalAmount.toString(),
-            token: "0x931517E9502F9d52CDF6F5AC7fca7925e2A1BBA3",
+            token: manifest.external.azl,
             mode: "fixed_total",
             decimals: 18,
           },
@@ -43,25 +51,7 @@ export async function runPosterAgent(terms: TaskTerms) {
     })
   );
 
-  await bus.send(
-    buildEnvelope({
-      type: "TaskAcceptance",
-      negotiationId,
-      sequence: 2,
-      sender: {
-        evmAddress: terms.poster.toLowerCase(),
-        xmtpPublicKey: "0x" + "01".repeat(32),
-      },
-      payload: {
-        type: "azzle/TaskAcceptance",
-        settlementDigest: digest,
-        posterSignature: "0x",
-        workerSignature: "0x",
-      },
-    })
-  );
-
-  console.log("[poster-agent] negotiation complete", { negotiationId, digest });
+  console.log("[poster-agent] proposal sent", { negotiationId, market, digest });
   return { negotiationId, digest };
 }
 

@@ -37,6 +37,7 @@ export interface BuildEnvelopeParams {
   sequence: number;
   previousHash?: string;
   taskId?: string;
+  market: "standard" | "micro";
   timestamp?: string;
 }
 
@@ -46,6 +47,7 @@ export function buildEnvelope(params: BuildEnvelopeParams): AzzleEnvelope {
     type: params.type,
     negotiationId: params.negotiationId,
     taskId: params.taskId,
+    market: params.market,
     sequence: params.sequence,
     previousHash: params.previousHash ?? ZERO_HASH,
     timestamp: params.timestamp ?? new Date().toISOString(),

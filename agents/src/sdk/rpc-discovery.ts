@@ -1,7 +1,8 @@
-/** Base RPC discovery client for the canonical V2 TaskRegistry. */
+/** Base RPC discovery client for one V2 market graph. */
 import { Contract, JsonRpcProvider } from "ethers";
-import { BASE_MAINNET_MANIFEST } from "./manifest.js";
 import { V2_TASK_STATE_NAMES } from "./client-v2.js";
+import { loadMarketManifest, namespacedTaskId, parseTaskRef, resolveExpectedMarket, type AzzleMarket, type TaskRef } from "./markets.js";
+import type { BaseMainnetV2Manifest } from "./manifest-v2.js";
 
 const ABI = [
   "function taskCount() view returns (uint256)",
@@ -17,11 +18,16 @@ export interface RpcAgentReputation {
 
 export interface RpcDiscoveryTask {
   protocolVersion: "v2"; asset: "AZL"; registryAddress: string;
+  market?: string;
   id: string; state: string; poster: { id: string }; worker: { id: string } | null;
   escrowAmount: string; createdAt: string; updatedAt: string; settlementDigest: string | null;
 }
 export interface RpcDiscoveryConfig {
-  rpcUrl?: string; registryAddress?: string; scanWindow?: number;
+  rpcUrl?: string;
+  registryAddress?: string;
+  scanWindow?: number;
+  market?: AzzleMarket | string;
+  manifest?: BaseMainnetV2Manifest;
 }
 
 export class RpcDiscovery {
@@ -29,15 +35,26 @@ export class RpcDiscovery {
   private readonly scanWindow: number;
   private readonly reputation: Contract;
   private readonly bonds: Contract;
+  readonly market: AzzleMarket;
   constructor(config: RpcDiscoveryConfig = {}) {
+    this.market = resolveExpectedMarket(config.market, config.manifest);
+    const manifest = config.manifest ?? loadMarketManifest(this.market);
+    if (!manifest.market) throw new Error("RpcDiscovery manifest must declare market.");
+    resolveExpectedMarket(this.market, manifest);
+    if (
+      config.registryAddress &&
+      config.registryAddress.toLowerCase() !== manifest.taskRegistry.toLowerCase()
+    ) {
+      throw new Error(`registryAddress does not belong to selected '${this.market}' manifest.`);
+    }
     this.registry = new Contract(
-      config.registryAddress ?? BASE_MAINNET_MANIFEST.taskRegistry,
+      config.registryAddress ?? manifest.taskRegistry,
       ABI,
       new JsonRpcProvider(config.rpcUrl ?? process.env.BASE_RPC_URL ?? "https://mainnet.base.org")
     );
     const provider = this.registry.runner;
-    this.reputation = new Contract(BASE_MAINNET_MANIFEST.reputationRegistry, REPUTATION_ABI, provider);
-    this.bonds = new Contract(BASE_MAINNET_MANIFEST.verifierBondVault, BOND_ABI, provider);
+    this.reputation = new Contract(manifest.reputationRegistry, REPUTATION_ABI, provider);
+    this.bonds = new Contract(manifest.verifierBondVault, BOND_ABI, provider);
     this.scanWindow = Math.min(Math.max(config.scanWindow ?? 5_000, 100), 10_000);
   }
   private map(id: bigint, row: any): RpcDiscoveryTask {
@@ -45,7 +62,8 @@ export class RpcDiscovery {
     const worker = String(row.worker).toLowerCase();
     return {
       protocolVersion: "v2", asset: "AZL", registryAddress: String(this.registry.target),
-      id: `v2:${id.toString()}`, state: V2_TASK_STATE_NAMES[Number(row.state)] ?? `UNKNOWN(${row.state})`,
+      market: this.market,
+      id: namespacedTaskId(this.market, id), state: V2_TASK_STATE_NAMES[Number(row.state)] ?? `UNKNOWN(${row.state})`,
       poster: { id: String(row.poster).toLowerCase() },
       worker: worker === ZERO ? null : { id: worker },
       escrowAmount: row.totalAmount.toString(), createdAt, updatedAt: createdAt,
@@ -80,10 +98,14 @@ export class RpcDiscovery {
     return { id: address.toLowerCase(), completed: row.completed.toString(), wins: row.wins.toString(), losses: row.losses.toString(), verifierBondAzl: bond.toString() };
   }
 
-  async getTask(taskId: string | bigint) {
+  async getTask(taskId: TaskRef | string) {
     try {
-      const task = this.map(BigInt(taskId), await this.registry.tasks(taskId));
+      const localId = parseTaskRef(taskId, this.market).localIdBigInt;
+      const task = this.map(localId, await this.registry.tasks(localId));
       return task.poster.id === ZERO ? null : task;
-    } catch { return null; }
+    } catch (error) {
+      if (error instanceof Error && /Task id|task id|belongs to/.test(error.message)) throw error;
+      return null;
+    }
   }
 }

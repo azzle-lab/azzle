@@ -5,9 +5,6 @@
  * Prerequisite: cd agents && npm run build
  * Config: see launch-skills/DISTRIBUTION.md
  */
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -15,6 +12,7 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { RpcDiscovery } from "../dist/sdk/rpc-discovery.js";
+import { loadMarketManifest, resolveExpectedMarket } from "../dist/sdk/markets.js";
 import {
   AZZLE_TOOLS,
   BANKR_PROMPTS,
@@ -29,13 +27,15 @@ import {
   verifyTaskPreviewHash,
 } from "./xmtp-helpers.mjs";
 
-const indexer = new RpcDiscovery();
-const manifest = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../deployments/base-8453.json"), "utf8")
-);
-if (manifest.version !== "2.0.0" || manifest.chainId !== "8453") {
-  throw new Error("AZZLE V2 manifest has the wrong version or chain");
-}
+const selectedMarket = resolveExpectedMarket(process.env.AZZLE_MARKET);
+const manifest = loadMarketManifest(selectedMarket);
+const indexerFor = (args) => {
+  const requested = resolveExpectedMarket(args?.market ?? selectedMarket);
+  if (requested !== selectedMarket) {
+    throw new Error(`MCP server is bound to '${selectedMarket}', not '${requested}'.`);
+  }
+  return new RpcDiscovery({ market: selectedMarket, manifest });
+};
 
 const server = new Server(
   { name: "azzle", version: "0.4.0" },
@@ -43,11 +43,11 @@ const server = new Server(
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: AZZLE_TOOLS.map((t) => ({
-    name: t.name,
-    description: t.description,
-    inputSchema: t.parameters,
-  })),
+  tools: AZZLE_TOOLS.map((t) => {
+    const inputSchema = structuredClone(t.parameters);
+    if (inputSchema.properties.market) inputSchema.properties.market.default = selectedMarket;
+    return { name: t.name, description: t.description, inputSchema };
+  }),
 }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -61,7 +61,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "azzle_list_open_tasks": {
         const limit = Number(args?.limit ?? 25);
-        const tasks = await indexer.getOpenTasks();
+        const tasks = await indexerFor(args).getOpenTasks();
         const slice = tasks.slice(0, limit);
         return {
           content: [{ type: "text", text: formatOpenTasksForAgent(slice) }],
@@ -69,7 +69,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       case "azzle_get_task": {
         const taskId = String(args?.taskId ?? "");
-        const task = await indexer.getTask(taskId);
+        const task = await indexerFor(args).getTask(taskId);
         return {
           content: [
             {
@@ -81,7 +81,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       case "azzle_get_agent_reputation": {
         const address = String(args?.address ?? "");
-        const agent = await indexer.getAgentReputation(address);
+        const agent = await indexerFor(args).getAgentReputation(address);
         return {
           content: [
             {
@@ -120,7 +120,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "azzle_list_tasks_by_poster": {
         const address = String(args?.address ?? "");
         const limit = Number(args?.limit ?? 25);
-        const tasks = await indexer.getTasksByPoster(address, limit);
+        const tasks = await indexerFor(args).getTasksByPoster(address, limit);
         return {
           content: [
             {
@@ -133,7 +133,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "azzle_list_tasks_by_worker": {
         const address = String(args?.address ?? "");
         const limit = Number(args?.limit ?? 25);
-        const tasks = await indexer.getTasksByWorker(address, limit);
+        const tasks = await indexerFor(args).getTasksByWorker(address, limit);
         return {
           content: [
             {
@@ -145,7 +145,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       case "azzle_list_recent_tasks": {
         const limit = Number(args?.limit ?? 25);
-        const tasks = await indexer.getRecentTasks(limit);
+        const tasks = await indexerFor(args).getRecentTasks(limit);
         return {
           content: [
             {
@@ -157,7 +157,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       case "azzle_task_next_steps": {
         const taskId = String(args?.taskId ?? "");
-        const task = await indexer.getTask(taskId);
+        const task = await indexerFor(args).getTask(taskId);
         return {
           content: [
             {

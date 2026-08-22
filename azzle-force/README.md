@@ -109,9 +109,11 @@ Visual style is controlled by `config/content/style-direction.json` (default: En
 
 ## AZZLE protocol integration
 
-- **Opportunity Hunter** ingests open tasks from the AZZLE subgraph
+- **Opportunity Hunter** ingests one explicitly selected V2 market from Base RPC; standard and micro result sets are never merged
 - **Onboarding Agent** references `QUICKSTART.md`, `BOOTSTRAP.md`, `launch-skills/launch-skills.md`
-- Addresses: read from `contracts/deployments/base-8453.json` only
+- Addresses: select `standard` or `micro`, then read the corresponding manifest; do not copy addresses into outreach
+- Task references: publish only `v2:standard:N` or `v2:micro:N`
+- Economics: defer to `protocol/MARKETS.md`; AZL wei is the protocol payment asset and USD6 values are policy targets
 
 ## Operational rules
 

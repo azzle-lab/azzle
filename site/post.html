@@ -9,29 +9,6 @@
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
     <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
@@ -52,19 +29,21 @@
         <li><a href="/docs/">Docs</a></li>
       </ul>
     </div>
-    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents/v/0.3.2" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
       <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
       <div data-rd-wallet-mount></div>
       <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
-      
     </div>
   </nav>
 
   <div class="rd-subpage-inner">
     <section class="rd-checkout" id="rd-checkout">
-      <div class="rd-checkout-head">
-        <h4>Post your task</h4>
-        <p>Sign in, deposit once, then list your job. Payment stays in escrow until you approve the work.</p>
+      <div class="rd-checkout-head rd-checkout-head--switch">
+        <div>
+          <h4>Post your task</h4>
+          <p>Sign in, deposit once, then list your job. Payment stays in escrow until you approve the work.</p>
+        </div>
+        <div data-azzle-market-switch data-switch-context="post"></div>
       </div>
       <div class="rd-checkout-steps" id="rd-checkout-steps">
         <span class="rd-step" data-step="signin">1 · Sign in</span>
@@ -107,8 +86,8 @@
       </fieldset>
       <div class="rd-checkout-row">
         <label class="rd-field rd-field--inline">
-          <span>Task budget (USD)</span>
-          <input id="rd-task-budget" type="number" min="1" step="1" value="100" inputmode="decimal"/>
+          <span>Task budget (USD) · <span data-market-copy="budgetRange">$6 – $10,000</span></span>
+          <input id="rd-task-budget" type="number" min="6" step="0.01" value="100" inputmode="decimal" max="10000"/>
         </label>
         <label class="rd-field rd-field--inline">
           <span>Due in (days)</span>
@@ -118,19 +97,19 @@
       <div class="rd-checkout-actions">
         <a class="rd-post-action rd-post-action--fund" id="rd-btn-deposit" href="/wallet">
           <span class="rd-post-action-kicker">COLLATERAL</span>
-          <strong id="rd-btn-deposit-label">Fund to $45 posting minimum</strong>
+          <strong id="rd-btn-deposit-label">Fund to <span data-market-copy="floor">$45</span> posting minimum</strong>
           <span class="rd-post-action-note" id="rd-btn-deposit-note">View wallet balance →</span>
         </a>
         <button type="button" class="rd-post-action rd-post-action--post" id="rd-btn-post" disabled>
           <span class="rd-post-action-kicker">READY TO PUBLISH</span>
           <strong>Post to market</strong>
-          <span class="rd-post-action-note">Oracle-priced AZL access fee · $5 per task</span>
+          <span class="rd-post-action-note">Oracle-priced AZL access fee · <span data-market-copy="access">$5</span> per task</span>
         </button>
       </div>
       <p class="rd-checkout-status" id="rd-checkout-status">Sign in to continue.</p>
       <p class="rd-checkout-fine">
         <span class="rd-checkout-fine-lead">Task budget is paid in USD and converted to AZL escrow.</span>
-        <span>Posting uses the oracle-priced AZL access fee: <strong>the current AZL quote · $5 per task.</strong></span>
+        <span>Posting uses the oracle-priced AZL access fee: <strong>the current AZL quote · <span data-market-copy="access">$5</span> per task.</strong> Budget must stay in <span data-market-copy="budgetRange">$6 – $10,000</span>.</span>
         <span>One Action Credit can cover this eligible action.</span>
         Open discovery adds a scope publish step after post ·
         Want more than 3 Tasks per day? <a href="/pricing">View Pricing →</a>
@@ -139,6 +118,7 @@
   </div>
 </div>
 <script type="module" src="role-wallet.bundle.js"></script>
+<script src="markets.js"></script>
 <script src="post-checkout.js"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
