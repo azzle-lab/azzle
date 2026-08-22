@@ -2,6 +2,9 @@
 
 AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`contracts/src/v2/`](contracts/src/v2/). There are two markets: **standard** ([`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json)) and **micro** ([`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json)). Task ids are `v2:standard:N` and `v2:micro:N`. See [`protocol/MARKETS.md`](protocol/MARKETS.md).
 
+- Micro: task budget $0.60–$50
+- Standard: task budget $6–$10,000
+
 ## Start here
 
 - Setup: [`QUICKSTART.md`](QUICKSTART.md) and [`BOOTSTRAP.md`](BOOTSTRAP.md)
