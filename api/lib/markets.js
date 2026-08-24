@@ -1,9 +1,11 @@
-import { readFileSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import standardManifest from "./contracts.json" with { type: "json" };
+import microManifest from "./contracts-micro.json" with { type: "json" };
 
 const ZERO = "0x0000000000000000000000000000000000000000";
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const PACKAGED = Object.freeze({
+  standard: standardManifest,
+  micro: microManifest,
+});
 
 export const MARKETS = Object.freeze({
   standard: Object.freeze({
@@ -62,11 +64,10 @@ export function isMarketLive(manifest) {
 export function loadMarketManifest(market = "standard") {
   const id = normalizeMarket(market);
   if (cache.has(id)) return cache.get(id);
-  const file = join(ROOT, "contracts", "deployments", MARKETS[id].manifestFile);
-  if (!existsSync(file)) {
-    throw new Error(`Missing ${id} manifest at ${file}`);
+  const manifest = PACKAGED[id];
+  if (!manifest) {
+    throw new Error(`Missing ${id} packaged manifest (${MARKETS[id].manifestFile})`);
   }
-  const manifest = JSON.parse(readFileSync(file, "utf8"));
   if (manifest.version !== "2.0.0" || manifest.chainId !== "8453") {
     throw new Error(`${id} manifest is not AZZLE V2 on Base`);
   }

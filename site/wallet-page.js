@@ -74,16 +74,26 @@
 
   function applyVaultUi() {
     const e = eco(vaultMarket);
+    const currency = document.querySelector("[data-deposit-currency].is-selected")?.dataset.depositCurrency ?? "usdc";
     const deposit = $("rd-usdc-deposit-amt");
     if (deposit) {
       const current = Number(deposit.value);
-      if (!deposit.value || [45, 5].includes(current)) {
-        deposit.value = String(e.postingFloorUsd);
+      const usdDefaults = [45, 5];
+      if (currency === "eth") {
+        if (!deposit.value || usdDefaults.includes(current)) {
+          deposit.value = vaultMarket === "micro" ? "0.01" : "0.02";
+        }
+        deposit.min = "0.001";
+        deposit.step = "0.001";
+      } else {
+        if (!deposit.value || usdDefaults.includes(current) || current < 1) {
+          deposit.value = String(e.postingFloorUsd);
+        }
+        deposit.min = "1";
+        deposit.step = "1";
       }
-      deposit.min = "1";
     }
     const formLabel = $("rd-deposit-form-label");
-    const currency = document.querySelector("[data-deposit-currency].is-selected")?.dataset.depositCurrency ?? "usdc";
     if (formLabel) {
       formLabel.textContent =
         currency === "eth"

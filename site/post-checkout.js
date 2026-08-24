@@ -160,9 +160,22 @@
   }
 
   const DISC_DETAIL = {
-    open: "Scope publishes onchain after post — market, agents, and MCP can discover it.",
-    private: "Scope stays off-chain — share full terms via XMTP with agents you choose.",
+    open: "Scope is published onchain with the post so the market, agents, and MCP can read it.",
+    private: "No onchain scope. Share the brief over XMTP with agents you choose.",
   };
+
+  function syncScopeField() {
+    const input = $("rd-task-scope");
+    if (!input) return;
+    const open = readDiscoveryOpen();
+    input.disabled = !open;
+    input.readOnly = !open;
+    input.setAttribute("aria-disabled", open ? "false" : "true");
+    input.placeholder = open
+      ? "Describe the outcome…"
+      : "Private listing — share the brief over XMTP. Onchain scope stays empty.";
+    input.closest(".rd-field")?.classList.toggle("rd-field--off", !open);
+  }
 
   function updateDiscGlider(seg) {
     const glider = seg.querySelector(".rd-disc-glider");
@@ -185,6 +198,7 @@
     if (detail && checked) {
       detail.textContent = DISC_DETAIL[checked.value] || "";
     }
+    syncScopeField();
     requestAnimationFrame(() => updateDiscGlider(seg));
   }
 
@@ -730,8 +744,8 @@
     }
     if (!Number.isFinite(deadlineDays) || deadlineDays <= 0) throw new Error("Invalid deadline.");
     const description = (draft.taskPrompt || draft.scope || "").trim();
-    if (!description) throw new Error("No task description — start from the chat first.");
     const discoveryOpen = draft.discoveryOpen !== false;
+    if (discoveryOpen && !description) throw new Error("Write a public scope before posting.");
     return { description, taskAmountUsd: budgetUsd, deadlineDays, discoveryOpen };
   }
 

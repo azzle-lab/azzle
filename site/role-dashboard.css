@@ -1102,6 +1102,13 @@ html[data-theme="light"] .rd-countdown-unit{
 }
 .rd-field textarea:focus,
 .rd-field input:focus{outline:none;border-color:var(--accent)}
+.rd-field textarea:disabled,
+.rd-field--off textarea{
+  opacity:.55;
+  cursor:not-allowed;
+  color:var(--dim);
+  background:var(--surface);
+}
 .rd-checkout-row{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -1199,7 +1206,7 @@ html[data-theme="light"] .rd-countdown-unit{
 }
 .rd-checkout-status.busy{color:var(--heading)}
 .rd-checkout-status.ok{color:var(--accent)}
-.rd-checkout-status.err{color:var(--danger)}
+.rd-checkout-status.err{color:var(--danger);overflow-wrap:anywhere;word-break:break-word}
 .rd-checkout-status a{
   color:var(--accent);
   font-weight:700;

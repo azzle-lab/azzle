@@ -7,7 +7,7 @@
     "list-open": "node list-open.mjs"
   },
   "dependencies": {
-    "@azzle/agents": "^0.1.0"
+    "@azzle/agents": "^0.5.0"
   },
   "engines": {
     "node": ">=22"

@@ -1,0 +1,17 @@
+# AZZLE Grok Build — project MCP.
+# After `cd agents && npm run build`, trust this folder in the Grok TUI
+# (launch `grok` and accept the prompt, or `/hooks-trust`). Then:
+#   grok mcp doctor azzle
+# Healthy azzle = command + handshake + 4 tools. base-mcp needs a one-time
+# OAuth in the TUI (`/mcps`, then `i` on base-mcp); doctor cannot finish that.
+# Hosted Bot / grok.com custom connectors: POST {gateway}/mcp (stateless Streamable HTTP).
+# Writes (claim / deposit / swap) stay on Base MCP + approvalUrl.
+
+[mcp_servers.azzle]
+command = "node"
+args = ["agents/mcp/server.mjs"]
+startup_timeout_sec = 60
+env = { AZZLE_MCP_ALLOWLIST = "read" }
+
+[mcp_servers.base-mcp]
+url = "https://mcp.base.org"

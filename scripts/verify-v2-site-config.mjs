@@ -110,11 +110,11 @@ for (const key of isolatedKeys) {
 if (!browserManifest.includes("export const MANIFESTS") || !browserManifest.includes("standard:") || !browserManifest.includes("micro:")) {
   throw new Error("Generated browser manifest must expose both markets");
 }
-if (!apiMarkets.includes('manifestFile: "base-8453.json"')
-  || !apiMarkets.includes('manifestFile: "base-8453-micro.json"')
-  || !apiMarkets.includes("MARKETS[id].manifestFile")
+if (!apiMarkets.includes("./contracts.json")
+  || !apiMarkets.includes("./contracts-micro.json")
+  || apiMarkets.includes("import.meta")
   || !apiSiteConfig.includes("loadMarketManifest(market)")) {
-  throw new Error("Site-config API must select the requested standard or micro manifest");
+  throw new Error("Site-config API must select the requested standard or micro packaged manifest");
 }
 
 console.log("V2 site config and generated browser manifests match both isolated market graphs.");

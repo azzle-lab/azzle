@@ -28,7 +28,7 @@ Usage:
   npx @azzle/agents@latest install [dir]           Alias for init
   npx @azzle/agents@latest aeon-setup [options]    Interactive role wizard (Base mainnet)
   npx @azzle/agents@latest aeon-setup --aeon [dir] Add AZZLE skills to an Aeon fork
-  npx @azzle/agents@latest add                     Add @azzle/agents to the current project
+  npx @azzle/agents@latest add                     Add @azzle/agents + .grok MCP/skill to the current project
   npx @azzle/agents@latest addresses               Print Base mainnet contract addresses
   npx @azzle/agents@latest version                 Print package version
 
@@ -185,6 +185,7 @@ function scaffoldProject(targetDir: string): void {
 
   console.log(`Scaffolding AZZLE agent in ${absDir} ...`);
   installAgentsPackage(absDir, true);
+  writeGrokInstall(absDir);
 
   console.log(`
 Done. Next steps:
@@ -212,6 +213,8 @@ function addToProject(): void {
     console.log("Wrote base-8453.json (canonical Base mainnet addresses).");
   }
 
+  writeGrokInstall(cwd);
+
   console.log(`
 Installed @azzle/agents.
 
@@ -220,6 +223,49 @@ Installed @azzle/agents.
 
 Docs: https://www.azzle.org/reference/AGENTS.md
 `);
+}
+
+function grokConfigToml(azzleArgs: string[]): string {
+  return `# AZZLE Grok Build — project MCP.
+# After installing @azzle/agents (this repo: cd agents && npm run build),
+# trust the folder in the Grok TUI, then \`grok mcp doctor\` (or \$env:GROK_FOLDER_TRUST=0)
+# Hosted Bot / grok.com connectors: POST {gateway}/mcp (stateless Streamable HTTP).
+# Writes (claim / deposit / swap) stay on Base MCP + approvalUrl.
+
+[mcp_servers.azzle]
+command = "node"
+args = ${JSON.stringify(azzleArgs)}
+startup_timeout_sec = 60
+env = { AZZLE_MCP_ALLOWLIST = "read" }
+
+[mcp_servers.base-mcp]
+url = "https://mcp.base.org"
+`;
+}
+
+function writeGrokInstall(cwd: string): void {
+  const grokDir = join(cwd, ".grok");
+  const skillDest = join(grokDir, "skills", "azzle-market");
+  mkdirSync(skillDest, { recursive: true });
+
+  const configPath = join(grokDir, "config.toml");
+  if (!existsSync(configPath)) {
+    const inRepo = existsSync(join(cwd, "agents", "mcp", "server.mjs"));
+    const args = inRepo
+      ? ["agents/mcp/server.mjs"]
+      : ["node_modules/@azzle/agents/mcp/server.mjs"];
+    writeFileSync(configPath, grokConfigToml(args));
+    console.log("Wrote .grok/config.toml (Grok Build MCP).");
+  } else {
+    console.log("Keeping existing .grok/config.toml — not overwriting.");
+  }
+
+  const skillSrc = join(PACKAGE_ROOT, "mcp", "skills", "azzle-market", "SKILL.md");
+  const skillFile = join(skillDest, "SKILL.md");
+  if (!existsSync(skillFile) && existsSync(skillSrc)) {
+    copyFileSync(skillSrc, skillFile);
+    console.log("Wrote .grok/skills/azzle-market/SKILL.md (open market → scopeOf → stop).");
+  }
 }
 
 function printAddresses(): void {

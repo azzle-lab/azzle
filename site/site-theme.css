@@ -208,6 +208,25 @@ body.page-home #parallax-bg{
 body.page-home .ascii-wave-bg{
   filter:saturate(.7) brightness(.72);
 }
+.wave-myth{
+  position:fixed;
+  left:max(22px, env(safe-area-inset-left));
+  bottom:max(22px, env(safe-area-inset-bottom));
+  z-index:1;
+  margin:0;
+  max-width:min(28rem, 42vw);
+  color:rgba(230,255,74,.4);
+  font:12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing:.08em;
+  pointer-events:none;
+  transition:color .5s ease;
+}
+.wave-myth.is-thrown{color:rgba(230,255,74,.88)}
+html[data-theme="light"] .wave-myth{color:rgba(28,62,58,.42)}
+html[data-theme="light"] .wave-myth.is-thrown{color:rgba(28,62,58,.78)}
+@media (max-width:700px), (pointer:coarse){
+  .wave-myth{display:none}
+}
 html:not([data-theme="light"]) body.page-home{
   --text:#f4f4f5;
   --muted:#d4d4d8;

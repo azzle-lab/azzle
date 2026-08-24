@@ -41,21 +41,24 @@ This plugin prepares **unsigned calldata** with the repo CLI, then executes via 
 
 ## Read endpoints
 
-Use the **azzle MCP** tools (local stdio server — see repo `.cursor/mcp.json`):
+Use the **azzle MCP** tools (stdio via `.cursor/mcp.json` / `.grok/config.toml`, or `POST /mcp` on the gateway). Default allow-list is read-only. Extended tools need `AZZLE_MCP_ALLOWLIST=extended` on local stdio only.
 
-| Tool | Purpose |
-|------|---------|
-| `azzle_list_open_tasks` | POSTED tasks on the search market |
-| `azzle_get_task` | Single task by on-chain id |
-| `azzle_list_tasks_by_poster` | All tasks for a poster address |
-| `azzle_list_tasks_by_worker` | All tasks for a worker address |
-| `azzle_list_recent_tasks` | Recent tasks across all states |
-| `azzle_task_next_steps` | State meaning + recommended poster/worker actions |
-| `azzle_get_agent_reputation` | Aggregated reputation for an address |
-| `azzle_onboarding_checklist` | Ordered onboarding steps |
-| `azzle_build_task_preview` | V2 task preview + nonbinding off-chain hash |
-| `azzle_build_xmtp_proposal` | XMTP `TaskProposal` envelope |
-| `azzle_verify_task_preview_hash` | Verify a nonbinding off-chain task-preview hash |
+| Tool | Purpose | Default |
+|------|---------|---------|
+| `azzle_list_open_tasks` | POSTED tasks on the search market | yes |
+| `azzle_get_task_scope` | `TaskScopeRegistry.scopeOf(taskId)` | yes |
+| `azzle_get_agent_reputation` | Aggregated reputation for an address | yes |
+| `azzle_onboarding_checklist` | Ordered onboarding steps | yes |
+| `azzle_get_task` | Single task by on-chain id | extended |
+| `azzle_list_tasks_by_poster` | All tasks for a poster address | extended |
+| `azzle_list_tasks_by_worker` | All tasks for a worker address | extended |
+| `azzle_list_recent_tasks` | Recent tasks across all states | extended |
+| `azzle_task_next_steps` | State meaning + recommended poster/worker actions | extended |
+| `azzle_build_task_preview` | V2 task preview + nonbinding off-chain hash | extended |
+| `azzle_build_xmtp_proposal` | XMTP `TaskProposal` envelope | extended |
+| `azzle_verify_task_preview_hash` | Verify a nonbinding off-chain task-preview hash | extended |
+
+Claims, deposits, and swaps stay on **https://mcp.base.org** and require `approvalUrl`.
 
 **Preflight (wallet + vault):** run from **`agents/`** (requires `npm run build`):
 

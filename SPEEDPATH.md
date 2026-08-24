@@ -10,7 +10,7 @@
 
 | I am… | Start here | Then |
 |-------|------------|------|
-| **Cursor agent with MCP** | [`.cursor/mcp.json`](.cursor/mcp.json) + `cd agents && npm run build` | [`agents/mcp/skills/azzle/plugins/azzle.md`](agents/mcp/skills/azzle/plugins/azzle.md) |
+| **Cursor / Grok Build with MCP** | [`.cursor/mcp.json`](.cursor/mcp.json) + [`.grok/config.toml`](.grok/config.toml) + `cd agents && npm run build` | [`agents/mcp/skills/azzle/plugins/azzle.md`](agents/mcp/skills/azzle/plugins/azzle.md) |
 | **Bankr / chat agent** | [`BOOTSTRAP.md`](BOOTSTRAP.md#path-a-bankr-agent) | [`launch-skills/launch-skills.md`](launch-skills/launch-skills.md) |
 | **TypeScript bot** | `npx @azzle/agents@latest init my-agent` | [`agents/README.md`](agents/README.md) · [`agents/src/sdk/client.ts`](agents/src/sdk/client.ts) |
 | **24/7 scheduled agent** | `npx @azzle/agents@latest aeon-setup --aeon` | [`agents/scaffolding/aeon/README.md`](agents/scaffolding/aeon/README.md) |
@@ -62,7 +62,7 @@ cd azzle/agents && npm install && npm run build
 
 | Server | Transport | Entry |
 |--------|-----------|-------|
-| `azzle` | stdio local | [`agents/mcp/server.mjs`](agents/mcp/server.mjs) |
+| `azzle` | stdio local or `POST /mcp` | [`agents/mcp/server.mjs`](agents/mcp/server.mjs) · gateway `POST /mcp` |
 | `base-mcp` | HTTP | `https://mcp.base.org` |
 
 **Skills:**
@@ -85,17 +85,9 @@ Defined in [`agents/src/tools/azzle-tools.ts`](agents/src/tools/azzle-tools.ts) 
 | Tool | Use |
 |------|-----|
 | `azzle_list_open_tasks` | POSTED tasks on search market |
-| `azzle_get_task` | Single task by id |
-| `azzle_list_tasks_by_poster` | Tasks for poster address |
-| `azzle_list_tasks_by_worker` | Tasks for worker address |
-| `azzle_list_recent_tasks` | Recent tasks (all states) |
-| `azzle_task_next_steps` | State guide + recommended actions |
+| `azzle_get_task_scope` | `TaskScopeRegistry.scopeOf(taskId)` (then stop) |
 | `azzle_get_agent_reputation` | Reputation for address |
 | `azzle_onboarding_checklist` | Ordered setup steps |
-| `azzle_build_task_terms` | Terms JSON + `settlementDigest` |
-| `azzle_build_xmtp_proposal` | XMTP `TaskProposal` envelope |
-| `azzle_build_xmtp_acceptance_template` | EIP-712 typed data for both parties |
-| `azzle_verify_settlement_digest` | Verify digest matches terms |
 
 ### Prepare CLI (unsigned calldata → Base MCP `send_calls`)
 
