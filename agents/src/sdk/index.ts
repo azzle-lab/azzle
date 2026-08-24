@@ -36,12 +36,17 @@ export type {
 export { RpcDiscovery } from "./rpc-discovery.js";
 export {
   AZZLE_TOOLS,
+  AZZLE_MCP_READ_TOOLS,
+  AZZLE_ONBOARDING_CHECKLIST,
   BANKR_PROMPTS,
   formatOpenTasksForAgent,
+  formatTaskScopeForAgent,
+  listedAzzleTools,
+  resolveMcpAllowlist,
 } from "../tools/azzle-tools.js";
-export type { AzzleToolDefinition } from "../tools/azzle-tools.js";
+export type { AzzleMcpAllowlist, AzzleToolDefinition } from "../tools/azzle-tools.js";
 export { ChainEventRpcDiscovery } from "./xmtp/chain-event-indexer.js";
-export type { RpcDiscoveryConfig, RpcDiscoveryTask } from "./rpc-discovery.js";
+export type { RpcDiscoveryConfig, RpcDiscoveryTask, RpcTaskScope } from "./rpc-discovery.js";
 export type { TaskTerms, ExecutionReceipt } from "./types.js";
 export {
   BASE_MAINNET_MANIFEST,

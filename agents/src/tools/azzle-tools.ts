@@ -2,7 +2,7 @@
  * Framework-agnostic tool definitions for LLM orchestrators (LangChain, Cursor, OpenAI tools, etc.).
  */
 
-import type { RpcDiscoveryTask } from "../sdk/rpc-discovery.js";
+import type { RpcDiscoveryTask, RpcTaskScope } from "../sdk/rpc-discovery.js";
 
 export interface AzzleToolDefinition {
   name: string;
@@ -31,9 +31,44 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       properties: {
           protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
         market: MARKET_PARAM,
+        limit: { type: "number", description: "Max tasks (default 25)" },
       },
       required: [],
     },
+  },
+  {
+    name: "azzle_get_task_scope",
+    description:
+      "Read TaskScopeRegistry.scopeOf(taskId). Nonempty scope is open discovery; empty scope is private (XMTP). Read-only — stop after this; do not claim.",
+    parameters: {
+      type: "object",
+      properties: {
+          protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
+        market: MARKET_PARAM,
+        taskId: { type: "string", description: "Strict task reference (`v2:standard:N` or `v2:micro:N`)" },
+      },
+      required: ["taskId"],
+    },
+  },
+  {
+    name: "azzle_get_agent_reputation",
+    description: "Fetch aggregated on-chain reputation for an agent address.",
+    parameters: {
+      type: "object",
+      properties: {
+          protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
+        market: MARKET_PARAM,
+        address: { type: "string", description: "EVM address (0x…)" },
+      },
+      required: ["address"],
+    },
+  },
+  {
+    name: "azzle_onboarding_checklist",
+    description:
+      "Return the ordered AZZLE onboarding steps. Discovery is read-only; claims, deposits, and swaps stay on Base MCP with approvalUrl.",
+    parameters: { type: "object", properties: {
+          protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },}, required: [] },
   },
   {
     name: "azzle_get_task",
@@ -47,26 +82,6 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
       },
       required: ["taskId"],
     },
-  },
-  {
-    name: "azzle_get_agent_reputation",
-    description: "Fetch aggregated on-chain reputation for an agent address.",
-    parameters: {
-      type: "object",
-      properties: {
-          protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },
-        market: MARKET_PARAM,
-        address: { type: "string", description: "EVM address (0xâ€¦)" },
-      },
-      required: ["address"],
-    },
-  },
-  {
-    name: "azzle_onboarding_checklist",
-    description:
-      "Return the ordered AZZLE onboarding steps: wallet â†’ acquire AZL â†’ fund deposit through paymentGateway â†’ post or claim.",
-    parameters: { type: "object", properties: {
-          protocolVersion: { type: "string", enum: ["v2"], default: "v2", description: "Canonical AZZLE V2 protocol." },}, required: [] },
   },
   {
     name: "azzle_list_tasks_by_poster",
@@ -178,12 +193,45 @@ export const AZZLE_TOOLS: AzzleToolDefinition[] = [
   },
 ];
 
+/** Default hosted / Grok Bot catalog — discovery only. Writes stay on https://mcp.base.org. */
+export const AZZLE_MCP_READ_TOOLS = [
+  "azzle_list_open_tasks",
+  "azzle_get_task_scope",
+  "azzle_get_agent_reputation",
+  "azzle_onboarding_checklist",
+] as const;
+
+export type AzzleMcpAllowlist = "read" | "extended";
+
+export function resolveMcpAllowlist(value?: string | null): AzzleMcpAllowlist {
+  const mode = String(value ?? process.env.AZZLE_MCP_ALLOWLIST ?? "read").trim().toLowerCase();
+  if (mode === "extended" || mode === "all") return "extended";
+  return "read";
+}
+
+export function listedAzzleTools(allowlist?: string | null): AzzleToolDefinition[] {
+  if (resolveMcpAllowlist(allowlist) === "extended") return AZZLE_TOOLS;
+  const allow = new Set<string>(AZZLE_MCP_READ_TOOLS);
+  return AZZLE_TOOLS.filter((tool) => allow.has(tool.name));
+}
+
+export const AZZLE_ONBOARDING_CHECKLIST = [
+  "AZZLE onboarding (Base 8453) — this MCP is read-only discovery.",
+  "1. List open tasks, then read scopeOf(taskId). Empty scope is private; do not invent it. Stop.",
+  "2. Claims, deposits, and swaps stay on https://mcp.base.org and require approvalUrl before any spend.",
+  "3. Check paymentGateway.intakePaused() before depositing; fund the deposit ledger through paymentGateway.",
+  "4. Check stakingVault.stakingActive() before staking.",
+  "5. Never keep hot keys or auto-spend AZL on a shared Bot computer.",
+  "",
+  "Docs: https://www.azzle.org/reference/launch-skills/launch-skills.md",
+].join("\n");
+
 export function formatOpenTasksForAgent(tasks: RpcDiscoveryTask[]): string {
   if (!tasks.length) {
-    return "No POSTED tasks on the search market. Check again later or post work via post.";
+    return "No POSTED tasks on the search market. Check again later. Do not claim or deposit from this server.";
   }
   const lines = tasks.map((t) => formatTaskLine(t));
-  return `${tasks.length} open task(s) â€” read scope via TaskScopeRegistry.scopeOf(id); empty scope â†’ private listing (XMTP):\n${lines.join("\n")}`;
+  return `${tasks.length} open task(s) — next: azzle_get_task_scope(taskId); empty scope → private listing (XMTP). Then stop:\n${lines.join("\n")}`;
 }
 
 export function formatTaskLine(t: RpcDiscoveryTask): string {
@@ -195,6 +243,13 @@ export function formatTaskLine(t: RpcDiscoveryTask): string {
 export function formatTaskListForAgent(tasks: RpcDiscoveryTask[], label: string): string {
   if (!tasks.length) return `No tasks for ${label}.`;
   return `${tasks.length} task(s) (${label}):\n${tasks.map((t) => formatTaskLine(t)).join("\n")}`;
+}
+
+export function formatTaskScopeForAgent(row: RpcTaskScope): string {
+  if (row.discovery === "private" || !row.scope) {
+    return `task ${row.taskId} · private — TaskScopeRegistry.scopeOf is empty. Do not invent scope. Stop.`;
+  }
+  return `task ${row.taskId} · open\n${row.scope}`;
 }
 
 const TASK_STATE_GUIDE: Record<string, { meaning: string; poster: string[]; worker: string[] }> = {

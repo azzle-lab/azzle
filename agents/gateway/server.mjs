@@ -1,9 +1,10 @@
 /**
- * AZZLE HTTP gateway — Base RPC V2 market reads.
+ * AZZLE HTTP gateway — Base RPC V2 market reads + stateless Streamable HTTP MCP.
  *
  * Usage:
  *   cd agents && npm run build && npm run gateway
  *   curl http://localhost:4020/v1/market/open
+ *   POST http://localhost:4020/mcp
  */
 import { createServer } from "node:http";
 import { existsSync } from "node:fs";
@@ -13,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { ethers } from "ethers";
 import { RpcDiscovery } from "../dist/sdk/rpc-discovery.js";
 import { loadMarketManifest, resolveExpectedMarket } from "../dist/sdk/markets.js";
+import { handleMcpHttp, MCP_HTTP_PATH } from "../mcp/http.mjs";
 
 const PORT = Number(process.env.AZZLE_GATEWAY_PORT ?? "4020");
 const RPC = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
@@ -52,8 +54,9 @@ function json(res, status, body, extraHeaders = {}) {
   res.writeHead(status, {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Azzle-Payment-Receipt",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Accept, Authorization, X-Azzle-Payment-Receipt, MCP-Protocol-Version, Mcp-Session-Id, Last-Event-ID",
     ...extraHeaders,
   });
   res.end(payload);
@@ -66,16 +69,28 @@ const server = createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Azzle-Payment-Receipt",
+      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers":
+        "Content-Type, Accept, Authorization, X-Azzle-Payment-Receipt, MCP-Protocol-Version, Mcp-Session-Id, Last-Event-ID",
     });
     res.end();
     return;
   }
 
   try {
+    if (path === MCP_HTTP_PATH) {
+      await handleMcpHttp(req, res);
+      return;
+    }
+
     if (req.method === "GET" && path === "/health") {
-      json(res, 200, { ok: true, chainId: 8453, market, source: "base-rpc" });
+      json(res, 200, {
+        ok: true,
+        chainId: 8453,
+        market,
+        source: "base-rpc",
+        mcp: { path: MCP_HTTP_PATH, transport: "streamable-http", stateless: true, allowlist: "read" },
+      });
       return;
     }
 
@@ -129,6 +144,7 @@ const server = createServer(async (req, res) => {
         "GET /leaderboard.html",
         "GET /treasury-dashboard.html",
         "GET /health",
+        "POST /mcp",
         "GET /v1/market/open",
         "GET /v1/market/recent",
         "GET /v1/leaderboard/reputation",
@@ -145,4 +161,5 @@ server.listen(PORT, () => {
   console.log(`[azzle-gateway] http://localhost:${PORT}`);
   console.log("[azzle-gateway] hub     GET /  (launch-skills UI)");
   console.log("[azzle-gateway] market  GET /market.html  ·  GET /v1/market/open");
+  console.log("[azzle-gateway] mcp     POST /mcp  (stateless Streamable HTTP, read-only)");
 });

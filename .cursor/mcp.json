@@ -3,7 +3,10 @@
     "azzle": {
       "command": "node",
       "args": ["${workspaceFolder}/agents/mcp/server.mjs"],
-      "cwd": "${workspaceFolder}/agents"
+      "cwd": "${workspaceFolder}/agents",
+      "env": {
+        "AZZLE_MCP_ALLOWLIST": "read"
+      }
     },
     "base-mcp": {
       "url": "https://mcp.base.org"

@@ -9,10 +9,16 @@
     }
   };
   const num = (value) => {
-    const parsed = Number(value);
+    const parsed = Number(String(value ?? "").trim().replace(/,/g, ""));
     return Number.isFinite(parsed) ? parsed : 0;
   };
+  const azlString = (n) => {
+    if (!Number.isFinite(n) || n <= 0) return "0";
+    return n.toLocaleString("en-US", { useGrouping: false, maximumFractionDigits: 18 });
+  };
 
+  let lastWalletAzl = 0;
+  let lastStakedAzl = 0;
   let microLive = false;
   let standardLive = false;
   let microActive = false;
@@ -83,9 +89,11 @@
       setLaneEnabled(["union-unstake-standard", "union-claim-unstake-standard", "union-bank-standard", "union-claim-rewards-standard"], signedIn && standardActive);
       setLaneEnabled(["union-unstake-micro", "union-claim-unstake-micro", "union-bank-micro", "union-claim-rewards-micro"], signedIn && microActive);
       const wallet = positionStandard || positionMicro;
+      lastWalletAzl = wallet ? num(wallet.walletAzl) : 0;
       $("union-wallet-azl").textContent = wallet ? fmt(wallet.walletAzl, " AZL") : "Sign in to view";
       const stakedStandard = positionStandard ? num(positionStandard.stakedAzl) : 0;
       const stakedMicro = positionMicro ? num(positionMicro.stakedAzl) : 0;
+      lastStakedAzl = stakedStandard + stakedMicro;
       $("union-staked").textContent = wallet ? fmt(stakedStandard + stakedMicro, " AZL") : "—";
       $("union-staked-standard").textContent = positionStandard ? fmt(positionStandard.stakedAzl) : "—";
       $("union-staked-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.stakedAzl) : "—") : "n/a";
@@ -129,16 +137,27 @@
       status("Enter an AZL amount to stake.", "err");
       return;
     }
+    if (parts.total > lastWalletAzl) {
+      status(
+        lastWalletAzl <= 0
+          ? (lastStakedAzl > 0
+            ? "This wallet has 0 AZL left to stake. The " + fmt(lastStakedAzl, " AZL") + " already in Union cannot be staked again — add AZL to the wallet first."
+            : "This wallet has 0 AZL available to stake. Union staking pulls from Wallet AZL, not from protocol collateral.")
+          : "This stake needs " + fmt(parts.total, " AZL") + " but the wallet only has " + fmt(lastWalletAzl, " AZL") + ".",
+        "err"
+      );
+      return;
+    }
     try {
       const bridge = await api();
       if (parts.standard > 0) {
         status("Staking Standard vault…", "busy");
-        await bridge.unionTx("stake", String(parts.standard), (message) => status(message || "Confirming Standard stake…", "busy"), "standard");
+        await bridge.unionTx("stake", azlString(parts.standard), (message) => status(message || "Confirming Standard stake…", "busy"), "standard");
       }
       if (parts.micro > 0) {
         if (!microActive) throw new Error("Micro Union staking is not activated yet. The vault is deployed, but stake() stays closed until the owner calls activateStaking.");
         status("Staking Micro vault…", "busy");
-        await bridge.unionTx("stake", String(parts.micro), (message) => status(message || "Confirming Micro stake…", "busy"), "micro");
+        await bridge.unionTx("stake", azlString(parts.micro), (message) => status(message || "Confirming Micro stake…", "busy"), "micro");
       }
       await refresh();
       status("Stake confirmed on Base.", "ok");

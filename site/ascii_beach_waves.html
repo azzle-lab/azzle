@@ -12,28 +12,45 @@
     height: 100%;
     background: #071219;
     overflow: hidden;
+    user-select: none;
   }
   canvas {
     display: block;
     width: 100vw;
     height: 100vh;
+    touch-action: none;
+    cursor: default;
   }
+  canvas.is-over-ball { cursor: grab; }
+  canvas.is-charging { cursor: grabbing; }
+  .wave-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    color: rgba(180, 230, 240, 0.42);
+    font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 0.9s ease;
+  }
+  .wave-hint.is-gone { opacity: 0; }
+  .wave-hint.is-myth { color: rgba(230, 255, 74, 0.72); }
 </style>
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
-
-
-
-
+<div class="wave-hint" id="wave-hint">Can't stop this wave. Just make waves.</div>
 <canvas id="c"></canvas>
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
 // ---- grid setup ----
-const CHAR_W = 9;
-const CHAR_H = 15;
+const CHAR_W = 6.75;
+const CHAR_H = 11.25;
 let cols, rows, W, H;
 
 function resize() {
@@ -100,20 +117,178 @@ function buildStatic() {
   }
 }
 buildStatic();
-const origResize = resize;
 window.addEventListener('resize', () => { buildStatic(); });
 
 let t = 0;
+let lastNow = performance.now();
 const SHORE_BASE = 0.5;
+const CHARGE_MAX_MS = 10000;
+const IMPULSE_LIFE = 8.8;
+const WORD = 'AZZLE';
+const TWO_PI = Math.PI * 2;
+const SCHUMANN_HZ = 7.83;
+const SHORE_OMEGA = TWO_PI * (SCHUMANN_HZ / 100);
+const THROW_OMEGA = TWO_PI * (SCHUMANN_HZ / 10);
+const hintEl = document.getElementById('wave-hint');
+
+const ball = {
+  x: 0.5,
+  y: 0.3,
+  recoil: 0,
+  recoilVel: 0,
+};
+const impulses = [];
+let charging = false;
+let chargeStart = 0;
+let pointerId = null;
+
+function ballRadiusPx() {
+  return Math.min(W, H) * 0.072;
+}
+
+function charge01() {
+  if (!charging) return 0;
+  return clamp((performance.now() - chargeStart) / CHARGE_MAX_MS, 0, 1);
+}
+
+function hitBall(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const dx = clientX - rect.left - ball.x * W;
+  const dy = clientY - rect.top - ball.y * H;
+  const hitR = ballRadiusPx() * (1.28 + charge01() * 0.45);
+  return dx * dx + dy * dy <= hitR * hitR;
+}
+
+function sampleField(xN, yN, charge) {
+  let h = 0;
+  if (charge > 0.002) {
+    const dx = xN - ball.x;
+    const dy = yN - ball.y;
+    const dist = Math.hypot(dx, dy);
+    const radius = 0.018 + charge * 0.09;
+    const gather = Math.exp(-(dist * dist) / (radius * radius * 1.8));
+    h += charge * gather * Math.sin(THROW_OMEGA * t - dist * 46) * (0.16 + charge * 0.55);
+  }
+
+  for (let i = 0; i < impulses.length; i++) {
+    const imp = impulses[i];
+    const age = t - imp.t0;
+    if (age < 0 || age > IMPULSE_LIFE) continue;
+    const dx = xN - imp.x;
+    const dy = yN - imp.y;
+    const dist = Math.hypot(dx, dy) + 1e-5;
+    const s = imp.strength;
+    const decay = Math.exp(-age * 0.22) * (1 - age / IMPULSE_LIFE);
+
+    // Circular splash — energy fans both ways and crosses the incoming set.
+    const ringR = age * (0.11 + s * 0.045);
+    const ring = Math.exp(-((dist - ringR) * (dist - ringR)) / (0.0016 + s * 0.0024));
+    const circ = Math.sin(dist * 56 - age * THROW_OMEGA) + 0.42 * Math.sin(dist * 31 - age * THROW_OMEGA * 2);
+
+    // Directed counter-swell: travels seaward (−y), against the beach-bound waves.
+    const packetY = yN - (imp.y - age * (0.118 + s * 0.04));
+    const packetX = dx / (0.085 + s * 0.09);
+    const packet = Math.exp(-(packetY * packetY) / (0.0032 + s * 0.0048) - packetX * packetX);
+    const counter = Math.sin(yN * 52 + age * THROW_OMEGA + imp.x * 8);
+
+    // Weaker shoreward splash so some energy still runs with the beach set.
+    const downY = yN - (imp.y + age * 0.07);
+    const down = Math.exp(-(downY * downY) / 0.006 - (dx * dx) / 0.018);
+    const withBeach = Math.sin(yN * 50 - age * THROW_OMEGA);
+
+    h += s * decay * (0.62 * ring * circ + 1.05 * packet * counter + 0.28 * down * withBeach);
+  }
+  return h;
+}
+
+function pruneImpulses() {
+  let write = 0;
+  for (let i = 0; i < impulses.length; i++) {
+    if (t - impulses[i].t0 <= IMPULSE_LIFE) impulses[write++] = impulses[i];
+  }
+  impulses.length = write;
+}
+
+function fireImpulse() {
+  const held = clamp((performance.now() - chargeStart) / CHARGE_MAX_MS, 0, 1);
+  const strength = 0.22 + 0.78 * Math.pow(held, 0.82);
+  impulses.push({ x: ball.x, y: ball.y, t0: t, strength });
+  if (impulses.length > 6) impulses.shift();
+  ball.recoilVel = 0.055 + 0.09 * held;
+  charging = false;
+  pointerId = null;
+  canvas.classList.remove('is-charging');
+  hintEl.classList.add('is-myth');
+}
+
+canvas.addEventListener('pointerdown', (event) => {
+  if (event.button != null && event.button !== 0) return;
+  if (!hitBall(event.clientX, event.clientY)) return;
+  charging = true;
+  chargeStart = performance.now();
+  pointerId = event.pointerId;
+  canvas.classList.add('is-charging');
+  try { canvas.setPointerCapture(event.pointerId); } catch (err) {}
+  event.preventDefault();
+});
+
+window.addEventListener('pointerup', (event) => {
+  if (!charging) return;
+  if (pointerId != null && event.pointerId !== pointerId) return;
+  fireImpulse();
+});
+
+window.addEventListener('pointercancel', () => {
+  if (charging) fireImpulse();
+});
+
+canvas.addEventListener('pointermove', (event) => {
+  const over = hitBall(event.clientX, event.clientY);
+  canvas.classList.toggle('is-over-ball', over && !charging);
+});
+
+canvas.addEventListener('pointerleave', () => {
+  if (!charging) canvas.classList.remove('is-over-ball');
+});
+
+function drawBall(charge) {
+  const bx = ball.x * W;
+  const by = ball.y * H;
+  const r = ballRadiusPx() * (1 + charge * 0.42);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const glow = ctx.createRadialGradient(bx - r * 0.22, by - r * 0.26, r * 0.04, bx, by, r);
+  glow.addColorStop(0, `rgba(255, 230, 70, ${0.55 + charge * 0.25})`);
+  glow.addColorStop(0.42, `rgba(30, 70, 255, ${0.28 + charge * 0.22})`);
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(bx, by, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 
 function frame() {
-  t += 0.016;
+  const now = performance.now();
+  t += Math.min((now - lastNow) / 1000, 0.05);
+  lastNow = now;
+  pruneImpulses();
 
-  // slow overall surge (tide breathing in and out)
+  const charge = charge01();
+  ball.recoilVel += (0 - ball.recoil) * 0.08 - ball.recoilVel * 0.14;
+  ball.recoil += ball.recoilVel;
+  ball.x = 0.5 + 0.012 * Math.sin(t * 0.37);
+  ball.y = 0.3 + 0.014 * Math.sin(t * 0.91) + ball.recoil;
+
   const surge = 0.045 * Math.sin(t * 0.55);
-  // envelope controlling how "big" the current wave set is
   const waveEnvelope = 0.5 + 0.5 * Math.sin(t * 0.32 - 0.6);
   const foamWidthBase = 0.014 + 0.02 * waveEnvelope;
+  const TWO_PI = Math.PI * 2;
+  const ballPxR = ballRadiusPx() * (1 + charge * 0.18);
+  const innerR = ballPxR * 0.72;
+  const ringInner = innerR + 2;
+  const ringOuter = ringInner + CHAR_H;
+  const chargeAngle = charge * TWO_PI;
 
   ctx.fillStyle = '#04121c';
   ctx.fillRect(0, 0, W, H);
@@ -121,55 +296,56 @@ function frame() {
   for (let r = 0; r < rows; r++) {
     const yN = r / rows;
     const py = r * CHAR_H;
-    let rowStr = '';
 
     for (let c = 0; c < cols; c++) {
       const xN = c / cols;
+      const field = sampleField(xN, yN, charge);
 
-      const ripple = 0.03 * Math.sin(xN * 9 - t * 1.4)
-                    + 0.016 * Math.sin(xN * 19 + t * 2.1 + 1.2);
+      const ripple = 0.03 * Math.sin(xN * 9 - SHORE_OMEGA * t)
+                    + 0.016 * Math.sin(xN * 19 + SHORE_OMEGA * t + 1.2);
 
-      const shoreY = SHORE_BASE + coastCurve[c] + surge + ripple;
+      const shoreY = SHORE_BASE + coastCurve[c] + surge + ripple + field * 0.24;
 
-      // fine turbulent edge noise for foam roughness
       const edgeNoise = 0.012 * Math.sin(xN * 46 + t * 3.4)
                        + 0.007 * Math.sin(xN * 91 - t * 5.7 + r * 0.3);
 
       const d = (yN - shoreY) - edgeNoise;
       const foamWidth = foamWidthBase;
       const foamBack = foamWidth * 2.0;
+      const crest = Math.abs(field);
+      const interferenceFoam = d < 0 && crest > 0.15;
 
       let ch, color;
 
-      if (d > -foamWidth * 0.4 && d < foamBack) {
-        // ---- FOAM ZONE ----
+      if (interferenceFoam || (d > -foamWidth * 0.4 && d < foamBack)) {
         const center = foamWidth * 0.15;
         const distC = Math.abs(d - center);
         let intensity = 1 - clamp(distC / (foamWidth + foamBack * 0.5), 0, 1);
-        const turb = 0.65 + 0.35 * Math.sin(xN * 55 + t * 4.2 + r * 0.9);
-        intensity *= turb;
-        intensity = clamp(intensity, 0, 1);
+        intensity = Math.max(intensity, clamp((crest - 0.12) / 0.55, 0, 1));
+        const beat = 0.5 + 0.5 * Math.sin(field * 9.5 + SHORE_OMEGA * t);
+        intensity *= 0.62 + 0.38 * Math.sin(xN * 55 + SHORE_OMEGA * t + r * 0.9);
+        intensity = clamp(intensity * (0.72 + 0.28 * beat), 0, 1);
 
         const sparkle = hash(c + Math.floor(t * 6), r) > 0.93 ? 1 : 0;
         const idx = clamp(Math.floor(intensity * (foamChars.length - 1)) + sparkle, 0, foamChars.length - 1);
         ch = foamChars[idx];
         color = lerpColor(FOAM_LO, FOAM_HI, intensity);
       } else if (d <= -foamWidth * 0.4) {
-        // ---- WATER ZONE ----
         const depth = clamp(-d, 0, 0.5) / 0.5;
-        const flow = Math.sin(d * 55 - t * 2.6 + xN * 6);
+        const incoming = Math.sin(d * 55 - SHORE_OMEGA * t + xN * 6);
+        const opposed = Math.sin(d * 55 + THROW_OMEGA * t + field * 14);
+        const flow = incoming + field * 1.35 + opposed * clamp(crest * 1.1, 0, 0.85);
         let idx;
         if (flow > 0.55) idx = 6;
         else if (flow > 0.15) idx = 4;
         else if (flow > -0.3) idx = 1;
         else idx = 0;
         ch = waterChars[idx];
-        const colorT = clamp(depth, 0, 1);
+        const colorT = clamp(depth - field * 0.12, 0, 1);
         color = colorT > 0.55
           ? lerpColor(MID, DEEP, (colorT - 0.55) / 0.45)
           : lerpColor(SHALLOW, MID, colorT / 0.55);
       } else {
-        // ---- SAND ZONE ----
         const wetness = clamp(d - foamBack, 0, 0.25) / 0.25;
         const n = sandNoise[r * cols + c];
         const idx = n > 0.93 ? 3 : n > 0.8 ? 4 : n > 0.55 ? 2 : 0;
@@ -177,11 +353,35 @@ function frame() {
         color = lerpColor(WET, DRY, wetness);
       }
 
+      const px = c * CHAR_W;
+      const dxb = px - ball.x * W;
+      const dyb = py + CHAR_H * 0.5 - ball.y * H;
+      const distB = Math.hypot(dxb, dyb);
+      if (distB < ringOuter) {
+        let tau = Math.atan2(dxb, -dyb);
+        if (tau < 0) tau += TWO_PI;
+        if (distB >= ringInner) {
+          const letterIndex = Math.floor((tau / TWO_PI) * 36) % WORD.length;
+          ch = WORD[letterIndex];
+          const lit = charge > 0.001 && tau <= chargeAngle + 0.06;
+          const head = lit && Math.abs(tau - chargeAngle) < 0.18;
+          const glow = lit
+            ? 0.62 + charge * 0.38 + (head ? 0.18 : 0)
+            : 0.22 + charge * 0.08;
+          color = `rgba(230, 255, 74, ${glow})`;
+        } else if (distB < innerR) {
+          const wordIndex = Math.floor((c + Math.floor(t * 2)) / 2) % WORD.length;
+          ch = WORD[wordIndex];
+          color = `rgba(230, 255, 74, ${0.45 + charge * 0.4})`;
+        }
+      }
+
       ctx.fillStyle = color;
-      ctx.fillText(ch, c * CHAR_W, py);
+      ctx.fillText(ch, px, py);
     }
   }
 
+  drawBall(charge);
   requestAnimationFrame(frame);
 }
 

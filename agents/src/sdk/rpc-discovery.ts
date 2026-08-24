@@ -11,9 +11,17 @@ const ABI = [
 const ZERO = "0x0000000000000000000000000000000000000000";
 const REPUTATION_ABI = ["function reputation(address) view returns (uint64 completed,uint64 wins,uint64 losses)"];
 const BOND_ABI = ["function bonds(address) view returns (uint256)"];
+const SCOPE_ABI = ["function scopeOf(uint256 taskId) view returns (string)"];
 
 export interface RpcAgentReputation {
   id: string; completed: string; wins: string; losses: string; verifierBondAzl: string;
+}
+
+export interface RpcTaskScope {
+  taskId: string;
+  market: AzzleMarket;
+  scope: string;
+  discovery: "open" | "private";
 }
 
 export interface RpcDiscoveryTask {
@@ -35,6 +43,7 @@ export class RpcDiscovery {
   private readonly scanWindow: number;
   private readonly reputation: Contract;
   private readonly bonds: Contract;
+  private readonly scope: Contract | null;
   readonly market: AzzleMarket;
   constructor(config: RpcDiscoveryConfig = {}) {
     this.market = resolveExpectedMarket(config.market, config.manifest);
@@ -55,6 +64,9 @@ export class RpcDiscovery {
     const provider = this.registry.runner;
     this.reputation = new Contract(manifest.reputationRegistry, REPUTATION_ABI, provider);
     this.bonds = new Contract(manifest.verifierBondVault, BOND_ABI, provider);
+    this.scope = manifest.taskScopeRegistry
+      ? new Contract(manifest.taskScopeRegistry, SCOPE_ABI, provider)
+      : null;
     this.scanWindow = Math.min(Math.max(config.scanWindow ?? 5_000, 100), 10_000);
   }
   private map(id: bigint, row: any): RpcDiscoveryTask {
@@ -107,5 +119,19 @@ export class RpcDiscovery {
       if (error instanceof Error && /Task id|task id|belongs to/.test(error.message)) throw error;
       return null;
     }
+  }
+
+  async getTaskScope(taskId: TaskRef | string): Promise<RpcTaskScope> {
+    if (!this.scope) {
+      throw new Error("taskScopeRegistry missing from selected market manifest.");
+    }
+    const parsed = parseTaskRef(taskId, this.market);
+    const scope = String(await this.scope.scopeOf(parsed.localIdBigInt) ?? "");
+    return {
+      taskId: parsed.id,
+      market: this.market,
+      scope,
+      discovery: scope.length > 0 ? "open" : "private",
+    };
   }
 }

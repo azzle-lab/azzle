@@ -2,6 +2,7 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
+  decodeErrorResult,
   encodeAbiParameters,
   encodeFunctionData,
   formatUnits,
@@ -26,6 +27,13 @@ import { sendDeliveryNotice } from "./xmtp-browser.js";
 
 const AZL_PER_ACTION = 1000n * 10n ** 18n;
 const MIN_ETH_WEI = 50_000_000_000_000n; // ~0.00005 ETH for gas buffer
+// Gateway requires deadline <= block.timestamp + 10 minutes. Wall-clock + 600s
+// reverts as "AzlGateway: deadline" whenever the machine is ahead of Base.
+const GATEWAY_DEADLINE_SECONDS = 480;
+
+function gatewayDeadline() {
+  return BigInt(Math.floor(Date.now() / 1000) + GATEWAY_DEADLINE_SECONDS);
+}
 const HOP_CALLTYPE_DELEGATECALL = "0xff";
 const ENTRY_POINT_V07 = {
   address: entryPoint07Address,
@@ -41,9 +49,94 @@ function formatAzlHuman(amount) {
   return n.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " AZL";
 }
 
+const ERC20_ERROR_ABI = [
+  {
+    type: "error",
+    name: "ERC20InsufficientBalance",
+    inputs: [
+      { name: "sender", type: "address" },
+      { name: "balance", type: "uint256" },
+      { name: "needed", type: "uint256" },
+    ],
+  },
+  {
+    type: "error",
+    name: "ERC20InsufficientAllowance",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "allowance", type: "uint256" },
+      { name: "needed", type: "uint256" },
+    ],
+  },
+];
+
+function extractRevertHex(err) {
+  let cur = err;
+  for (let i = 0; i < 8 && cur; i++) {
+    const candidates = [cur.data, cur.raw, cur.signature];
+    for (const value of candidates) {
+      if (typeof value === "string" && /^0x[0-9a-fA-F]{8,}$/.test(value)) return value;
+      if (value && typeof value === "object") {
+        if (typeof value.data === "string" && /^0x[0-9a-fA-F]{8,}$/.test(value.data)) return value.data;
+        if (typeof value.raw === "string" && /^0x[0-9a-fA-F]{8,}$/.test(value.raw)) return value.raw;
+      }
+    }
+    cur = cur.cause;
+  }
+  const blob = String(err?.message || err?.shortMessage || err?.details || "");
+  const match = blob.match(/0x[0-9a-fA-F]{8,}/);
+  return match ? match[0] : "";
+}
+
+function formatAzlAmount(amount) {
+  try {
+    const text = formatUnits(typeof amount === "bigint" ? amount : BigInt(amount ?? 0), 18);
+    const [whole, frac] = text.split(".");
+    const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (!frac || /^0+$/.test(frac)) return grouped + " AZL";
+    return grouped + "." + frac.replace(/0+$/, "") + " AZL";
+  } catch {
+    return "AZL";
+  }
+}
+
+function readDecodedError(err) {
+  let cur = err;
+  for (let i = 0; i < 8 && cur; i++) {
+    const data = cur.data;
+    if (data && typeof data === "object" && typeof data.errorName === "string") return data;
+    cur = cur.cause;
+  }
+  const revertHex = extractRevertHex(err);
+  if (!revertHex) return null;
+  try {
+    return decodeErrorResult({ abi: ERC20_ERROR_ABI, data: revertHex });
+  } catch {
+    return null;
+  }
+}
+
+function formatInsufficientAzl(balance, needed) {
+  return (
+    "Not enough AZL in this wallet. Wallet has " +
+    formatAzlAmount(balance) +
+    "; this action needs " +
+    formatAzlAmount(needed) +
+    ". Union staking pulls from Wallet AZL, not from tokens already staked or sitting as protocol collateral."
+  );
+}
+
 function formatTxError(err) {
   const msg = err?.shortMessage || err?.details || err?.message || String(err);
   const lower = msg.toLowerCase();
+  const decoded = readDecodedError(err);
+  if (decoded?.errorName === "ERC20InsufficientBalance") {
+    const args = decoded.args || [];
+    return formatInsufficientAzl(args[1] ?? 0n, args[2] ?? 0n);
+  }
+  if (decoded?.errorName === "ERC20InsufficientAllowance") {
+    return "AZL allowance is too low. Confirm the approval, then retry the stake.";
+  }
   if (
     err?.name === "UserRejectedRequestError" ||
     lower.includes("user rejected") ||
@@ -55,8 +148,13 @@ function formatTxError(err) {
   if (lower.includes("ad v2: collateral") || lower.includes("below min+fee")) {
     return "Not enough AZL collateral for this V2 action. Fund your protocol collateral first.";
   }
-  if (lower.includes("exceeds balance") || lower.includes("erc20: transfer amount")) {
-    return "Not enough collateral in your wallet. You need AZL on Base (plus a little ETH for gas).";
+  if (
+    lower.includes("0xe450d38c") ||
+    lower.includes("erc20insufficientbalance") ||
+    lower.includes("exceeds balance") ||
+    lower.includes("erc20: transfer amount")
+  ) {
+    return "Not enough AZL in this wallet. Union staking pulls from Wallet AZL on Base, not from already-staked tokens or protocol collateral.";
   }
   if (lower.includes("insufficient funds")) {
     return "Not enough ETH on Base for gas — add a small amount of ETH, then try again.";
@@ -79,6 +177,18 @@ function formatTxError(err) {
   }
   if (lower.includes("trv2: expire")) {
     return "Expire is only available after the deadline or funding window, and not while disputed.";
+  }
+  if (lower.includes("azzlgateway: deadline")) {
+    return "Deposit window missed Base time — retry. Check that this computer's clock is correct.";
+  }
+  if (lower.includes("azzlgateway: paused")) {
+    return "This market's USDC/ETH intake is paused right now.";
+  }
+  if (lower.includes("azzlgateway: input cap") || lower.includes("baseazlexecutor: price impact")) {
+    return "That deposit is above this market's intake or AZL-pool depth cap. Micro max is $100 USDC or 0.05 ETH.";
+  }
+  if (lower.includes("azzlgateway: execution deviation")) {
+    return "The AZL swap slipped past the market's execution guard — retry a smaller amount.";
   }
   if (lower.includes("execution reverted") || lower.includes("revert")) {
     return "Transaction failed onchain — check the selected market's AZL requirements and keep ETH for gas on Base.";
@@ -275,6 +385,13 @@ const VAULT_ABI = [
 const PAYMENT_GATEWAY_ABI = [
   {
     type: "function",
+    name: "intakePaused",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "bool" }],
+  },
+  {
+    type: "function",
     name: "fundWithUsdc",
     stateMutability: "nonpayable",
     inputs: [
@@ -357,6 +474,7 @@ const STAKING_ABI = [
   { type: "function", name: "unstake", stateMutability: "nonpayable", inputs: [{ name: "amount", type: "uint256" }, { name: "recipient", type: "address" }], outputs: [] },
   { type: "function", name: "bankCredits", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { type: "function", name: "claim", stateMutability: "nonpayable", inputs: [{ name: "recipient", type: "address" }], outputs: [] },
+  ...ERC20_ERROR_ABI,
 ];
 
 const REGISTRY_ABI = [
@@ -694,8 +812,47 @@ async function writeSetScope(walletClient, publicClient, scopeRegistry, taskId, 
   return receipt;
 }
 
-/** Batch scope publication immediately after post when wallet supports wallet_sendCalls. */
-async function tryPostWithOpenScopeBatch(wallet, walletClient, publicClient, cfg, postArgs, scope, onProgress) {
+async function posterOwnsTask(publicClient, registry, taskId, address) {
+  try {
+    const task = await publicClient.readContract({
+      address: registry,
+      abi: REGISTRY_ABI,
+      functionName: "tasks",
+      args: [typeof taskId === "bigint" ? taskId : BigInt(taskId)],
+    });
+    const poster = String(task?.poster ?? task?.[0] ?? "").toLowerCase();
+    return Boolean(poster) && poster === String(address).toLowerCase() && poster !== zeroAddress;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureOpenScope(walletClient, publicClient, scopeRegistry, taskId, scope, onProgress) {
+  const text = String(scope ?? "").trim();
+  if (!text) throw new Error("Public listings need a scope before they can be published onchain.");
+  if (new TextEncoder().encode(text).length > 8192) throw new Error("Scope too long (max 8192 bytes)");
+  const existing = await readOnchainScope(publicClient, scopeRegistry, taskId);
+  if (existing) return true;
+  await writeSetScope(walletClient, publicClient, scopeRegistry, taskId, text, onProgress);
+  const published = await readOnchainScope(publicClient, scopeRegistry, taskId);
+  if (!published) {
+    throw new Error("Task posted, but public scope is not onchain yet. Open My Tasks and publish it.");
+  }
+  return true;
+}
+
+function batchCallsConfirmed(status) {
+  const s = status?.status;
+  return s === 200 || s === "200" || s === "CONFIRMED";
+}
+
+function batchCallsFailed(status) {
+  const s = status?.status;
+  return s === 400 || s === 500 || s === "FAILED" || s === "REVERTED";
+}
+
+/** Batch post + publish. Never treat an unverified batch as published. */
+async function tryPostWithOpenScopeBatch(wallet, publicClient, cfg, postArgs, scope, onProgress) {
   const c = cfg.contracts;
   if (!c.taskScopeRegistry) return null;
 
@@ -721,6 +878,13 @@ async function tryPostWithOpenScopeBatch(wallet, walletClient, publicClient, cfg
   const chainId = numberToHex(cfg.chainId ?? base.id);
   const from = wallet.address;
 
+  const owned = async () => {
+    if (await posterOwnsTask(publicClient, c.taskRegistry, nextTaskId, from)) {
+      return { taskId: nextTaskId.toString(), hash: null, batched: true };
+    }
+    return null;
+  };
+
   try {
     onProgress?.("Posting task + publishing scope (batched)…");
     const result = await provider.request({
@@ -730,6 +894,7 @@ async function tryPostWithOpenScopeBatch(wallet, walletClient, publicClient, cfg
           version: "2.0.0",
           chainId,
           from,
+          atomicRequired: true,
           calls: [
             { to: c.taskRegistry, data: postData, value: "0x0" },
             { to: c.taskScopeRegistry, data: scopeData, value: "0x0" },
@@ -739,26 +904,32 @@ async function tryPostWithOpenScopeBatch(wallet, walletClient, publicClient, cfg
     });
 
     const batchId = typeof result === "string" ? result : result?.id;
-    if (!batchId) return null;
+    if (!batchId) return owned();
 
     let status = null;
+    let confirmed = false;
     for (let i = 0; i < 40; i++) {
       status = await provider.request({
         method: "wallet_getCallsStatus",
         params: [batchId],
       });
-      if (status?.status === 200 || status?.status === "CONFIRMED") break;
-      if (status?.status === 500 || status?.status === "FAILED") {
-        throw new Error("Batched post failed onchain");
+      if (batchCallsConfirmed(status)) {
+        confirmed = true;
+        break;
+      }
+      if (batchCallsFailed(status)) {
+        return owned();
       }
       await new Promise((r) => setTimeout(r, 1500));
     }
 
+    if (!confirmed) return owned();
+
     const receipts = status?.receipts ?? [];
     const txHash = receipts[0]?.transactionHash ?? status?.transactionHash ?? null;
-    return { taskId: nextTaskId.toString(), hash: txHash, scopePublished: true, batched: true };
+    return { taskId: nextTaskId.toString(), hash: txHash, batched: true };
   } catch {
-    return null;
+    return owned();
   }
 }
 
@@ -769,7 +940,7 @@ async function tryFundWithUsdcBatch(wallet, publicClient, cfg, address, amount, 
   requireConfiguredAddress("connected wallet", address);
   const provider = await wallet.getEthereumProvider();
   const chainId = numberToHex(cfg.chainId ?? base.id);
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const deadline = gatewayDeadline();
   const approveData = encodeFunctionData({
     abi: ERC20_ABI,
     functionName: "approve",
@@ -874,7 +1045,7 @@ async function fundAzlThroughHop(
       });
     },
   });
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const deadline = gatewayDeadline();
   const data = encodeFunctionData({
     abi: AZL_HOP_ABI,
     functionName: "depositUsingAzl",
@@ -1266,6 +1437,22 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           "AZL oracle is not ready yet. Deposits are temporarily paused while the Base price feed warms up."
         );
       }
+      const intakePaused = await publicClient.readContract({
+        address: c.paymentGateway,
+        abi: PAYMENT_GATEWAY_ABI,
+        functionName: "intakePaused",
+      });
+      if (intakePaused) {
+        throw new Error("This market's USDC/ETH intake is paused right now.");
+      }
+      const maxUsdc = resolveMarket(market) === "micro" ? 100_000_000n : 500_000_000n;
+      if (amount > maxUsdc) {
+        throw new Error(
+          resolveMarket(market) === "micro"
+            ? "Micro intake max is $100 USDC per deposit."
+            : "Standard intake max is $500 USDC per deposit."
+        );
+      }
 
       const allowance = await publicClient.readContract({
         address: c.usdc,
@@ -1290,7 +1477,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           address: c.paymentGateway,
           abi: PAYMENT_GATEWAY_ABI,
           functionName: "fundWithUsdc",
-          args: [amount, 1n, BigInt(Math.floor(Date.now() / 1000) + 600)],
+          args: [amount, 1n, gatewayDeadline()],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
@@ -1309,6 +1496,22 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       if (balance < amount + MIN_ETH_WEI) {
         throw new Error("Not enough ETH in wallet for the deposit and Base gas.");
       }
+      const intakePaused = await publicClient.readContract({
+        address: requireConfiguredAddress("payment gateway", c?.paymentGateway),
+        abi: PAYMENT_GATEWAY_ABI,
+        functionName: "intakePaused",
+      });
+      if (intakePaused) {
+        throw new Error("This market's USDC/ETH intake is paused right now.");
+      }
+      const maxEth = resolveMarket(market) === "micro" ? parseUnits("0.05", 18) : parseUnits("10", 18);
+      if (amount > maxEth) {
+        throw new Error(
+          resolveMarket(market) === "micro"
+            ? "Micro intake max is 0.05 ETH per deposit. The amount field is ETH, not USD."
+            : "Standard intake max is 10 ETH per deposit. The amount field is ETH, not USD."
+        );
+      }
 
       onProgress?.("Converting ETH to AZL collateral…");
       const receipt = await runTx("fundWithEth", async () => {
@@ -1316,7 +1519,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           address: c.paymentGateway,
           abi: PAYMENT_GATEWAY_ABI,
           functionName: "fundWithEth",
-          args: [1n, BigInt(Math.floor(Date.now() / 1000) + 600)],
+          args: [1n, gatewayDeadline()],
           value: amount,
         });
         return publicClient.waitForTransactionReceipt({ hash });
@@ -1491,55 +1694,59 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       const deadline = BigInt(Math.floor(Date.now() / 1000) + deadlineDays * 86400);
       const postArgs = [totalAmount, deadline];
 
+      if (openDiscovery && !String(description ?? "").trim()) {
+        throw new Error("Public listings need a scope.");
+      }
+
+      let posted = null;
       if (openDiscovery && c.taskScopeRegistry) {
-        const batched = await tryPostWithOpenScopeBatch(
+        posted = await tryPostWithOpenScopeBatch(
           wallet,
-          walletClient,
           publicClient,
           cfg,
           postArgs,
           description,
           onProgress
         );
-        if (batched) return batched;
       }
 
-      onProgress?.("Posting to the market…");
-      const receipt = await runTx("post", async () => {
-        const hash = await walletClient.writeContract({
-          address: c.taskRegistry,
-          abi: REGISTRY_ABI,
-          functionName: "post",
-          args: postArgs,
-        });
-        return publicClient.waitForTransactionReceipt({ hash });
-      }, onProgress);
-      const taskId = taskIdFromReceipt(receipt, c.taskRegistry);
-
-      if (openDiscovery && c.taskScopeRegistry) {
-        await writeSetScope(
-          walletClient,
-          publicClient,
-          c.taskScopeRegistry,
-          taskId,
-          description,
-          onProgress
-        );
-        return {
-          taskId: taskId.toString(),
+      if (!posted) {
+        onProgress?.("Posting to the market…");
+        const receipt = await runTx("post", async () => {
+          const hash = await walletClient.writeContract({
+            address: c.taskRegistry,
+            abi: REGISTRY_ABI,
+            functionName: "post",
+            args: postArgs,
+          });
+          return publicClient.waitForTransactionReceipt({ hash });
+        }, onProgress);
+        posted = {
+          taskId: taskIdFromReceipt(receipt, c.taskRegistry).toString(),
           hash: receipt.transactionHash,
-          taskAmountAzl: formatUnits(totalAmount, 18),
-          scopePublished: true,
           batched: false,
         };
       }
 
+      let scopePublished = false;
+      if (openDiscovery && c.taskScopeRegistry) {
+        scopePublished = await ensureOpenScope(
+          walletClient,
+          publicClient,
+          c.taskScopeRegistry,
+          posted.taskId,
+          description,
+          onProgress
+        );
+      }
+
       return {
-        taskId: taskId.toString(),
-        hash: receipt.transactionHash,
+        taskId: posted.taskId,
+        hash: posted.hash,
         taskAmountAzl: formatUnits(totalAmount, 18),
-        scopePublished: false,
-        discoveryOpen: false,
+        scopePublished,
+        batched: Boolean(posted.batched),
+        discoveryOpen: openDiscovery,
       };
     },
 
@@ -2007,9 +2214,10 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       const c = cfg.contracts;
       const walletClient = await getWalletClient(wallet, cfg);
       const publicClient = getPublicClient(cfg);
+      const amountText = String(value ?? "").trim().replace(/,/g, "");
       const amount = value == null || value === "" || /^0x/i.test(String(value))
         ? 0n
-        : parseUnits(String(value), 18);
+        : parseUnits(/^\d+(\.\d+)?$/.test(amountText) ? amountText : String(value), 18);
       const stakeAmount = action === "claimUnstakeTo"
         ? await publicClient.readContract({
             address: c.stakingVault,
@@ -2019,15 +2227,29 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           })
         : amount;
       if (action === "stake") {
-        const active = await publicClient.readContract({
-          address: c.stakingVault,
-          abi: STAKING_ABI,
-          functionName: "stakingActive",
+        if (amount <= 0n) throw new Error("Enter an AZL amount to stake.");
+        const [active, walletAzl, staked] = await publicClient.multicall({
+          allowFailure: false,
+          contracts: [
+            { address: c.stakingVault, abi: STAKING_ABI, functionName: "stakingActive" },
+            { address: c.azlToken, abi: ERC20_ABI, functionName: "balanceOf", args: [address] },
+            { address: c.stakingVault, abi: STAKING_ABI, functionName: "stakeOf", args: [address] },
+          ],
         });
         if (!active) {
           throw new Error(
             (market === "micro" ? "Micro" : "Standard") +
               " Union staking is not activated yet. Stake stays closed until the owner calls activateStaking."
+          );
+        }
+        if (walletAzl < amount) {
+          throw new Error(
+            "Not enough AZL in this wallet to stake. Wallet has " +
+              formatAzlAmount(walletAzl) +
+              (staked > 0n ? " and " + formatAzlAmount(staked) + " already staked in this vault" : "") +
+              ". This stake needs " +
+              formatAzlAmount(amount) +
+              " from the wallet. Already-staked AZL cannot be staked again."
           );
         }
         const allowance = await publicClient.readContract({
@@ -2037,13 +2259,16 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           args: [address, c.stakingVault],
         });
         if (allowance < amount) {
-          const approval = await walletClient.writeContract({
-            address: c.azlToken,
-            abi: ERC20_ABI,
-            functionName: "approve",
-            args: [c.stakingVault, amount],
-          });
-          await publicClient.waitForTransactionReceipt({ hash: approval });
+          onProgress?.("Approve AZL for Union…");
+          await runTx("union-approve", async () => {
+            const approval = await walletClient.writeContract({
+              address: c.azlToken,
+              abi: ERC20_ABI,
+              functionName: "approve",
+              args: [c.stakingVault, amount],
+            });
+            return publicClient.waitForTransactionReceipt({ hash: approval });
+          }, onProgress);
         }
       }
       const args = action === "stake" ? [amount] :
@@ -2052,13 +2277,15 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       const functionName = action === "claimUnstakeTo" ? "unstake" :
         action === "claimRewards" ? "claim" : action;
       onProgress?.("Submitting Union transaction…");
-      const hash = await walletClient.writeContract({
-        address: c.stakingVault,
-        abi: STAKING_ABI,
-        functionName,
-        args,
-      });
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const receipt = await runTx("union:" + action, async () => {
+        const hash = await walletClient.writeContract({
+          address: c.stakingVault,
+          abi: STAKING_ABI,
+          functionName,
+          args,
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
       return { hash: receipt.transactionHash };
     },
 

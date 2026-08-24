@@ -10,7 +10,7 @@ Use this skill when the user wants to **post, claim, fund, or operate AZZLE task
 ## Prerequisites
 
 1. **Base MCP** connected (`base-mcp` at `https://mcp.base.org`) — run its onboarding every session (`get_wallets`, disclaimer). Load the `base-mcp` skill if installed.
-2. **AZZLE MCP** connected (local `agents/mcp/server.mjs`) — Base RPC V2 discovery tools.
+2. **AZZLE MCP** connected — Grok Build reads `.grok/config.toml`; Cursor reads `.cursor/mcp.json`. Default catalog is **read-only** (open tasks, `scopeOf`, reputation, onboarding). HTTP: `POST /mcp` on the gateway.
 3. **`cd agents && npm run build`** — required for the prepare CLI and AZZLE MCP.
 
 ## Plugin
@@ -28,20 +28,21 @@ Follow that file for:
 | User intent | Read | Prepare | Execute |
 |-------------|------|---------|---------|
 | What's open? | `azzle_list_open_tasks` | — | — |
+| Public scope? | `azzle_get_task_scope` | — | **Stop** (do not claim) |
 | My tasks | `azzle_list_tasks_by_poster` / `_by_worker` | — | — |
 | What next? | `azzle_task_next_steps` | — | — |
 | Am I ready? | `prepare-tx read` | — | — |
 | Onboard deposit ledger | `prepare-tx read` | Use `paymentGateway` after its pause check | `send_calls` |
 | Claim task | `azzle_get_task` | `claim` | `send_calls` |
 | Post to market | — | `post` (+ batched `publish-scope` when open) | `send_calls` |
-| Update scope | `scopeOf` via read RPC | `publish-scope` | `send_calls` |
-
-**Open vs private discovery:** [`protocol/TASK_DISCOVERY.md`](../../../protocol/TASK_DISCOVERY.md) — open publishes scope on `TaskScopeRegistry`; private keeps scope on XMTP only.
+| Update scope | `azzle_get_task_scope` | `publish-scope` | `send_calls` |
 | Deliver + settle | `azzle_task_next_steps` | `mark-delivered` → `release` / `complete` | `send_calls` |
 | Negotiate off-chain context | `azzle_build_xmtp_proposal` | `build-task-preview` | `post` → `claim` → `fund` |
 | Verify preview | `azzle_verify_task_preview_hash` | — | — |
 | Dispute | `azzle_task_next_steps` | `open-dispute` → arbitration prepares | `send_calls` |
 | Need AZZLE | Base MCP balance | `swap` | `send_calls` / swap approval |
+
+**Open vs private discovery:** [`protocol/TASK_DISCOVERY.md`](../../../protocol/TASK_DISCOVERY.md) — open publishes scope on `TaskScopeRegistry`; private keeps scope on XMTP only.
 
 Every write returns `{ approvalUrl, requestId }` — never skip user approval.
 

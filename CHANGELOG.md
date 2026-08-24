@@ -1,8 +1,23 @@
 # Changelog
 
-## Unreleased — dual V2 markets (standard + micro)
+## Unreleased — Grok Build + HTTP MCP (2026-08-24)
+
+- Grok Build first-class install: [`.grok/config.toml`](.grok/config.toml), [`.grok/skills/azzle-market/SKILL.md`](.grok/skills/azzle-market/SKILL.md) (open market → `scopeOf` → stop). `npx @azzle/agents add` writes the same files. Trust the folder in the Grok TUI, then `grok mcp doctor`.
+- Stateless Streamable HTTP `POST /mcp` on the existing gateway for Grok Bot, grok.com connectors, and `mcp(server_url=...)`.
+- Default MCP allow-list is read-only: open tasks, `azzle_get_task_scope`, reputation, onboarding. Claims, deposits, and swaps stay on `https://mcp.base.org` + `approvalUrl`.
+
+## [0.5.0] — 2026-08-22
+
+### Protocol
 
 One V2 Solidity surface, two Base graphs. Standard stays the live `base-8453.json` deployment. Micro is a new CREATE2 graph that reuses the live observation/TWAP/USD oracle and isolates vault, registry, escrow, gateway, staking, treasury, reputation, bonds, arbitration, and scope. Task ids are `v2:standard:N` and `v2:micro:N`. See [`protocol/MARKETS.md`](protocol/MARKETS.md).
+
+### SDK (`@azzle/agents`)
+
+- Ship reviewed standard and micro deployment pins in the package.
+- Load a market with `loadBaseMainnetV2Manifest()` / `loadMarketManifest()`; default is standard, micro only via `AZZLE_MARKET=micro` or an explicit pin.
+- Parse and reject task ids that are not `v2:standard:N` or `v2:micro:N` (`parseTaskRef`, `namespacedTaskId`).
+- MCP, CLI, and Aeon scaffolding bind to one selected market and do not mix graphs.
 
 ## Unreleased — Pashov pass-2 remediation (2026-07-19)
 
