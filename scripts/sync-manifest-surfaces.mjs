@@ -56,8 +56,12 @@ for (const service of Object.values(x402.services ?? {})) {
 const GENERATED_BEGIN = "// <generated-manifest>";
 const GENERATED_END = "// </generated-manifest>";
 
+function toLf(value) {
+  return String(value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
 function inlineManifestIntoHandler(source, generatedTs) {
-  let next = source.replace(/^[ \t]*import\s+\{[^}]*\}\s+from\s+["']\.\.\/manifest["']\s*;\s*\n?/gm, "");
+  let next = toLf(source).replace(/^[ \t]*import\s+\{[^}]*\}\s+from\s+["']\.\.\/manifest["']\s*;\s*\n?/gm, "");
   const block = `${GENERATED_BEGIN}\n${generatedTs.trimEnd()}\n${GENERATED_END}\n\n`;
   if (next.includes(GENERATED_BEGIN) && next.includes(GENERATED_END)) {
     const begin = GENERATED_BEGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -86,7 +90,7 @@ const outputs = new Map([
   [join(root, "agents", "x402-cloud", "x402", "manifest.ts"), generatedTs],
   [join(root, "launch-skills", "js", "manifest.generated.js"), browserGenerated],
   [x402Path, JSON.stringify(x402, null, 2) + "\n"],
-  [join(root, "api", "lib", "x402-host.json"), await readFile(join(root, "agents", "x402-cloud", "host.json"), "utf8")],
+  [join(root, "api", "lib", "x402-host.json"), toLf(await readFile(join(root, "agents", "x402-cloud", "host.json"), "utf8"))],
   [
     join(root, "api", "lib", "x402-services.json"),
     JSON.stringify(
@@ -115,7 +119,7 @@ if (checkOnly) {
   const stale = [];
   for (const [file, expected] of outputs) {
     try {
-      if (await readFile(file, "utf8") !== expected) stale.push(file);
+      if (toLf(await readFile(file, "utf8")) !== toLf(expected)) stale.push(file);
     } catch {
       stale.push(file);
     }

@@ -142,8 +142,6 @@ export function selectBaseMainnetManifest(market: AzzleMarket) {
 }
 // </generated-manifest>
 
-
-
 const RPC_CANDIDATES = [...new Set([
   process.env.BASE_RPC_URL,
   "https://mainnet.base.org",
