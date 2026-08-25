@@ -25,6 +25,8 @@
     "down": "docker compose down",
     "migrate": "node dist/cli.js migrate",
     "funnel": "node dist/cli.js funnel",
+    "clockwork": "node dist/cli.js clockwork",
+    "test": "tsc && node --test dist/brain/clockwork.test.js dist/llm/json.test.js",
     "prestart": "npm run build"
   },
   "engines": {

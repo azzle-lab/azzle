@@ -4,6 +4,7 @@ import type { AgentIdentity } from "../../types.js";
 import { SUBJECTS } from "../../events/subjects.js";
 import type { AAIESCycle } from "../../types.js";
 import { runAAIESCycle } from "../../brain/aaies-engine.js";
+import { CLOCKWORK_ENTITY_NAME } from "../../brain/clockwork.js";
 
 const ID: AgentIdentity = {
   id: "aaies",
@@ -37,6 +38,7 @@ export class AiSearchInclusion extends BaseAgent {
 
   protected async onEvent(subject: string, msg: import("../../types.js").NatsMessage): Promise<void> {
     if (!msg.entity_id) return;
+    if (subject === SUBJECTS.DISCOVERY_COMMUNITY_FOUND) return;
     if (msg.agent === "aaies" && subject === SUBJECTS.SCORE_UPDATED) return;
     try {
       await this.executeCycle(msg.entity_id, subject);
@@ -57,7 +59,8 @@ export class AiSearchInclusion extends BaseAgent {
       if (fit < minFit * 0.75) continue;
 
       const entity = await this.ctx.postgres.getEntity(entityId);
-      const lastCycle = (entity?.metadata as Record<string, unknown>)?.aaies as
+      if (!entity || this.isInternal(entity)) continue;
+      const lastCycle = (entity.metadata as Record<string, unknown>)?.aaies as
         | { cycle_at?: string }
         | undefined;
       if (lastCycle?.cycle_at) {
@@ -75,6 +78,9 @@ export class AiSearchInclusion extends BaseAgent {
   }
 
   private async executeCycle(entityId: string, trigger: string): Promise<boolean> {
+    const entity = await this.ctx.postgres.getEntity(entityId);
+    if (!entity || this.isInternal(entity)) return false;
+
     const cycle = await runAAIESCycle(this.ctx, entityId, trigger, (facts, schema, rules) =>
       this.llmJson(facts, schema, rules)
     );
@@ -85,6 +91,13 @@ export class AiSearchInclusion extends BaseAgent {
       `[aaies] ${cycle.target_queries[0] ?? "query"} — Δ${top?.delta?.toFixed(2) ?? "?"} via ${top?.intervention_type} → ${top?.target_surface?.slice(0, 60)}`
     );
     return true;
+  }
+
+  private isInternal(entity: { type?: string; name?: string }): boolean {
+    const name = String(entity.name ?? "");
+    if (name === CLOCKWORK_ENTITY_NAME || name.startsWith("_force_")) return true;
+    if (entity.type === "community" || entity.type === "protocol") return true;
+    return false;
   }
 }
 

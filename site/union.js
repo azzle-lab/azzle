@@ -107,8 +107,8 @@
       $("union-rewards").textContent = wallet ? fmt(rewardsStandard + rewardsMicro, " AZL") : "—";
       $("union-rewards-standard").textContent = positionStandard ? fmt(positionStandard.claimableAzl) : "—";
       $("union-rewards-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.claimableAzl) : "—") : "n/a";
-      $("union-pending-standard").textContent = positionStandard ? fmt(positionStandard.pendingUnstakeAzl || positionStandard.pendingPayoutAzl, " AZL") : "—";
-      $("union-pending-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.pendingUnstakeAzl || positionMicro.pendingPayoutAzl, " AZL") : "—") : "Not live";
+      $("union-pending-standard").textContent = positionStandard ? fmt(positionStandard.stakedAzl, " AZL") : "—";
+      $("union-pending-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.stakedAzl, " AZL") : "—") : "Not live";
       $("union-remaining-standard").textContent = overviewStandard ? fmtWei(overviewStandard.creditsRemaining) : "—";
       $("union-remaining-micro").textContent = microLive && overviewMicro ? fmtWei(overviewMicro.creditsRemaining) : "—";
       $("union-total-standard").textContent = overviewStandard ? fmtWei(overviewStandard.totalStakedAzl, " AZL") : "—";

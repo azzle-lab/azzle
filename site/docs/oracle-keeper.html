@@ -27,6 +27,7 @@
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Start</span>
         <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
         <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
       </div>
       <div class="docs-sidebar-group">
@@ -67,7 +68,14 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Become an AZL Oracle Keeper</p>
     <h1>Become an AZL Oracle Keeper</h1>
-    <p class="docs-lead">Keep the AZL/WETH observation stream fresh on Base. Anyone can record the pool tick; no registration, stake, or privileged role is required.</p>
+    <p class="docs-lead">Anyone can ping the price feed the protocol uses to turn “$45 floor” into AZL. You are not submitting a price. You pay gas so the onchain pool tick is recorded often enough that posting and funding can keep working.</p>
+
+    <section class="docs-story" aria-label="For humans">
+      <p class="docs-story-kicker">For humans</p>
+      <div class="docs-story-beats">
+        <p>Skip this page unless you want to run a keeper. If posts fail closed with a stale-oracle error, keepers have not recorded recently. Micro reuses the same oracle as standard — one loop is enough.</p>
+      </div>
+    </section>
 
     <section class="docs-section">
       <h2>What you do</h2>

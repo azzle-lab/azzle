@@ -51,7 +51,26 @@ npm run force wave 1
 
 **Tip:** Don't keep `.azzle-force-lite/graph.json` open in your editor while agents run — saves every ~2s will flicker the file. Use `npm run force status` to inspect counts.
 
+## Clockwork SLA — one paying client per hour
+
+If FORCE does not land **at least one unique paying client per hour**, it is in **breach** and not working.
+
+A paying client is an on-chain wallet that funded task escrow (poster) or paid the access fee to claim (worker) on **standard** or **micro**. Existing historical tasks do not count — only new payers after the clock starts.
+
+On breach, Clockwork:
+
+1. Alarms (`npm run force clockwork` / Observatory **Paying / hour**)
+2. Hunts **agent societies** (CAMEL, Virtuals, ElizaOS, CrewAI, Agentverse, Olas, MCP, Bankr, …) as distribution surfaces
+3. Hunts agents that **already do task volume**
+4. Drafts install payloads: `npx @azzle/agents@latest add` + `https://www.azzle.org/mcp`
+5. Lowers outreach gates and shortens follow-up cadence until the SLA recovers
+
 ```bash
+npm run force clockwork
+npm run force wave all    # includes society-hunter, volume-hunter, society-distributor, clockwork
+```
+
+Catalog: [`config/agent-societies.json`](config/agent-societies.json)
 
 Run Temporal worker (follow-up + onboarding workflows):
 
@@ -70,11 +89,11 @@ npm run force agent repository-hunter
 | Wave | Agents | Gate |
 |------|--------|------|
 | 1 | Repository, Agent, Builder hunters + Contact Discovery + Relationship Mapper | 500+ entities before outreach |
-| 2 | Startup, Community, Opportunity hunters + Qualification | Top 50 ranked prospects |
-| 3 | Personalizer, Messenger, Follow-up, Ambassador, **Content Studio** | Human approval on Messenger (default) |
+| 2 | Startup, Community, Opportunity, **Society**, **Volume** hunters + Qualification | Top 50 ranked prospects |
+| 3 | Personalizer, Messenger, Follow-up, Ambassador, **Society Distributor**, **Clockwork**, Farcaster | Human approval on Messenger (default) |
 | 4 | Onboarding, Matchmaker, Analyst, Trend, Competitive Intel | — |
 | 5 | Chief Expansion, Swarm Creator | Swarm Creator on validated niche |
-| 6 | **Second Brain** — signal-intake, prospect-scorer, sequencer, objection-handler, closer, prompt-evolver | Closing + self-iteration — see [`docs/AZZLE_FORCE_SECOND_BRAIN.md`](../docs/AZZLE_FORCE_SECOND_BRAIN.md) |
+| 6 | **Second Brain** — signal-intake, prospect-scorer, sequencer, objection-handler, closer, **clockwork**, prompt-evolver | Closing + self-iteration — see [`docs/AZZLE_FORCE_SECOND_BRAIN.md`](../docs/AZZLE_FORCE_SECOND_BRAIN.md) |
 
 Set wave: `AZZLE_FORCE_WAVE=6` or `npm run force wave 6` · full pipeline: `npm run force wave all`
 
@@ -86,6 +105,8 @@ Set wave: `AZZLE_FORCE_WAVE=6` or `npm run force wave 6` · full pipeline: `npm 
 | `AZZLE_LLM_MODEL` | Bankr model ID (default tier lists use DeepSeek first); see [Bankr models](https://docs.bankr.bot/llm-gateway/models) |
 | `GITHUB_TOKEN` | GitHub API (optional — seed data without) |
 | `HUMAN_APPROVE_OUTREACH` | `true` = Messenger queues drafts for approval |
+| `AZZLE_CLOCKWORK` | `false` to disable the 1 paying-client/hour SLA |
+| `AZZLE_PAYING_CLIENTS_PER_HOUR` | SLA target (default 1) |
 | `azzleProbabilityThreshold` | in `config/default.json` |
 
 Approve outreach:

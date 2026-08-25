@@ -9,6 +9,11 @@ const COMMUNITIES = [
   { name: "r/LocalLLaMA", members: 400000, url: "https://reddit.com/r/LocalLLaMA" },
   { name: "CrewAI Community", members: 15000, url: "https://discord.gg/crewai" },
   { name: "MCP Developers", members: 8000, url: "https://github.com/modelcontextprotocol" },
+  { name: "CAMEL-AI Agent Society", members: 20000, url: "https://www.camel-ai.org" },
+  { name: "ElizaOS", members: 30000, url: "https://elizaos.ai" },
+  { name: "Virtuals Protocol", members: 25000, url: "https://www.virtuals.io" },
+  { name: "Fetch.ai Agentverse", members: 15000, url: "https://agentverse.ai" },
+  { name: "Olas Autonolas", members: 12000, url: "https://olas.network" },
 ];
 
 const ID: AgentIdentity = {
@@ -33,7 +38,12 @@ export class CommunityHunter extends BaseAgent {
         agent: this.identity.id,
         type: "community",
         name: c.name,
-        metadata: { members: c.members, url: c.url, azzle_fit: fit },
+        metadata: {
+          members: c.members,
+          url: c.url,
+          azzle_fit: fit,
+          distribution_class: /github\.com/i.test(c.url) ? "agent_society" : "community",
+        },
         embedText: `${c.name} community builders agents ${c.members} members`,
         embedCollection: "communities",
         score: { type: "azzle_probability", value: fit, reason: "community size signal" },

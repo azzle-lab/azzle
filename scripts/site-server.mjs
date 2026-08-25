@@ -85,6 +85,19 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
 
   try {
+    if (path === "/mcp" || path === "/mcp/" || path === "/api/mcp") {
+      const { default: handleMcp } = await import("../api/mcp.js");
+      await handleMcp(req, res);
+      return;
+    }
+
+    const x402Match = path.match(/^\/(?:api\/)?x402\/([^/]+)\/?$/);
+    if (x402Match) {
+      const { handleX402Proxy } = await import("../api/lib/x402-proxy.js");
+      await handleX402Proxy(req, res, x402Match[1]);
+      return;
+    }
+
     if (path.startsWith("/api/") || path === "/snap" || path === "/snap/") {
       let body = {};
       if (req.method === "POST") {
@@ -126,6 +139,7 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`[azzle-site] http://localhost:${PORT}`);
   console.log(`[azzle-site] LLM     POST /api/role-chat`);
+  console.log(`[azzle-site] MCP     POST /mcp`);
   if (!process.env.BANKR_API_KEY) console.warn("[azzle-site] WARN: BANKR_API_KEY unset — chat will return 503");
   if (!process.env.PRIVY_APP_ID) console.warn("[azzle-site] WARN: PRIVY_APP_ID unset — wallet connect disabled");
 });

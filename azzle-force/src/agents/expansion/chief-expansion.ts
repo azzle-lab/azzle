@@ -11,6 +11,8 @@ const HUNTER_TYPES = [
   "startup-hunter",
   "community-hunter",
   "opportunity-hunter",
+  "society-hunter",
+  "volume-hunter",
 ];
 
 const ID: AgentIdentity = {

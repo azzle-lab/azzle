@@ -1,5 +1,6 @@
 import type { ForceContext } from "../context.js";
 import { draftSequencerMessage } from "../brain/outreach-engine.js";
+import { isClockworkBreaching } from "../brain/clockwork-state.js";
 
 const MS_PER_DAY = 86_400_000;
 
@@ -7,6 +8,9 @@ const MS_PER_DAY = 86_400_000;
 export async function tickLiteFollowUps(ctx: ForceContext): Promise<number> {
   const days = ctx.config.forceConfig.followUpDays;
   if (days.length === 0) return 0;
+  const breach = await isClockworkBreaching(ctx);
+  const waitMsFor = (waitDays: number) =>
+    breach ? Math.min(waitDays * MS_PER_DAY, 45 * 60 * 1000) : waitDays * MS_PER_DAY;
 
   const sentIds = await ctx.postgres.entitiesWithLatestOutreachStatus("sent");
   let drafted = 0;
@@ -25,7 +29,7 @@ export async function tickLiteFollowUps(ctx: ForceContext): Promise<number> {
     const lastSent = sends[sends.length - 1];
     const lastAt = new Date(String(lastSent.sent_at ?? lastSent.created_at)).getTime();
     const waitDays = days[stepIndex];
-    if (Date.now() - lastAt < waitDays * MS_PER_DAY) continue;
+    if (Date.now() - lastAt < waitMsFor(waitDays)) continue;
 
     const hasPending = history.some((o) =>
       ["draft", "pending_approval"].includes(String(o.status))
@@ -34,7 +38,7 @@ export async function tickLiteFollowUps(ctx: ForceContext): Promise<number> {
 
     await draftSequencerMessage(ctx, entityId, touchCount + 1);
     drafted++;
-    if (drafted >= 5) break;
+    if (drafted >= (breach ? 12 : 5)) break;
   }
 
   return drafted;

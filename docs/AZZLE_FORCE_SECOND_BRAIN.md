@@ -93,6 +93,18 @@ Publishes `outreach.replied`, logs status, triggers `objection-handler`.
 
 `minEntitiesBeforeBrain` lowers the personalizer gate when brain mode is on (default outreach gate remains 500 for cold discovery).
 
+## Clockwork SLA
+
+**One unique paying client per hour**, or FORCE is in breach.
+
+- Paying client = funded poster or claiming worker on standard/micro (new after the clock starts)
+- On breach: `society-hunter`, `volume-hunter`, `society-distributor`, `personalizer`, `messenger`, `closer` get missions; outreach gates drop
+- Catalog: `azzle-force/config/agent-societies.json`
+
+```bash
+npm run force clockwork
+```
+
 ## Roadmap (not yet wired)
 
 - Farcaster / Telegram / Discord delivery adapters

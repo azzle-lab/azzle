@@ -5,7 +5,7 @@
  * Prerequisite: cd agents && npm run build
  * Default catalog: open tasks, scopeOf, reputation, onboarding (AZZLE_MCP_ALLOWLIST=read).
  * Writes: https://mcp.base.org + approvalUrl.
- * HTTP: POST /mcp on the gateway (`npm run gateway`).
+ * HTTP: POST https://www.azzle.org/mcp (Vercel) or POST /mcp on the local gateway.
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createAzzleMcpServer } from "./create-server.mjs";

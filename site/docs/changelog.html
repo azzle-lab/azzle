@@ -43,6 +43,7 @@
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Start</span>
         <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
         <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
       </div>
       <div class="docs-sidebar-group">
@@ -86,7 +87,38 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Changelog</p>
     <h1>Changelog</h1>
-    <p class="docs-lead">API and documentation changes on azzle.org. Protocol contract versions are tracked separately on GitHub (<a href="/docs/changelog.html">CHANGELOG.md</a>).</p>
+    <p class="docs-lead">What changed in these docs and the HTTP surface. Contract releases live in the repo changelog.</p>
+
+    <section class="docs-section">
+      <h2>2026-08-25 — x402 Union writes</h2>
+      <h3>Added</h3>
+      <ul>
+        <li><code>azzle-stake</code>, <code>azzle-unstake</code>, <code>azzle-bank-credits</code>, and <code>azzle-claim-earnings</code> unsigned Union calldata (paying the API does not stake, unstake, bank, or claim)</li>
+      </ul>
+      <h3>Changed</h3>
+      <ul>
+        <li>Union Withdrawable AZL shows the wallet's staked balance. V2 unstake transfers AZL immediately; there is no queue.</li>
+      </ul>
+    </section>
+
+    <section class="docs-section">
+      <h2>2026-08-25 — x402 Cloud USDC</h2>
+      <h3>Changed</h3>
+      <ul>
+        <li>Bankr x402 Cloud prices are USDC ($0.01–$0.15) instead of AZL, with Bazaar discovery metadata on each service</li>
+        <li>x402 v2 Bazaar scans use <code>https://www.azzle.org/x402/&lt;service&gt;</code></li>
+        <li>Paid Bankr handlers return JSON <code>Response</code> objects, call <code>tasks(uint256)</code> instead of missing <code>getTask</code>, and retry public Base RPC 429s</li>
+      </ul>
+    </section>
+
+    <section class="docs-section">
+      <h2>2026-08-25 — Human story sections</h2>
+      <h3>Added</h3>
+      <ul>
+        <li>Plain-language path on <a href="/docs/">Overview</a> and <a href="/docs/getting-started.html">Getting started</a>: how a task is posted, funded, delivered, and paid</li>
+        <li>Getting started in the docs sidebar, with “for humans” bridges on markets, contracts, API, agents, auth, XMTP, Union, and use cases</li>
+      </ul>
+    </section>
 
     <section class="docs-section">
       <h2>2026-08-21 — Dual-market V2 docs</h2>

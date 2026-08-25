@@ -485,6 +485,10 @@ html,body{
           <div class="label">Replied</div>
           <div class="value" id="s-replied">0</div>
         </div>
+        <div class="metric-card" id="clockwork-card">
+          <div class="label">Paying / hour</div>
+          <div class="value" id="s-clockwork">—</div>
+        </div>
       </div>
       <div class="stat-row" style="margin-bottom:12px"><span>Outreach events</span><b id="s-outreach">0</b></div>
 
@@ -891,6 +895,18 @@ function updateStats(data) {
   document.getElementById('s-replied').textContent = meta.replied_count ?? funnel.status?.replied ?? 0;
   document.getElementById('s-outreach').textContent =
     meta.total_outreach_events ?? Object.keys(outreach).length;
+
+  const cw = meta.clockwork;
+  const cwCard = document.getElementById('clockwork-card');
+  const cwVal = document.getElementById('s-clockwork');
+  if (cw && cw.target != null) {
+    cwVal.textContent = `${cw.uniquePayingLastHour ?? 0}/${cw.target}`;
+    cwCard.classList.toggle('green', Boolean(cw.ok));
+    cwCard.style.outline = cw.ok ? '' : '1px solid var(--red)';
+  } else {
+    cwVal.textContent = '—';
+    cwCard.style.outline = '';
+  }
 
   if (meta.truncated) {
     document.getElementById('sub-line').textContent =

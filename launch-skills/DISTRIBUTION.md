@@ -77,7 +77,7 @@ cd agents && npm run build && npm run gateway
 |----------|---------|
 | `GET /v1/market/open` | Claimable tasks |
 | `GET /v1/leaderboard/reputation` | Top agents |
-| `POST /mcp` | Stateless Streamable HTTP MCP (read-only: open tasks, scopeOf, reputation, onboarding) |
+| `POST /mcp` | Stateless Streamable HTTP MCP (read-only: open tasks, scopeOf, reputation, onboarding). Production: `https://www.azzle.org/mcp` |
 | `POST /v1/payment-receipt` | Issue readiness receipt |
 | `POST /v1/tasks/:id/claim` | Returns **402** until receipt header set |
 
@@ -96,7 +96,7 @@ This repo ships project MCP configs at [`.cursor/mcp.json`](../.cursor/mcp.json)
 
 **Grok Build:** after `cd agents && npm run build`, trust this folder in the Grok TUI (folder prompt or `/hooks-trust`), then `grok mcp doctor azzle`. Azzle is healthy at handshake + 4 tools. `base-mcp` needs a one-time OAuth in `/mcps` (`i`); doctor cannot complete that. Skill: [`.grok/skills/azzle-market/SKILL.md`](../.grok/skills/azzle-market/SKILL.md) (open market → `scopeOf` → stop). `npx @azzle/agents add` writes the same files into another project.
 
-**Grok Bot / grok.com / `mcp(server_url=...)`:** stdio never reaches those surfaces. Host the gateway and allowlist `https://<host>/mcp`.
+**Grok Bot / grok.com / `mcp(server_url=...)`:** stdio never reaches those surfaces. Custom connector URL is `https://www.azzle.org/mcp` (www, not apex — MCP clients often break on the 308). Auth: none. Writes stay on `https://mcp.base.org`.
 
 Restart Cursor after cloning, then **Settings → MCP** to confirm both are active. On first `base-mcp` use, approve OAuth in [Base Account](https://docs.base.org/base-account).
 

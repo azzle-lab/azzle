@@ -22,6 +22,11 @@ export class LitePostgresStore {
     return row as unknown as Record<string, unknown> | null;
   }
 
+  async getEntityByName(name: string, type?: string): Promise<Record<string, unknown> | null> {
+    const row = await this.store.getEntityByName(name, type);
+    return row as unknown as Record<string, unknown> | null;
+  }
+
   async countEntities(): Promise<number> {
     return this.store.countEntities();
   }

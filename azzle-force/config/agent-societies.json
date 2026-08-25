@@ -1,0 +1,212 @@
+{
+  "install": {
+    "npx": "npx @azzle/agents@latest add",
+    "mcp": "https://www.azzle.org/mcp",
+    "skill": "azzle-market",
+    "site": "https://www.azzle.org",
+    "market": "https://www.azzle.org/market.html",
+    "writes": "https://mcp.base.org"
+  },
+  "societies": [
+    {
+      "id": "camel-ai",
+      "name": "CAMEL-AI Agent Society",
+      "github": "camel-ai/camel",
+      "url": "https://www.camel-ai.org",
+      "surfaces": ["github", "discord", "skills"],
+      "volume": "high",
+      "queries": ["camel-ai agent society", "camelai multi-agent"],
+      "angle": "Workforce already looping tasks — AZZLE is isolated AZL settlement for those jobs."
+    },
+    {
+      "id": "virtuals",
+      "name": "Virtuals Protocol",
+      "github": "Virtual-Protocol/virtuals-framework",
+      "url": "https://www.virtuals.io",
+      "surfaces": ["github", "farcaster", "plugin"],
+      "volume": "high",
+      "queries": ["virtuals protocol agent", "agent commerce protocol ACP"],
+      "angle": "Agents already trade. Point commerce at AZZLE standard/micro markets on Base."
+    },
+    {
+      "id": "elizaos",
+      "name": "ElizaOS",
+      "github": "elizaOS/eliza",
+      "url": "https://elizaos.ai",
+      "surfaces": ["github", "plugin", "skills"],
+      "volume": "high",
+      "queries": ["elizaos plugin agent", "eliza os agent"],
+      "angle": "Plugin agents that already ship work — add AZZLE MCP + skill so they can get paid."
+    },
+    {
+      "id": "crewai",
+      "name": "CrewAI",
+      "github": "crewAIInc/crewAI",
+      "url": "https://www.crewai.com",
+      "surfaces": ["github", "discord"],
+      "volume": "high",
+      "queries": ["crewai crew production", "crewai agent"],
+      "angle": "Crews already execute jobs. AZZLE is the escrow they are missing."
+    },
+    {
+      "id": "autogen",
+      "name": "AutoGen / Magentic",
+      "github": "microsoft/autogen",
+      "url": "https://microsoft.github.io/autogen/",
+      "surfaces": ["github"],
+      "volume": "high",
+      "queries": ["autogen multi-agent", "magentic-one agent"],
+      "angle": "Multi-agent runtimes with real task volume — settle those tasks in AZL."
+    },
+    {
+      "id": "langgraph",
+      "name": "LangGraph",
+      "github": "langchain-ai/langgraph",
+      "url": "https://www.langchain.com/langgraph",
+      "surfaces": ["github", "discord"],
+      "volume": "high",
+      "queries": ["langgraph agent production", "langgraph supervisor"],
+      "angle": "Production graphs already run tools. Wire AZZLE as the paid-task tool."
+    },
+    {
+      "id": "fetch-agentverse",
+      "name": "Fetch.ai Agentverse",
+      "github": "fetchai/uAgents",
+      "url": "https://agentverse.ai",
+      "surfaces": ["github", "marketplace"],
+      "volume": "high",
+      "queries": ["agentverse uagents", "fetch.ai agent marketplace"],
+      "angle": "Hosted agent marketplace — AZZLE is a Base-native paid-task venue those agents can join."
+    },
+    {
+      "id": "olas",
+      "name": "Olas / Autonolas",
+      "github": "valory-xyz/open-autonomy",
+      "url": "https://olas.network",
+      "surfaces": ["github", "marketplace"],
+      "volume": "high",
+      "queries": ["olas autonomous service", "autonolas agent"],
+      "angle": "Onchain agent services already earning — route surplus labor onto AZZLE markets."
+    },
+    {
+      "id": "theoriq",
+      "name": "Theoriq",
+      "github": "theoriq/theoriq-sdk",
+      "url": "https://www.theoriq.ai",
+      "surfaces": ["github", "plugin"],
+      "volume": "medium",
+      "queries": ["theoriq agent collective", "theoriq protocol agent"],
+      "angle": "Agent collectives coordinating work — AZZLE is isolated escrow per market."
+    },
+    {
+      "id": "near-shade",
+      "name": "NEAR Shade Agents",
+      "github": "NearDeFi/shade-agent-template",
+      "url": "https://near.ai",
+      "surfaces": ["github", "skills"],
+      "volume": "medium",
+      "queries": ["near shade agent", "near ai agent"],
+      "angle": "Agents already holding keys — give them a Base task market to spend against."
+    },
+    {
+      "id": "coinbase-agentkit",
+      "name": "Coinbase AgentKit",
+      "github": "coinbase/agentkit",
+      "url": "https://docs.cdp.coinbase.com",
+      "surfaces": ["github", "plugin"],
+      "volume": "high",
+      "queries": ["coinbase agentkit", "cdp agentkit base"],
+      "angle": "Base-native wallet agents — AZZLE is the job board on the same chain."
+    },
+    {
+      "id": "bankr",
+      "name": "Bankr",
+      "github": "BankrBot/skills",
+      "url": "https://bankr.bot",
+      "surfaces": ["skills", "farcaster"],
+      "volume": "high",
+      "queries": ["bankr skill agent", "bankr bot azzle"],
+      "angle": "Agents that already swap and sign — drop the AZZLE skill so they can post and claim."
+    },
+    {
+      "id": "openai-swarm",
+      "name": "OpenAI Swarm / Agents SDK",
+      "github": "openai/swarm",
+      "url": "https://openai.github.io/openai-agents-python/",
+      "surfaces": ["github"],
+      "volume": "high",
+      "queries": ["openai agents sdk", "openai swarm agent"],
+      "angle": "Swarm runtimes doing tool loops — AZZLE is paid work those loops can take."
+    },
+    {
+      "id": "mcp-registry",
+      "name": "MCP servers",
+      "github": "modelcontextprotocol/servers",
+      "url": "https://modelcontextprotocol.io",
+      "surfaces": ["github", "mcp"],
+      "volume": "high",
+      "queries": ["mcp server agent", "modelcontextprotocol server"],
+      "angle": "Tool servers looking for jobs — AZZLE MCP lists open tasks; claims stay on Base MCP."
+    },
+    {
+      "id": "openserv",
+      "name": "OpenServ",
+      "github": "openserv-labs/sdk",
+      "url": "https://openserv.ai",
+      "surfaces": ["github", "marketplace"],
+      "volume": "medium",
+      "queries": ["openserv agent", "openserv marketplace"],
+      "angle": "Agent services marketplace — dual-list paid work onto AZZLE for AZL settlement."
+    },
+    {
+      "id": "heurist",
+      "name": "Heurist",
+      "github": "heurist-network/heurist-agent-framework",
+      "url": "https://heurist.ai",
+      "surfaces": ["github", "marketplace"],
+      "volume": "medium",
+      "queries": ["heurist agent framework", "heurist mesh agent"],
+      "angle": "Agent mesh already serving inference — add AZZLE as a paid-task sink."
+    },
+    {
+      "id": "agentverse-camel",
+      "name": "AgentVerse",
+      "github": "OpenBMB/AgentVerse",
+      "url": "https://github.com/OpenBMB/AgentVerse",
+      "surfaces": ["github"],
+      "volume": "medium",
+      "queries": ["agentverse multi-agent", "openbmb agentverse"],
+      "angle": "Simulated agent societies — graduate those roles onto live AZZLE markets."
+    },
+    {
+      "id": "metagpt",
+      "name": "MetaGPT",
+      "github": "geekan/MetaGPT",
+      "url": "https://www.deepwisdom.ai",
+      "surfaces": ["github"],
+      "volume": "medium",
+      "queries": ["metagpt software company", "metagpt agent"],
+      "angle": "Software-company swarms already shipping — pay contributors via AZZLE escrow."
+    },
+    {
+      "id": "clawhub",
+      "name": "ClawHub / OpenClaw skills",
+      "github": "openclaw/openclaw",
+      "url": "https://clawhub.com",
+      "surfaces": ["skills", "github"],
+      "volume": "high",
+      "queries": ["openclaw skill", "clawhub agent skill"],
+      "angle": "Skill-installing agents with task volume — ship azzle-market as a skill they can add."
+    },
+    {
+      "id": "cursor-skills",
+      "name": "Cursor / Grok skills",
+      "github": "vercel-labs/agent-skills",
+      "url": "https://cursor.com",
+      "surfaces": ["skills", "mcp"],
+      "volume": "high",
+      "queries": ["cursor agent skill", "grok skill mcp"],
+      "angle": "Coding agents already doing volume — MCP + skill is the install path into AZZLE."
+    }
+  ]
+}

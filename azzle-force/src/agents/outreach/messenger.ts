@@ -57,6 +57,17 @@ export class Messenger extends BaseAgent {
     const body = String(payload.body ?? "");
     const contentHash = String(payload.content_hash ?? "");
 
+    const entity = await this.ctx.postgres.getEntity(msg.entity_id);
+    if (entity && !primaryEmail(entity as Record<string, unknown>) && !primaryXHandle(entity as Record<string, unknown>)) {
+      console.log(`[${this.identity.id}] skip ${entity.name} — no email/X (not an inbox)`);
+      await this.ctx.postgres.logOutreach(msg.entity_id, channel, "skipped_no_contact", {
+        contentHash,
+        subject: subjectLine,
+        body,
+      });
+      return;
+    }
+
     if (this.ctx.config.humanApproveOutreach) {
       const pending = await this.ctx.postgres.getLatestOutreach(msg.entity_id, [
         "pending_approval",

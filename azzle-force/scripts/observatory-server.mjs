@@ -366,6 +366,8 @@ function summarizeGraph(data, rev) {
   const funnel = computeFunnel(entities, scores, outreach, PROB_THRESHOLD);
   const activity = buildActivity(audit, outreach, MAX_ACTIVITY);
   const hot_prospects = buildHotProspects(entities, probability, heat, latestOutreach);
+  const clockEntity = Object.values(entities).find((e) => e.name === "_force_clockwork");
+  const clockwork = clockEntity?.metadata?.last_snapshot ?? null;
 
   return {
     meta: {
@@ -378,6 +380,7 @@ function summarizeGraph(data, rev) {
       truncated: allIds.length > MAX_ENTITIES,
       rev,
       funnel,
+      clockwork,
       score_types: scoreTypes,
       hot_count: hot_prospects.filter((h) => h.heat >= 0.55).length,
       replied_count: funnel.status.replied ?? 0,

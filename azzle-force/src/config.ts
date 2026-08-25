@@ -3,6 +3,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import { loadOutreachBrand, type OutreachBrand } from "./outreach/brand.js";
+import { resolveClockworkConfig, type ClockworkConfig } from "./brain/clockwork.js";
 
 export interface BrainConfig {
   enabled?: boolean;
@@ -23,6 +24,7 @@ export interface ForceConfig {
   hunterBatchSizePerHour: number;
   waves: Record<string, string[]>;
   brain?: BrainConfig;
+  clockwork?: ClockworkConfig;
 }
 
 export interface EnvConfig {
@@ -64,6 +66,13 @@ function loadForceConfig(): ForceConfig {
   const config = JSON.parse(readFileSync(path, "utf8")) as ForceConfig;
   if (process.env.AZZLE_PROBABILITY_THRESHOLD) {
     config.azzleProbabilityThreshold = Number(process.env.AZZLE_PROBABILITY_THRESHOLD);
+  }
+  config.clockwork = resolveClockworkConfig(config.clockwork);
+  if (process.env.AZZLE_CLOCKWORK === "0" || process.env.AZZLE_CLOCKWORK === "false") {
+    config.clockwork.enabled = false;
+  }
+  if (process.env.AZZLE_PAYING_CLIENTS_PER_HOUR) {
+    config.clockwork.payingClientsPerHour = Number(process.env.AZZLE_PAYING_CLIENTS_PER_HOUR);
   }
   return config;
 }

@@ -13,11 +13,13 @@
     "check:bankr-skill": "node scripts/check-bankr-skill.mjs",
     "check:openapi": "node scripts/check-openapi-contract.mjs",
     "check:site-links": "node scripts/check-site-links.mjs",
+    "test:mcp": "node --test api/mcp.test.mjs",
+    "test:x402": "node --test api/x402.test.mjs",
     "prestart": "node scripts/build-wallet.mjs",
     "start": "node scripts/site-server.mjs",
     "site": "node scripts/site-server.mjs",
     "check:v2-docs": "node scripts/verify-v2-docs.mjs",
-    "test": "npm run check:manifest-surfaces && npm run check:site-addresses && npm run check:site-config && npm run check:bankr-skill && npm run check:protocol-surface && npm run check:v2-docs && npm run check:openapi && npm run check:site-links"
+    "test": "npm run check:manifest-surfaces && npm run check:site-addresses && npm run check:site-config && npm run check:bankr-skill && npm run check:protocol-surface && npm run check:v2-docs && npm run check:openapi && npm run check:site-links && npm run test:mcp && npm run test:x402"
   },
   "engines": {
     "node": ">=22"

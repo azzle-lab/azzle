@@ -11,6 +11,7 @@ export function firstTouchCopyRules(brand: OutreachBrand): string {
     "5. NEVER open with \"Hi, we're building AZZLE\", \"Introducing AZZLE\", or \"Check us out\".",
     "6. No bullet lists. No hype adjectives (revolutionary, cutting-edge).",
     `7. Sign as ${brand.fromName} only. Link ${brand.siteUrl} once if needed.`,
+    "8. If they already run agent task volume (crew, swarm, society, marketplace), pitch AZZLE as the settlement layer they are missing — not a new agent runtime.",
   ].join("\n");
 }
 

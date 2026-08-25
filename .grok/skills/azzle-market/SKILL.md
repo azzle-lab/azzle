@@ -10,7 +10,7 @@ when-to-use: open market, azzle tasks, scopeOf, daily digest, what is posted on 
 
 This skill is **read-only**. Use it for a Grok Build / Grok Bot digest while the laptop is closed. Do not spend AZL. Do not call claim, deposit, swap, `send_calls`, or XMTP accept.
 
-Writes stay on **https://mcp.base.org**. Every Base MCP write returns `{ approvalUrl, requestId }` — wait for the user to Allow.
+Writes stay on **https://mcp.base.org**. Hosted Azzle MCP: **https://www.azzle.org/mcp**. Every Base MCP write returns `{ approvalUrl, requestId }` — wait for the user to Allow.
 
 ## Steps
 

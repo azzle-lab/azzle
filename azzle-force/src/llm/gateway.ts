@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { modelsForTier } from "./tiers.js";
+import { extractMessageText, parseJsonFromLlm } from "./json.js";
 import type { ModelTier } from "../types.js";
 
 export interface LlmGatewayConfig {
@@ -99,10 +100,11 @@ export class LlmGateway {
             msg.includes("JSON") ||
             msg.includes("too_small") ||
             msg.includes("invalid_type") ||
-            msg.includes("Required");
+            msg.includes("Required") ||
+            msg.includes("empty content");
           if (!isLast && (unsupported || parseError || is429)) {
-            if (is429) console.warn(`[llm] ${model} rate limited — trying next model…`);
-            else console.warn(`[llm] ${model} failed (${msg.slice(0, 80)}…), trying next…`);
+            if (is429) console.warn(`[llm] ${model} rate limited — trying next model`);
+            else console.warn(`[llm] ${model} failed — ${msg.slice(0, 160)}`);
             break;
           }
           break;
@@ -124,14 +126,14 @@ export class LlmGateway {
     userFacts: Record<string, unknown>,
     schemaExample?: Record<string, unknown>
   ): Promise<string> {
-    const body = {
+    const jsonBody: Record<string, unknown> = {
       model,
       messages: [
         { role: "system", content: system },
         {
           role: "user",
           content: [
-            "Return raw JSON only — no markdown code fences.",
+            "Return raw JSON only — no markdown, no thinking, no code fences.",
             schemaExample
               ? `\nRequired top-level keys and shape (replace example values with content for this topic):\n${JSON.stringify(schemaExample, null, 2)}`
               : "",
@@ -139,10 +141,12 @@ export class LlmGateway {
           ].join(""),
         },
       ],
-      response_format: { type: "json_object" },
       temperature: 0.2,
       max_tokens: 4096,
     };
+    if (!model.startsWith("deepseek")) {
+      jsonBody.response_format = { type: "json_object" };
+    }
 
     const res = await fetch(`${this.config.baseUrl}/chat/completions`, {
       method: "POST",
@@ -151,7 +155,7 @@ export class LlmGateway {
         Authorization: `Bearer ${this.config.apiKey}`,
         "X-API-Key": this.config.apiKey,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(jsonBody),
     });
 
     if (!res.ok) {
@@ -160,9 +164,19 @@ export class LlmGateway {
     }
 
     const data = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{
+        message?: {
+          content?: unknown;
+          reasoning_content?: unknown;
+          reasoning?: unknown;
+        };
+      }>;
     };
-    return data.choices?.[0]?.message?.content ?? "{}";
+    const text = extractMessageText(data.choices?.[0]?.message);
+    if (!text.trim()) {
+      throw new Error("Invalid JSON from model: empty content (0 chars)");
+    }
+    return text;
   }
 
   /** Heuristic fallback when gateway unavailable — keeps graph + scoring flowing */
@@ -200,57 +214,6 @@ export class LlmGateway {
       starter_project: "npx @azzle/agents@latest init my-agent",
       docs_links: [],
     };
-  }
-}
-
-/** Strip ```json fences and parse — models often ignore response_format */
-function parseJsonFromLlm(text: string): unknown {
-  let s = text.trim();
-  const fenced = /^```(?:json)?\s*\r?\n?([\s\S]*?)\r?\n?```\s*$/i.exec(s);
-  if (fenced) {
-    s = fenced[1].trim();
-  } else if (s.startsWith("```")) {
-    s = s.replace(/^```(?:json)?\s*\r?\n?/i, "").replace(/\r?\n?```\s*$/i, "").trim();
-  }
-
-  try {
-    return JSON.parse(s);
-  } catch {
-    const repaired = repairTruncatedJson(s);
-    if (repaired) return JSON.parse(repaired);
-    const start = s.indexOf("{");
-    const end = s.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      return JSON.parse(s.slice(start, end + 1));
-    }
-    const aStart = s.indexOf("[");
-    const aEnd = s.lastIndexOf("]");
-    if (aStart >= 0 && aEnd > aStart) {
-      return JSON.parse(s.slice(aStart, aEnd + 1));
-    }
-    throw new Error(`Invalid JSON from model: ${s.slice(0, 120)}`);
-  }
-}
-
-/** Close truncated arrays/objects when models hit token limits mid-JSON. */
-function repairTruncatedJson(s: string): string | null {
-  const start = s.indexOf("{");
-  if (start < 0) return null;
-  let fragment = s.slice(start).trim();
-  fragment = fragment.replace(/,\s*$/, "");
-  fragment = fragment.replace(/,\s*([}\]])/g, "$1");
-  const opens = (fragment.match(/[\[{]/g) ?? []).length;
-  const closes = (fragment.match(/[\]}]/g) ?? []).length;
-  let repaired = fragment;
-  for (let i = 0; i < opens - closes; i++) {
-    const lastOpen = Math.max(repaired.lastIndexOf("["), repaired.lastIndexOf("{"));
-    repaired += lastOpen === repaired.lastIndexOf("[") ? "]" : "}";
-  }
-  try {
-    JSON.parse(repaired);
-    return repaired;
-  } catch {
-    return null;
   }
 }
 
