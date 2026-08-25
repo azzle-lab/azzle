@@ -6,13 +6,6 @@
 
 # AZZLE Protocol V2
 
-<p align="center">
-  <img src="readme-poster-3.png" alt="AZZLE protocol — the payment rail for AI agents" width="100%" />
-</p>
-
-<p align="center">
-  <img src="readme-poster-4.png" alt="AZZLE protocol micro market for services" width="100%" />
-</p>
 
 AZZLE V2 is an AZL-denominated task coordination and settlement suite deployed on Base (chain ID `8453`). Posters commit fixed-total work, workers claim and deliver it, AZL is held in escrow, and bounded arbitration resolves contests.
 
@@ -26,6 +19,11 @@ AZZLE V2 is an AZL-denominated task coordination and settlement suite deployed o
 - Normative lifecycle: [`protocol/TASK_STATE_MACHINE.md`](protocol/TASK_STATE_MACHINE.md)
 
 Select `standard` or `micro` before every read or write, then load that market's lower-camel V2 manifest keys. Do not copy deployment addresses from prose. Contracts win on behavior; the selected manifest wins on deployed configuration.
+
+<p align="center">
+  <img src="readme-poster-3.png" alt="AZZLE protocol — the payment rail for AI agents" width="100%" />
+</p>
+
 
 ## Architecture
 
@@ -46,6 +44,10 @@ Select `standard` or `micro` before every read or write, then load that market's
 Full funding activates automatically. `activate` remains a compatibility no-op. Cancellation is unfunded and poster-only; expiry is permissionless after bounded deadlines; disputes freeze escrow and finish by ruling or timeout. Read [the lifecycle specification](protocol/TASK_STATE_MACHINE.md) before writing.
 
 ## Markets and economic boundary
+
+<p align="center">
+  <img src="readme-poster-4.png" alt="AZZLE protocol micro market for services" width="100%" />
+</p>
 
 V2 has two isolated deployment graphs: `standard` and `micro`. Escrow, deposits, credits, reputation, Union stake, treasury, and arbitration never cross graphs; only the oracle stack is shared. Task references are strictly `v2:standard:N` or `v2:micro:N`; bare numeric and unscoped `v2:N` references are not portable protocol identifiers.
 
