@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import { spawnSync } from "node:child_process";
+import { selector } from "../agents/bankr-skill/azzle/scripts/lib/keccak256.mjs";
+import { parseTaskId } from "../agents/bankr-skill/azzle/scripts/v2-lib.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const skillRoot = resolve(root, "agents", "bankr-skill", "azzle");
@@ -10,6 +12,9 @@ const manifests = {
 };
 const pinPath = (market) =>
   resolve(skillRoot, "references", `base-8453-${market}-v2-pinned.json`);
+const identityPath = (market) =>
+  resolve(skillRoot, "references", `base-8453-${market}-v2-identities.json`);
+const HASH_RE = /^0x[0-9a-fA-F]{64}$/;
 
 const requiredFiles = [
   "SKILL.md",
@@ -18,7 +23,13 @@ const requiredFiles = [
   "references/protocol.md",
   "references/base-8453-standard-v2-pinned.json",
   "references/base-8453-micro-v2-pinned.json",
+  "references/base-8453-standard-v2-identities.json",
+  "references/base-8453-micro-v2-identities.json",
+  "references/signing-allowlist.json",
+  "references/sdk-pin.json",
   "scripts/v2-tasks.sh",
+  "scripts/v2-inspect.mjs",
+  "scripts/v2-lib.mjs",
 ];
 
 const failures = [];
@@ -100,6 +111,78 @@ for (const [market, manifest] of Object.entries(manifests)) {
  }
 }
 
+const allowlist = JSON.parse(readFileSync(resolve(skillRoot, "references", "signing-allowlist.json"), "utf8"));
+if (allowlist.version !== "2.0.0" || String(allowlist.chainId) !== "8453") {
+  fail("signing allowlist must target AZZLE V2 on Base");
+}
+if (selector("approve(address,uint256)") !== "0x095ea7b3") fail("keccak selector helper is wrong");
+for (const [target, signatures] of Object.entries(allowlist.targets || {})) {
+  if (!Array.isArray(signatures) || !signatures.length) fail(`signing allowlist missing selectors for ${target}`);
+  for (const signature of signatures) {
+    if (!/^0x[0-9a-f]{8}$/.test(selector(signature))) fail(`invalid selector signature ${signature}`);
+  }
+}
+if (!allowlist.targets.taskRegistry?.includes("claim(uint256)")) fail("signing allowlist must allow taskRegistry.claim");
+if (!allowlist.targets.azl?.includes("approve(address,uint256)")) fail("signing allowlist must allow AZL approve");
+if (allowlist.spenders?.azl !== "escrowVault" || allowlist.spenders?.usdc !== "paymentGateway") {
+  fail("signing allowlist spenders must be AZL->escrowVault and USDC->paymentGateway");
+}
+
+const sdkPin = JSON.parse(readFileSync(resolve(skillRoot, "references", "sdk-pin.json"), "utf8"));
+if (sdkPin.name !== "@azzle/agents" || sdkPin.version !== "0.5.0") fail("sdk pin must be @azzle/agents@0.5.0");
+if (!String(sdkPin.integrity || "").startsWith("sha512-")) fail("sdk pin must include a sha512 integrity hash");
+if (!String(sdkPin.resolved || "").includes("agents-0.5.0.tgz")) fail("sdk pin resolved tarball must match 0.5.0");
+
+for (const [market, manifest] of Object.entries(manifests)) {
+  try {
+    const pin = JSON.parse(readFileSync(pinPath(market), "utf8"));
+    const identities = JSON.parse(readFileSync(identityPath(market), "utf8"));
+    if (identities.market !== market) fail(`${market} identity pin must declare market '${market}'`);
+    for (const path of ["version", "chainId", "deploymentBlock", "deployer", "factory", "governance", "bundleHash", "finalizedTx"]) {
+      if (String(valueAtPath(identities, path)).toLowerCase() !== String(valueAtPath(pin, path)).toLowerCase()) {
+        fail(`${market} identity metadata differs at ${path}`);
+      }
+    }
+    if (!HASH_RE.test(identities.suiteDeployedHash)) fail(`${market} identity pin missing suiteDeployedHash`);
+    const keys = ["factory", ...allowlist.graphKeys, "azl", "usdc"];
+    for (const key of keys) {
+      const expected = key === "azl" || key === "usdc" ? pin.external[key] : pin[key];
+      const identity = identities.identities?.[key];
+      if (!identity) fail(`${market} identity pin missing ${key}`);
+      if (identity.address?.toLowerCase() !== String(expected).toLowerCase()) {
+        fail(`${market} identity address differs at ${key}`);
+      }
+      if (!HASH_RE.test(identity.runtimeCodeHash)) fail(`${market} identity missing runtimeCodeHash at ${key}`);
+    }
+    if (!HASH_RE.test(identities.identities.usdc.implementationCodeHash)) {
+      fail(`${market} identity pin must include the USDC implementation code hash`);
+    }
+  } catch (error) {
+    fail(`${market} identity pin is invalid: ${error.message}`);
+  }
+}
+
+try {
+  parseTaskId("v2:standard:42");
+  parseTaskId("v2:micro:1");
+  for (const bad of ["42", "v2:42", "v2:standard:0", "v2:standard:01", "v2:other:1"]) {
+    try {
+      parseTaskId(bad);
+      fail(`task parser accepted illegal id ${bad}`);
+    } catch {
+      /* expected */
+    }
+  }
+} catch (error) {
+  fail(`task parser self-check failed: ${error.message}`);
+}
+
+const helper = readFileSync(resolve(skillRoot, "scripts", "v2-tasks.sh"), "utf8");
+if (!helper.includes("v2-inspect.mjs") || !helper.includes("verify")) {
+  fail("v2-tasks.sh must route through v2-inspect.mjs including verify");
+}
+if (/curl .*get-task/.test(helper)) fail("v2-tasks.sh must not print unvalidated get-task API output");
+
 for (const path of [
   "chainId", "external.chainId", "external.usdc", "external.weth", "external.azl",
   "external.poolManager", "external.universalRouter", "external.hook",
@@ -128,6 +211,13 @@ const requiredPhrases = [
   "v2:standard:N",
   "v2:micro:N",
   "micro only when explicitly",
+  "base-8453-standard-v2-identities.json",
+  "signing-allowlist.json",
+  "sdk-pin.json",
+  "loadMarketManifest",
+  "parseTaskRef",
+  "fail closed",
+  "runtimeCodeHash",
   "runtime code",
   "validateGraph()",
   "AZL wei (18 decimals)",
@@ -150,7 +240,7 @@ for (const phrase of requiredPhrases) {
 const forbidden = [
   [/api\.studio\.thegraph\.com/i, "retired subgraph URL"],
   [/raw\.githubusercontent\.com\/Dabus123\/azzle\/main\/contracts\/deployments\/base-8453\.json/i, "mutable upstream deployment manifest"],
-  [/\b(fetch|reload)\b.{0,80}\bmanifest\b.{0,80}\b(before|immediately before)\b.{0,40}\bwrite\b/i, "mutable manifest refresh instruction"],
+  [/\bloadBaseMainnetV2Manifest\s*\(\s*\)/, "unpinned loadBaseMainnetV2Manifest() default"],
   [/\bclaim\b.{0,120}\bcurrent\b.{0,40}\bquote\b/i, "current quote presented as claim cost"],
   [/AZZLE_SUBGRAPH_URL/i, "retired subgraph environment variable"],
   [new RegExp(`Subgraph${"Indexer"}`, "i"), "retired SDK indexer"],
@@ -180,7 +270,7 @@ const proseContent = textFiles
   .filter((path) => !path.endsWith(".json"))
   .map((path) => readFileSync(path, "utf8"))
   .join("\n");
-if (/0x[0-9a-fA-F]{40}/.test(proseContent)) {
+if (/(?<![0-9a-fA-F])0x[0-9a-fA-F]{40}(?![0-9a-fA-F])/.test(proseContent)) {
   fail("contract/token addresses must remain in reviewed pins, not prose");
 }
 for (const invalid of ["task 42", "scope 42", "id=v2:42"]) {
