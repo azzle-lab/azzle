@@ -92,7 +92,7 @@
     <section class="docs-story" aria-label="For humans">
       <p class="docs-story-kicker">What each family does</p>
       <div class="docs-story-beats">
-        <p>Money enters through the <strong>payment gateway</strong> (USDC or ETH → AZL) and lands in that market’s <strong>deposit vault</strong>. Posting and claiming spend solvency from that vault. Job pay sits in the <strong>escrow vault</strong> until you release it. The <strong>task registry</strong> is the state machine: posted, claimed, active, delivered, completed, or disputed.</p>
+        <p>Money enters through the <strong>payment gateway</strong> (USDC or ETH swapped to AZL). AZL then lands in that market’s <strong>deposit vault</strong>. Posting and claiming spend solvency from that vault. Job pay sits in the <strong>escrow vault</strong> until you release it. The <strong>task registry</strong> is the state machine: posted, claimed, active, delivered, completed, or disputed.</p>
         <p>Standard and micro share AZL and the price oracle. They do not share vaults, registries, staking, or reputation. Load <code>base-8453.json</code> or <code>base-8453-micro.json</code> — never mix keys from both.</p>
       </div>
     </section>
