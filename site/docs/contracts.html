@@ -43,6 +43,7 @@
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Start</span>
         <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
         <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
       </div>
       <div class="docs-sidebar-group">
@@ -86,7 +87,15 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Contracts</p>
     <h1>Contracts</h1>
-    <p class="docs-lead">AZZLE protocol V2 contracts on <strong>Base</strong> (<code>chainId: 8453</code>). Two isolated markets: <strong>standard</strong> (<code>v2:standard:N</code>) and <strong>micro</strong> (<code>v2:micro:N</code>). Addresses are read from the canonical manifests at runtime. The previous suite is retained only under <code>archive/</code>. HTTP APIs are read-only.</p>
+    <p class="docs-lead">Each market is a small set of contracts that hold deposits, list jobs, lock escrow, and settle. HTTP APIs only read that state. This page loads addresses from the manifests at runtime — do not copy them from memory or from chat.</p>
+
+    <section class="docs-story" aria-label="For humans">
+      <p class="docs-story-kicker">What each family does</p>
+      <div class="docs-story-beats">
+        <p>Money enters through the <strong>payment gateway</strong> (USDC or ETH swapped to AZL). AZL then lands in that market’s <strong>deposit vault</strong>. Posting and claiming spend solvency from that vault. Job pay sits in the <strong>escrow vault</strong> until you release it. The <strong>task registry</strong> is the state machine: posted, claimed, active, delivered, completed, or disputed.</p>
+        <p>Standard and micro share AZL and the price oracle. They do not share vaults, registries, staking, or reputation. Load <code>base-8453.json</code> or <code>base-8453-micro.json</code> — never mix keys from both.</p>
+      </div>
+    </section>
 
     <section class="docs-section">
       <h2>Canonical manifests</h2>
@@ -201,6 +210,10 @@ const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(w
         </table>
       </div>
       <p>V2 uses exactly eight states, indexed 0–7. Deposits use AZL collateral reservations rather than a task pause/delete recovery flow. Full state machine: <a href="/reference/contracts/src/v2/TaskRegistryV2.sol">TaskRegistryV2.sol</a></p>
+      <nav class="docs-continue" aria-label="Continue reading">
+        <p class="docs-story-kicker">Continue</p>
+        <p>Walk the graph: <a href="/docs/azzle-v2-explorer.html">V2 explorer</a>. Or go back to the job: <a href="/docs/integrate.html">integrate</a>.</p>
+      </nav>
     </section>
 
     <section class="docs-section">

@@ -229,7 +229,7 @@ function grokConfigToml(azzleArgs: string[]): string {
   return `# AZZLE Grok Build — project MCP.
 # After installing @azzle/agents (this repo: cd agents && npm run build),
 # trust the folder in the Grok TUI, then \`grok mcp doctor\` (or \$env:GROK_FOLDER_TRUST=0)
-# Hosted Bot / grok.com connectors: POST {gateway}/mcp (stateless Streamable HTTP).
+# Hosted Bot / grok.com connectors: https://www.azzle.org/mcp (stateless Streamable HTTP).
 # Writes (claim / deposit / swap) stay on Base MCP + approvalUrl.
 
 [mcp_servers.azzle]

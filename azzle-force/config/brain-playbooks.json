@@ -1,5 +1,5 @@
 {
-  "version": 7168,
+  "version": 7184,
   "entries": [
     {
       "agent_id": "personalizer",
@@ -78,6 +78,22 @@
       "variant_id": "reply-v1",
       "system_extra": "Reply with value first. Answer their cast, then optional AZZLE mention if relevant. 320 chars. No spam replies.",
       "updated_at": "2026-07-06T00:00:00.000Z",
+      "wins": 0,
+      "attempts": 0
+    },
+    {
+      "agent_id": "society-distributor",
+      "variant_id": "volume-v1",
+      "system_extra": "These stacks already run agent task volume. Pitch AZZLE as the settlement layer they are missing: npx @azzle/agents@latest add, MCP https://www.azzle.org/mcp. CTA: install this week.",
+      "updated_at": "2026-08-24T00:00:00.000Z",
+      "wins": 0,
+      "attempts": 0
+    },
+    {
+      "agent_id": "clockwork",
+      "variant_id": "sla-v1",
+      "system_extra": "KPI is one unique paying client per hour (funded poster or claiming worker on standard/micro). Miss → breach → hunt societies and volume agents harder.",
+      "updated_at": "2026-08-24T00:00:00.000Z",
       "wins": 0,
       "attempts": 0
     }

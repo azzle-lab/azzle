@@ -137,6 +137,14 @@ async function main(): Promise<void> {
       break;
     }
 
+    case "clockwork": {
+      const ctx = await createContext(false);
+      const { printClockworkStatus } = await import("./brain/clockwork-state.js");
+      await printClockworkStatus(ctx);
+      await shutdown(ctx);
+      break;
+    }
+
     case "ingest-reply": {
       const entityId = args[0];
       const replyText = args.slice(1).join(" ").trim();
@@ -406,6 +414,7 @@ Commands:
   x-probe              Test X login + DM lookup (diagnose 401/402)
   status               Graph entity counts
   funnel               Discovery → contact → outreach funnel stats
+  clockwork            Paying-client SLA (1/hour) — breach escalates society distribution
   ingest-reply <id> "…" Record prospect reply → triggers objection handler
   webhook              Resend inbound reply webhook (also auto-starts with wave)
   diagnose-failures    Top send_failed reasons from recent outreach

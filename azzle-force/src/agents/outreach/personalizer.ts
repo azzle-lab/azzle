@@ -19,6 +19,7 @@ import {
   reserveDestination,
   type BlockedDestinations,
 } from "../../outreach/dedupe.js";
+import { clockworkOutreachOverrides } from "../../brain/clockwork-state.js";
 
 const ID: AgentIdentity = {
   id: "personalizer",
@@ -80,7 +81,8 @@ export class Personalizer extends BaseAgent {
     if (!(await this.outreachGateOpen())) return;
 
     this.tickCount++;
-    const threshold = this.ctx.config.forceConfig.azzleProbabilityThreshold;
+    const over = await clockworkOutreachOverrides(this.ctx);
+    const threshold = over.threshold;
     const dmEnabled = this.ctx.config.outreachDmEnabled;
     const preferEmail = this.ctx.config.outreachPreferEmail;
 
@@ -90,6 +92,11 @@ export class Personalizer extends BaseAgent {
       100,
       true
     );
+    contactable.sort((a, b) => {
+      const av = (a.metadata as Record<string, unknown> | undefined)?.volume_signal ? 1 : 0;
+      const bv = (b.metadata as Record<string, unknown> | undefined)?.volume_signal ? 1 : 0;
+      return bv - av;
+    });
 
     let drafted = 0;
     let skippedHandled = 0;
@@ -100,7 +107,7 @@ export class Personalizer extends BaseAgent {
     this.blockedDestinations = await loadBlockedDestinations(this.ctx.postgres);
 
     for (const row of contactable) {
-      if (drafted >= MAX_DRAFTS_PER_TICK) break;
+      if (drafted >= over.maxDrafts) break;
 
       const latest = await this.ctx.postgres.getLatestOutreach(String(row.id));
       if (latest && this.skipStatuses().includes(String(latest.status))) {
@@ -175,12 +182,12 @@ export class Personalizer extends BaseAgent {
 
   private async outreachGateOpen(): Promise<boolean> {
     const count = await this.ctx.postgres.countEntities();
-    const floor = this.ctx.config.forceConfig.minEntitiesBeforeOutreach;
+    const over = await clockworkOutreachOverrides(this.ctx);
     const brainMin = this.ctx.config.forceConfig.brain?.minEntitiesBeforeBrain;
     const min =
       this.ctx.config.forceConfig.brain?.enabled && brainMin != null
-        ? Math.min(floor, brainMin)
-        : floor;
+        ? Math.min(over.minEntities, brainMin)
+        : over.minEntities;
     return count >= min;
   }
 

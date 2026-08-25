@@ -3,7 +3,7 @@
  * This is safe to run before local builds; promotion runs the equivalent write
  * after it has validated a candidate deployment on-chain.
  */
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,22 +46,80 @@ const browserGenerated =
 
 const x402Path = join(root, "agents", "x402-cloud", "bankr.x402.json");
 const x402 = JSON.parse(await readFile(x402Path, "utf8"));
-for (const service of Object.values(x402.services ?? {})) service.tokenAddress = manifest.external.azl;
+x402.currency = "USDC";
+delete x402.tokenAddress;
+for (const service of Object.values(x402.services ?? {})) {
+  delete service.tokenAddress;
+  service.currency = "USDC";
+}
 
+const GENERATED_BEGIN = "// <generated-manifest>";
+const GENERATED_END = "// </generated-manifest>";
+
+function toLf(value) {
+  return String(value ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+function inlineManifestIntoHandler(source, generatedTs) {
+  let next = toLf(source).replace(/^[ \t]*import\s+\{[^}]*\}\s+from\s+["']\.\.\/manifest["']\s*;\s*\n?/gm, "");
+  const block = `${GENERATED_BEGIN}\n${generatedTs.trimEnd()}\n${GENERATED_END}\n\n`;
+  if (next.includes(GENERATED_BEGIN) && next.includes(GENERATED_END)) {
+    const begin = GENERATED_BEGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const end = GENERATED_END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    next = next.replace(new RegExp(`${begin}[\\s\\S]*?${end}\\n*`), block);
+  } else {
+    const header = next.match(/^(\/\*[\s\S]*?\*\/\s*)/);
+    next = header ? header[1] + block + next.slice(header[1].length) : block + next;
+  }
+  return next.replace(/\n{3,}/g, "\n\n");
+}
+
+const x402Dir = join(root, "agents", "x402-cloud", "x402");
+const handlerFiles = [];
+for (const entry of await readdir(x402Dir, { withFileTypes: true })) {
+  if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+  handlerFiles.push(join(x402Dir, entry.name, "index.ts"));
+}
+
+const generatedTs = generated();
 const outputs = new Map([
   [join(root, "agents", "deployments", "base-8453.json"), JSON.stringify(manifest, null, 2) + "\n"],
   [join(root, "api", "lib", "contracts.json"), JSON.stringify(manifest, null, 2) + "\n"],
   [join(root, "agents", "deployments", "base-8453-micro.json"), JSON.stringify(micro, null, 2) + "\n"],
   [join(root, "api", "lib", "contracts-micro.json"), JSON.stringify(micro, null, 2) + "\n"],
-  [join(root, "agents", "x402-cloud", "x402", "manifest.ts"), generated()],
+  [join(root, "agents", "x402-cloud", "x402", "manifest.ts"), generatedTs],
   [join(root, "launch-skills", "js", "manifest.generated.js"), browserGenerated],
   [x402Path, JSON.stringify(x402, null, 2) + "\n"],
+  [join(root, "api", "lib", "x402-host.json"), toLf(await readFile(join(root, "agents", "x402-cloud", "host.json"), "utf8"))],
+  [
+    join(root, "api", "lib", "x402-services.json"),
+    JSON.stringify(
+      Object.fromEntries(
+        Object.entries(x402.services ?? {}).map(([name, service]) => [
+          name,
+          {
+            description: service.description,
+            price: service.price,
+            methods: service.methods,
+            mimeType: service.mimeType ?? "application/json",
+            extensions: service.extensions,
+          },
+        ]),
+      ),
+      null,
+      2,
+    ) + "\n",
+  ],
 ]);
+for (const file of handlerFiles) {
+  const source = await readFile(file, "utf8");
+  outputs.set(file, inlineManifestIntoHandler(source, generatedTs));
+}
 if (checkOnly) {
   const stale = [];
   for (const [file, expected] of outputs) {
     try {
-      if (await readFile(file, "utf8") !== expected) stale.push(file);
+      if (toLf(await readFile(file, "utf8")) !== toLf(expected)) stale.push(file);
     } catch {
       stale.push(file);
     }

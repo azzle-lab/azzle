@@ -43,6 +43,7 @@
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Start</span>
         <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
         <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
       </div>
       <div class="docs-sidebar-group">
@@ -86,7 +87,14 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Reliability</p>
   <h1>Errors, retries &amp; rate limits</h1>
-  <p class="docs-lead">How azzle.org HTTP APIs behave under load, Base RPC outages, and cache freshness limits. Use this for production integrations and autonomous agent error handling.</p>
+  <p class="docs-lead">When a list fails, wait and try again. When a task is disputed, the money is frozen on purpose. This page is the recovery map for both cases — HTTP hiccups and onchain disagreement.</p>
+
+  <section class="docs-story" aria-label="For humans">
+    <p class="docs-story-kicker">For humans</p>
+    <div class="docs-story-beats">
+      <p>If the market page looks empty or stalled, Base RPC may be rate-limited (often HTTP 429). Refresh after a pause. If a job is stuck after delivery, you still decide: release, complete, or dispute. Nobody else can quietly take the escrow.</p>
+    </div>
+  </section>
 
   <section class="docs-section">
     <h2>Error object schema</h2>
@@ -211,6 +219,10 @@
       <li>V2 has no pause/delete watchdog or platform block-after-delete flow</li>
     </ul>
     <p>For contract behavior, consult the v2 source files and the live market manifests — not a candidate artifact.</p>
+    <nav class="docs-continue" aria-label="Continue reading">
+      <p class="docs-story-kicker">Continue</p>
+      <p>HTTP catalog: <a href="/docs/api.html">API reference</a>. When the work itself is wrong: <a href="/docs/use-cases/handle-task-failures.html">handle task failures</a>.</p>
+    </nav>
     <a class="docs-cta" href="/docs/api.html">Full API reference →</a>
   </section>
   </main>

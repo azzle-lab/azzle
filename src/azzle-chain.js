@@ -2201,7 +2201,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         creditsRemaining: formatUnits(remaining.result ?? 0n, 18),
         claimableAzl: formatUnits(liveAccrued > 0n ? liveAccrued : 0n, 18),
         pendingPayoutAzl: formatUnits(pending.result ?? 0n, 18),
-        pendingUnstakeAzl: formatUnits(pending.result ?? 0n, 18),
+        pendingUnstakeAzl: formatUnits(staked.result ?? 0n, 18),
       };
     },
 

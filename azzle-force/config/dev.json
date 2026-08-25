@@ -16,6 +16,8 @@
       "startup-hunter",
       "community-hunter",
       "opportunity-hunter",
+      "society-hunter",
+      "volume-hunter",
       "qualification"
     ],
     "3": [
@@ -23,6 +25,8 @@
       "messenger",
       "follow-up",
       "ambassador",
+      "society-distributor",
+      "clockwork",
       "farcaster-hunter",
       "farcaster-poster",
       "farcaster-liker",
@@ -49,6 +53,7 @@
       "sequencer",
       "objection-handler",
       "closer",
+      "clockwork",
       "strategy-optimizer",
       "prompt-evolver"
     ]
@@ -61,5 +66,23 @@
     "evolveIntervalHours": 168,
     "evolveAfterOutcomes": 10,
     "minAiInclusionForOutreach": 0.3
+  },
+  "clockwork": {
+    "enabled": true,
+    "payingClientsPerHour": 1,
+    "windowMs": 3600000,
+    "breachLowersOutreachGates": true,
+    "breachMinEntities": 8,
+    "breachThreshold": 0.35,
+    "breachMaxDraftsPerTick": 16,
+    "escalateAgents": [
+      "society-hunter",
+      "volume-hunter",
+      "society-distributor",
+      "personalizer",
+      "messenger",
+      "closer",
+      "farcaster-poster"
+    ]
   }
 }

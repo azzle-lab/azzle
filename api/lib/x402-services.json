@@ -1,0 +1,1463 @@
+{
+  "azzle-open-tasks": {
+    "description": "AZZLE protocol — open (POSTED) tasks from one explicitly selected Base V2 market, newest first.",
+    "price": "0.01",
+    "methods": [
+      "GET"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "GET",
+            "queryParams": {
+              "market": "micro",
+              "limit": 20
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "count": 0,
+              "market": "micro",
+              "tasks": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "DELETE"
+                  ]
+                },
+                "queryParams": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; results never combine markets"
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Max tasks to return (1-100, default 50)"
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "limit": 20
+                    }
+                  ]
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "method"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-task": {
+    "description": "AZZLE protocol — canonical V2 task row from one explicitly selected market.",
+    "price": "0.01",
+    "methods": [
+      "GET"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "GET",
+            "queryParams": {
+              "market": "micro",
+              "id": "v2:micro:1"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "found": false,
+              "market": "micro",
+              "task": null
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "DELETE"
+                  ]
+                },
+                "queryParams": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; must match the task reference"
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^v2:(standard|micro):[1-9][0-9]*$",
+                      "description": "Strict task reference v2:<market>:<positive integer>"
+                    }
+                  },
+                  "required": [
+                    "market",
+                    "id"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "id": "v2:micro:1"
+                    }
+                  ]
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "method"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-task-scope": {
+    "description": "AZZLE protocol — immutable public task scope from one explicitly selected V2 market; private XMTP scope is never disclosed.",
+    "price": "0.01",
+    "methods": [
+      "GET"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "GET",
+            "queryParams": {
+              "market": "micro",
+              "id": "v2:micro:1"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "taskId": "v2:micro:1",
+              "market": "micro",
+              "published": false,
+              "scope": null
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "DELETE"
+                  ]
+                },
+                "queryParams": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; must match the task reference"
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^v2:(standard|micro):[1-9][0-9]*$",
+                      "description": "Strict task reference v2:<market>:<positive integer>"
+                    }
+                  },
+                  "required": [
+                    "market",
+                    "id"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "id": "v2:micro:1"
+                    }
+                  ]
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "method"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-reputation": {
+    "description": "AZZLE protocol — canonical on-chain reputation counters and verifier bond for an agent in one explicitly selected V2 market.",
+    "price": "0.05",
+    "methods": [
+      "GET"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "GET",
+            "queryParams": {
+              "market": "standard",
+              "address": "0x0000000000000000000000000000000000000001"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "market": "standard",
+              "completed": "0",
+              "wins": "0",
+              "losses": "0",
+              "verifierBondAzl": "0"
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "DELETE"
+                  ]
+                },
+                "queryParams": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market"
+                    },
+                    "address": {
+                      "type": "string",
+                      "description": "Agent address (0x..., 40 hex chars)"
+                    }
+                  },
+                  "required": [
+                    "market",
+                    "address"
+                  ],
+                  "examples": [
+                    {
+                      "market": "standard",
+                      "address": "0x0000000000000000000000000000000000000001"
+                    }
+                  ]
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "method"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-leaderboard": {
+    "description": "AZZLE protocol — bounded event-discovered agents ranked by canonical reputation counters, or verifiers by current AZL bond, in one V2 market.",
+    "price": "0.05",
+    "methods": [
+      "GET"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "GET",
+            "queryParams": {
+              "market": "micro",
+              "kind": "reputation",
+              "limit": 25
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "kind": "reputation",
+              "market": "micro",
+              "count": 0,
+              "agents": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "DELETE"
+                  ]
+                },
+                "queryParams": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; leaderboards never combine markets"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "description": "Leaderboard view",
+                      "enum": [
+                        "reputation",
+                        "verifiers"
+                      ]
+                    },
+                    "limit": {
+                      "type": "number",
+                      "description": "Max rows (1-100, default 25)"
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "kind": "reputation",
+                      "limit": 25
+                    }
+                  ]
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "method"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-union-overview": {
+    "description": "AZZLE Union Staking — live activation state, total stake, and Action Credit cap metrics from Base RPC.",
+    "price": "0.02",
+    "methods": [
+      "GET"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "GET",
+            "queryParams": {
+              "market": "standard"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "market": "standard",
+              "stakingActive": false,
+              "totalStakedAzl": "0",
+              "creditsRemaining": "0"
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "HEAD",
+                    "DELETE"
+                  ]
+                },
+                "queryParams": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market"
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "standard"
+                    }
+                  ]
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "type",
+                "method"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-deposit-usdc": {
+    "description": "AZZLE protocol — unsigned USDC deposit batch for one explicitly selected V2 market. Returns approve(exactUsdcIn) + fundWithUsdc calldata; x402 payment does not credit the deposit ledger.",
+    "price": "0.10",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro",
+              "usdcAmount": "10"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "market": "micro",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; deposit graphs never mix"
+                    },
+                    "exactUsdcIn": {
+                      "type": "string",
+                      "description": "USDC amount in 6-decimal integer units. Required unless usdcAmount is set."
+                    },
+                    "usdcAmount": {
+                      "type": "string",
+                      "description": "Human USDC amount, e.g. \"10\". Required unless exactUsdcIn is set."
+                    },
+                    "minAzlOut": {
+                      "type": "string",
+                      "description": "Optional minimum AZL wei out. Overrides slippageBps when set."
+                    },
+                    "slippageBps": {
+                      "type": "number",
+                      "description": "Slippage bound in bps (0-5000). Default 100 (1%). Ignored if minAzlOut is set."
+                    },
+                    "deadline": {
+                      "type": "number",
+                      "description": "Optional unix seconds. Must be now..now+600; default now+480."
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "usdcAmount": "10"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-post-task": {
+    "description": "AZZLE protocol — unsigned post() batch to open a task on one explicitly selected V2 market. Distinct from azzle-open-tasks (which lists POSTED tasks). x402 payment does not post or fund the task.",
+    "price": "0.15",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro",
+              "totalAmount": "1000000000000000000",
+              "durationSeconds": 604800
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "expectedTaskId": "v2:micro:1",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; must match the graph you will sign against"
+                    },
+                    "totalAmount": {
+                      "type": "string",
+                      "description": "Task budget in AZL wei (decimal integer string)"
+                    },
+                    "durationSeconds": {
+                      "type": "number",
+                      "description": "Task lifetime in seconds (60..2592000). Required unless deadline is set."
+                    },
+                    "deadline": {
+                      "type": "number",
+                      "description": "Unix seconds. Required unless durationSeconds is set. Must be within 30 days."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "description": "Optional public scope (1-8192 UTF-8 bytes). Omit for private/XMTP discovery."
+                    }
+                  },
+                  "required": [
+                    "market",
+                    "totalAmount"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "totalAmount": "1000000000000000000",
+                      "durationSeconds": 604800
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-claim-task": {
+    "description": "AZZLE protocol — unsigned claim() calldata for one POSTED task on an explicitly selected V2 market. x402 payment does not claim the task.",
+    "price": "0.10",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro",
+              "id": "v2:micro:1"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "id": "v2:micro:1",
+              "state": "POSTED",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; must match the task reference"
+                    },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^v2:(standard|micro):[1-9][0-9]*$",
+                      "description": "Strict task reference v2:<market>:<positive integer>"
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Optional worker address. Rejected if it is the poster."
+                    }
+                  },
+                  "required": [
+                    "market",
+                    "id"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "id": "v2:micro:1"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-stake": {
+    "description": "AZZLE protocol — unsigned Union stake batch for one explicitly selected V2 market. Returns approve(amount) + stake(amount) calldata; x402 payment does not stake.",
+    "price": "0.10",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro",
+              "azlAmount": "10"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "market": "micro",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; Union vaults never mix"
+                    },
+                    "azlAmount": {
+                      "type": "string",
+                      "description": "Human AZL amount, e.g. \"10\". Required unless amountAzlWei is set."
+                    },
+                    "amountAzlWei": {
+                      "type": "string",
+                      "description": "AZL amount in 18-decimal wei. Required unless azlAmount is set."
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Optional wallet to pre-check AZL balance."
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "azlAmount": "10"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-unstake": {
+    "description": "AZZLE protocol — unsigned Union unstake calldata for one explicitly selected V2 market. V2 transfers AZL immediately; x402 payment does not unstake.",
+    "price": "0.10",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro",
+              "from": "0x0000000000000000000000000000000000000001"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "market": "micro",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; Union vaults never mix"
+                    },
+                    "azlAmount": {
+                      "type": "string",
+                      "description": "Human AZL amount to unstake. Omit with from to unstake the full stakeOf(from)."
+                    },
+                    "amountAzlWei": {
+                      "type": "string",
+                      "description": "AZL amount in 18-decimal wei. Omit with from to unstake the full stake."
+                    },
+                    "recipient": {
+                      "type": "string",
+                      "description": "Address that receives unstaked AZL. Defaults to from."
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Staker address used for stakeOf pre-check and as default recipient."
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "from": "0x0000000000000000000000000000000000000001"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-bank-credits": {
+    "description": "AZZLE protocol — unsigned bankCredits() calldata for one explicitly selected V2 Union vault. x402 payment does not bank Action Credits.",
+    "price": "0.05",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "market": "micro",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; Union vaults never mix"
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  },
+  "azzle-claim-earnings": {
+    "description": "AZZLE protocol — unsigned Union claim / claimPayout batch for one explicitly selected V2 market. x402 payment does not claim rewards.",
+    "price": "0.10",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "mimeType": "application/json",
+    "extensions": {
+      "bazaar": {
+        "info": {
+          "input": {
+            "type": "http",
+            "method": "POST",
+            "bodyType": "json",
+            "body": {
+              "market": "micro",
+              "from": "0x0000000000000000000000000000000000000001"
+            }
+          },
+          "output": {
+            "type": "json",
+            "example": {
+              "unsigned": true,
+              "executesOnchain": false,
+              "market": "micro",
+              "transactions": []
+            }
+          }
+        },
+        "schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "http"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "POST"
+                  ]
+                },
+                "bodyType": {
+                  "type": "string",
+                  "const": "json"
+                },
+                "body": {
+                  "type": "object",
+                  "properties": {
+                    "market": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "micro"
+                      ],
+                      "description": "Required V2 market; Union vaults never mix"
+                    },
+                    "recipient": {
+                      "type": "string",
+                      "description": "Address that receives claimed AZL. Defaults to from."
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Staker used for accrued / pendingPayouts pre-check and as default recipient."
+                    }
+                  },
+                  "required": [
+                    "market"
+                  ],
+                  "examples": [
+                    {
+                      "market": "micro",
+                      "from": "0x0000000000000000000000000000000000000001"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "method",
+                "bodyType"
+              ],
+              "additionalProperties": false
+            },
+            "output": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "example": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "required": [
+            "input"
+          ]
+        }
+      }
+    }
+  }
+}

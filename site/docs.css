@@ -569,6 +569,102 @@ a.docs-sidebar-market:hover{
   text-transform:uppercase;
 }
 .docs-lede{max-width:720px;font-size:18px;line-height:1.55;color:var(--muted)}
+
+/* Human-readable story blocks. These sit above reference tables so a
+   first-time reader can follow the protocol as a job, not a glossary. */
+.docs-story{
+  max-width:720px;
+  margin:0 0 40px;
+}
+.docs-story-kicker{
+  margin:0 0 10px;
+  color:var(--accent);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.docs-story > .docs-lede,
+.docs-story > .docs-lead{
+  margin-bottom:16px;
+  max-width:none;
+}
+.docs-story > p{
+  margin:0 0 16px;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.7;
+}
+.docs-story-beats{
+  display:grid;
+  gap:10px;
+  margin:0 0 20px;
+  padding:14px 16px;
+  border-left:3px solid var(--accent);
+  background:var(--surface);
+}
+.docs-story-beats p,
+.docs-story-beats li{
+  margin:0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.65;
+}
+.docs-story-beats ol,
+.docs-story-beats ul{
+  margin:0;
+  padding-left:1.2em;
+  display:grid;
+  gap:8px;
+}
+.docs-who{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+  margin:8px 0 0;
+}
+.docs-who article{
+  padding:16px 18px;
+  background:var(--surface);
+  border:1px solid var(--b);
+  border-radius:var(--radius);
+}
+.docs-who h3{
+  margin:0 0 8px;
+  font-size:14px;
+  color:var(--heading);
+}
+.docs-who p{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.55;
+}
+.docs-continue{
+  max-width:720px;
+  margin:8px 0 0;
+  padding:20px 0 0;
+  border-top:1px solid var(--b);
+}
+.docs-continue .docs-story-kicker{margin-bottom:8px}
+.docs-continue p{
+  margin:0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.7;
+}
+.docs-story a,
+.docs-who a,
+.docs-continue a{
+  color:var(--accent);
+  text-decoration:none;
+}
+.docs-story a:hover,
+.docs-who a:hover,
+.docs-continue a:hover{
+  text-decoration:underline;
+}
+
 .docs-integrate-open{
   max-width:640px;
   margin:0 0 36px;

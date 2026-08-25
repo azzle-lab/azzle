@@ -1,0 +1,4 @@
+# Generated x402 handlers are compared byte-for-byte on Linux CI.
+agents/x402-cloud/x402/**/*.ts text eol=lf
+agents/x402-cloud/x402/manifest.ts text eol=lf
+scripts/sync-manifest-surfaces.mjs text eol=lf

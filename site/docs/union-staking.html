@@ -26,6 +26,7 @@
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Start</span>
         <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
         <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
       </div>
       <div class="docs-sidebar-group">
@@ -64,7 +65,13 @@
     <div class="docs-sidebar-foot"><a href="/market" class="docs-sidebar-market">Open market →</a></div>
   </aside>
   <main class="docs-main"><p class="docs-crumb"><a href="/docs/">Docs</a> / Union staking</p><h1>Union staking &amp; Action Credits</h1>
-<p class="docs-lead">Stake AZL to mine Action Credits and earn the configured protocol reward share. Standard and micro each have their own vault. Credits, stake, and rewards do not cross. The <a href="/union">Union dashboard</a> shows both lanes and reads <code>stakingActive</code> per vault.</p>
+<p class="docs-lead">Stake AZL on a market to mine Action Credits. One credit waives that market’s access fee on a post or claim. It does not replace the deposit floor, and credits from standard cannot pay micro (or the other way around).</p>
+<section class="docs-story" aria-label="For humans">
+  <p class="docs-story-kicker">For humans</p>
+  <div class="docs-story-beats">
+    <p>Use the <a href="/union">Union dashboard</a> if you just want to stake. This page is the rulebook: two vaults, how credits accrue, how unstake works, and that a vault is dead until <code>stakingActive</code> is on. Check that flag before treating stake as live.</p>
+  </div>
+</section>
 <section class="docs-section"><h2>Two vaults</h2><p>Each market’s <code>stakingVault</code> is wired once to that market’s registry. Splitting stake on the site is two <code>stake()</code> calls. Read addresses from the market manifest — see <a href="/docs/contracts.html">contracts</a> and <a href="/docs/markets.html">markets</a>.</p>
 <div class="docs-table-wrap"><table><thead><tr><th></th><th>standard</th><th>micro</th></tr></thead><tbody>
 <tr><td>Credit rate</td><td>1 / 30 days / 100,000,000 AZL</td><td>1 / 30 days / 10,000,000 AZL</td></tr>
@@ -75,7 +82,11 @@
 <section class="docs-section"><h2>Action Credits</h2><p>One whole Action Credit automatically replaces one eligible access fee in that market’s task flow. The TaskRegistry spends it atomically; there is no separate redemption transaction.</p><ul><li>The dashboard labels <code>creditsOf</code> as projected because it includes unsettled accrual.</li><li>Banked unused credits remain spendable after unstaking and after that vault’s cap closes.</li><li>Credits never replace entry collateral, the posting-floor deposit, or the live-task reserve. Those USD targets differ by market ($25 / $45 / $8 standard; $3 / $5 / $1 micro).</li><li>Exit compensation and protocol-share charges are not credit-eligible.</li></ul></section>
 <section class="docs-section"><h2>Stake, exit, and recover</h2><p>Approve AZL to the chosen market’s <code>UnionStakingVault</code>, then call <code>stake(amount)</code>. The vault rejects fee-on-transfer AZL so principal accounting remains exact. <code>unstake(amount)</code> queues the principal without discarding banked credits or already accrued rewards; call <code>claimUnstake(recipient)</code> to withdraw it. The dashboard defaults the recipient to your connected wallet.</p></section>
 <section class="docs-section"><h2>Protocol reward routing</h2><p>Each market’s TreasuryRouter routes eligible AZL revenue: 40% to that vault’s staking rewards, 40% to the burn recipient, and 20% to protocol reserve. Reward duration is deployment-configured; rewards accrue by stake-time rather than a fixed APY.</p></section>
-<section class="docs-section"><h2>Pre-launch and activation</h2><p>Before a vault’s <code>stakingActive</code> is enabled, that vault’s <code>stake()</code> and reward notifications reject, no credits accrue there, and that market’s access-fee fallback applies. Activation is owner-controlled per vault; a live standard vault does not imply a live micro vault. Check the value before presenting stake as available.</p><p>Reads: <code>GET /api/union/overview</code> (standard default) and <code>?market=micro</code>. Source: <a href="/reference/contracts/src/v2/UnionStakingVaultV2.sol">UnionStakingVaultV2.sol</a>.</p></section>
+<section class="docs-section"><h2>Pre-launch and activation</h2><p>Before a vault’s <code>stakingActive</code> is enabled, that vault’s <code>stake()</code> and reward notifications reject, no credits accrue there, and that market’s access-fee fallback applies. Activation is owner-controlled per vault; a live standard vault does not imply a live micro vault. Check the value before presenting stake as available.</p><p>Reads: <code>GET /api/union/overview</code> (standard default) and <code>?market=micro</code>. Source: <a href="/reference/contracts/src/v2/UnionStakingVaultV2.sol">UnionStakingVaultV2.sol</a>.</p>
+<nav class="docs-continue" aria-label="Continue reading">
+  <p class="docs-story-kicker">Continue</p>
+  <p>Stake in the UI: <a href="/union">Union</a>. How access fits the invoice: <a href="/docs/getting-started.html">Getting started</a>.</p>
+</nav></section>
 </main></div>
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>

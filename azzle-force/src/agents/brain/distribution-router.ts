@@ -48,6 +48,9 @@ export class DistributionRouter extends BaseAgent {
     } else if (metaReddit?.post_id || (entity.type === "market" && metaReddit)) {
       preferred = "reddit";
       proximity = "reddit_thread";
+    } else if (meta.distribution_class === "agent_society" || meta.volume_signal) {
+      preferred = "email";
+      proximity = "agent_society";
     } else if (types.includes("posted_task")) {
       preferred = "email";
       proximity = "on_chain_actor";

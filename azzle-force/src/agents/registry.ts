@@ -6,12 +6,15 @@ import { BuilderHunter } from "./discovery/builder-hunter.js";
 import { StartupHunter } from "./discovery/startup-hunter.js";
 import { CommunityHunter } from "./discovery/community-hunter.js";
 import { OpportunityHunter } from "./discovery/opportunity-hunter.js";
+import { SocietyHunter } from "./discovery/society-hunter.js";
+import { VolumeHunter } from "./discovery/volume-hunter.js";
 import { ContactDiscovery } from "./discovery/contact-discovery.js";
 import { RelationshipMapper } from "./discovery/relationship-mapper.js";
 import { Personalizer } from "./outreach/personalizer.js";
 import { Messenger } from "./outreach/messenger.js";
 import { FollowUpAgent } from "./outreach/follow-up.js";
 import { Ambassador } from "./outreach/ambassador.js";
+import { SocietyDistributor } from "./outreach/society-distributor.js";
 import { ContentStudio } from "./outreach/content-studio.js";
 import { Qualification } from "./conversion/qualification.js";
 import { Onboarding } from "./conversion/onboarding.js";
@@ -30,6 +33,7 @@ import { Closer } from "./brain/closer.js";
 import { PromptEvolver } from "./brain/prompt-evolver.js";
 import { SignalIntake } from "./brain/signal-intake.js";
 import { DistributionRouter } from "./brain/distribution-router.js";
+import { Clockwork } from "./brain/clockwork.js";
 import { StrategyOptimizer } from "./brain/strategy-optimizer.js";
 import { RedditHunter } from "./reddit/reddit-hunter.js";
 import { RedditResponder } from "./reddit/reddit-responder.js";
@@ -47,12 +51,15 @@ export const AGENT_FACTORIES: Record<string, (ctx: ForceContext) => BaseAgent> =
   "startup-hunter": (ctx) => new StartupHunter(ctx),
   "community-hunter": (ctx) => new CommunityHunter(ctx),
   "opportunity-hunter": (ctx) => new OpportunityHunter(ctx),
+  "society-hunter": (ctx) => new SocietyHunter(ctx),
+  "volume-hunter": (ctx) => new VolumeHunter(ctx),
   "contact-discovery": (ctx) => new ContactDiscovery(ctx),
   "relationship-mapper": (ctx) => new RelationshipMapper(ctx),
   "personalizer": (ctx) => new Personalizer(ctx),
   "messenger": (ctx) => new Messenger(ctx),
   "follow-up": (ctx) => new FollowUpAgent(ctx),
   "ambassador": (ctx) => new Ambassador(ctx),
+  "society-distributor": (ctx) => new SocietyDistributor(ctx),
   "content-studio": (ctx) => new ContentStudio(ctx),
   "qualification": (ctx) => new Qualification(ctx),
   "onboarding": (ctx) => new Onboarding(ctx),
@@ -72,6 +79,7 @@ export const AGENT_FACTORIES: Record<string, (ctx: ForceContext) => BaseAgent> =
   "prompt-evolver": (ctx) => new PromptEvolver(ctx),
   "signal-intake": (ctx) => new SignalIntake(ctx),
   "distribution-router": (ctx) => new DistributionRouter(ctx),
+  "clockwork": (ctx) => new Clockwork(ctx),
   "strategy-optimizer": (ctx) => new StrategyOptimizer(ctx),
   "reddit-hunter": (ctx) => new RedditHunter(ctx),
   "reddit-responder": (ctx) => new RedditResponder(ctx),

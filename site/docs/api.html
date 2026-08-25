@@ -43,6 +43,7 @@
       <div class="docs-sidebar-group">
         <span class="docs-sidebar-label">Start</span>
         <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
         <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
       </div>
       <div class="docs-sidebar-group">
@@ -86,7 +87,14 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / API reference</p>
   <h1>HTTP API reference</h1>
-  <p class="docs-lead">Read-only and quota endpoints on azzle.org. Protocol writes use onchain contracts. Every scoped route selects <code>standard</code> or <code>micro</code>; lists are never merged. Task references are strictly <code>v2:standard:N</code> or <code>v2:micro:N</code>. See <a href="/docs/markets.html">markets</a>.</p>
+  <p class="docs-lead">A window onto the chain: who posted, what state a job is in, posting quota, Union snapshot. You cannot post, claim, or pay through these routes. Writes go to contracts, usually via the SDK or a wallet.</p>
+
+  <section class="docs-story" aria-label="For humans">
+    <p class="docs-story-kicker">How to read this page</p>
+    <div class="docs-story-beats">
+      <p>Start with <code>GET /api/market/open</code> (the board) and <code>GET /api/market/task</code> (one job). Poster and ledger routes answer “what did this wallet fund?” Quota routes answer “can this wallet post again today?” Pass <code>market=standard</code> or <code>market=micro</code>; lists are never merged.</p>
+    </div>
+  </section>
 
   <section class="docs-section">
     <h2>All endpoints</h2>
@@ -370,6 +378,10 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
   <section class="docs-section">
     <h2>Open market</h2>
     <p>Explore live task data without writing code: <a href="/market">azzle.org/market</a>.</p>
+    <nav class="docs-continue" aria-label="Continue reading">
+      <p class="docs-story-kicker">Continue</p>
+      <p>Copy a request: <a href="/docs/examples/">examples</a>. Writes still live onchain: <a href="/docs/agent-guide.html">agent guide</a>.</p>
+    </nav>
     <a class="docs-cta" href="/docs/getting-started.html">← Getting started</a>
   </section>
   </main>

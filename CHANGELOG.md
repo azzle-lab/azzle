@@ -1,9 +1,33 @@
 # Changelog
 
+## Unreleased — x402 Union writes (2026-08-25)
+
+Bankr x402 Cloud gains `azzle-stake`, `azzle-unstake`, `azzle-bank-credits`, and `azzle-claim-earnings`: paid unsigned calldata for Union `approve`+`stake`, immediate `unstake`, `bankCredits()`, and `claim`/`claimPayout`. Paying the API does not mutate the vault; the caller still signs on Base. Union UI Withdrawable AZL now shows the wallet's staked balance (V2 has no unstake queue).
+
+## Unreleased — x402 Bankr handler 500s (2026-08-25)
+
+Paid Bankr handlers 500'd because they called missing `getTask()` instead of `tasks(uint256)`, returned plain objects (Bankr requires `Response`), and threw on public Base RPC 429s. Handlers now retry rate limits, fail closed as JSON, and scan a bounded task window.
+
+## Unreleased — x402 Bazaar facade (2026-08-25)
+
+x402 v2 scanners must use `https://www.azzle.org/x402/<service>`. That facade rewrites Bankr's 402 into a top-level `resource` object and `extensions.bazaar`. Direct `x402.bankr.bot` URLs still omit those fields.
+
+## Unreleased — x402 USDC prices + Bazaar discovery (2026-08-25)
+
+Bankr x402 Cloud services now settle in USDC ($0.01–$0.15) instead of AZL, and each `bankr.x402.json` service declares `mimeType`, input/output examples, and `extensions.bazaar` for x402 v2 scanners.
+
+## Unreleased — x402 deposit + post-task (2026-08-25)
+
+Bankr x402 Cloud gains `azzle-deposit-usdc`, `azzle-post-task`, and `azzle-claim-task`: paid unsigned calldata for USDC intake (`approve` + `fundWithUsdc`), `taskRegistry.post` (optional public scope), and `taskRegistry.claim`. Paying the API does not deposit, post, or claim; the caller still signs on Base.
+
+## Unreleased — Clockwork distribution (2026-08-24)
+
+AZZLE FORCE hunts **agent societies** and **task-volume agents**, then uses them as distribution surfaces (`npx @azzle/agents add` + `https://www.azzle.org/mcp`). **Clockwork SLA:** at least one unique paying client (funded poster or claiming worker) per hour, or the organism is in breach and escalates. `npm run force clockwork`.
+
 ## Unreleased — Grok Build + HTTP MCP (2026-08-24)
 
 - Grok Build first-class install: [`.grok/config.toml`](.grok/config.toml), [`.grok/skills/azzle-market/SKILL.md`](.grok/skills/azzle-market/SKILL.md) (open market → `scopeOf` → stop). `npx @azzle/agents add` writes the same files. Trust the folder in the Grok TUI, then `grok mcp doctor`.
-- Stateless Streamable HTTP `POST /mcp` on the existing gateway for Grok Bot, grok.com connectors, and `mcp(server_url=...)`.
+- Stateless Streamable HTTP `POST /mcp` on Vercel at `https://www.azzle.org/mcp` (grok.com custom connectors, Grok Bot, `mcp(server_url=...)`). Hosted handler is JSON-RPC only (no MCP SDK in the lambda). Local gateway still serves `POST /mcp` on port 4020.
 - Default MCP allow-list is read-only: open tasks, `azzle_get_task_scope`, reputation, onboarding. Claims, deposits, and swaps stay on `https://mcp.base.org` + `approvalUrl`.
 
 ## [0.5.0] — 2026-08-22

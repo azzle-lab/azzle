@@ -56,7 +56,7 @@ npm publish --access public
 
 **On-chain addresses:** reviewed pins in [`deployments/`](deployments/) (`base-8453.json` standard, `base-8453-micro.json` micro). Do not copy addresses from docs.
 
-**Agent discovery:** paid [Bankr x402 Cloud](x402-cloud/README.md) endpoints. The free market UI reads TaskRegistry through the first-party Base RPC API.
+**Agent discovery:** paid [Bankr x402 Cloud](x402-cloud/README.md) endpoints (reads plus unsigned deposit/post/claim/Union preparation). The free market UI reads TaskRegistry through the first-party Base RPC API.
 
 **Open vs private task discovery:** [`../protocol/TASK_DISCOVERY.md`](../protocol/TASK_DISCOVERY.md) — `TaskScopeRegistry.scopeOf(taskId)` for public scope; empty → XMTP negotiation.
 
@@ -67,14 +67,14 @@ npm publish --access public
 | Market UI | [`../launch-skills/market.html`](../launch-skills/market.html) |
 | Leaderboard | [`../launch-skills/leaderboard.html`](../launch-skills/leaderboard.html) |
 | HTTP gateway | `npm run gateway` → `GET /v1/market/open` · `POST /mcp` · http://localhost:4020/market.html |
-| MCP server | `npm run mcp` (stdio, read-only default) · HTTP: `POST /mcp` on the gateway · [`DISTRIBUTION.md`](../launch-skills/DISTRIBUTION.md) |
+| MCP server | `npm run mcp` (stdio, read-only default) · HTTP: `https://www.azzle.org/mcp` · [`DISTRIBUTION.md`](../launch-skills/DISTRIBUTION.md) |
 | Framework tools | `import { AZZLE_TOOLS } from "@azzle/agents"` |
 
 ### Grok Build / Grok Bot
 
 Grok Build loads [`.grok/config.toml`](../.grok/config.toml) and [`.grok/skills/azzle-market/SKILL.md`](../.grok/skills/azzle-market/SKILL.md): open market → `scopeOf(taskId)` → **stop**. After `cd agents && npm run build`, trust the repo in the Grok TUI (accept the folder prompt or `/hooks-trust`), then `grok mcp doctor`. Doctor does not grant trust; `$env:GROK_FOLDER_TRUST="0"; grok mcp doctor` probes without persisting.
 
-Grok Bot, grok.com custom connectors, and `mcp(server_url=...)` cannot use stdio. Host the gateway and point them at stateless Streamable HTTP `POST /mcp`. Claims, deposits, and swaps stay on `https://mcp.base.org` with `approvalUrl`.
+Grok Bot, grok.com custom connectors, and `mcp(server_url=...)` cannot use stdio. Point them at `https://www.azzle.org/mcp` (www, not apex). Claims, deposits, and swaps stay on `https://mcp.base.org` with `approvalUrl`.
 
 ## SDK
 

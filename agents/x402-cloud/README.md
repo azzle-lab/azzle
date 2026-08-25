@@ -3,11 +3,13 @@
 The standard paid, agent-discoverable interface for AZZLE live on-chain data:
 (task discovery + reputation) as monetized HTTP APIs via
 [Bankr x402 Cloud](https://bankr.bot/x402) — hosting, x402 payments, on-chain
-AZZLE settlement, and agent discovery handled by Bankr.
+USDC settlement, and agent discovery handled by Bankr.
 
-> **Scope:** distribution / monetization layer for AZZLE *read* data. It does
-> **not** replace AZZLE access fees or job escrow — those settle on-chain via
-> `TreasuryRouterV2` / `EscrowVaultV2` (see [`docs/X402_PAYMENTS.md`](../../docs/X402_PAYMENTS.md)).
+> **Scope:** distribution / monetization layer for AZZLE *read* data and
+> *unsigned write preparation*. It does **not** replace AZZLE access fees or
+> job escrow — those settle on-chain via `TreasuryRouterV2` / `EscrowVaultV2`
+> (see [`docs/X402_PAYMENTS.md`](../../docs/X402_PAYMENTS.md)). x402 payment
+> never posts, claims, funds, deposits, or stakes; prepare endpoints return calldata to sign.
 > No Bankr code lives in the smart contracts.
 
 ## Layout
@@ -23,37 +25,69 @@ x402-cloud/
     ├── azzle-task-scope/index.ts
     ├── azzle-reputation/index.ts
     ├── azzle-leaderboard/index.ts
-    └── azzle-union-overview/index.ts
+    ├── azzle-union-overview/index.ts
+    ├── azzle-deposit-usdc/index.ts
+    ├── azzle-post-task/index.ts
+    ├── azzle-claim-task/index.ts
+    ├── azzle-stake/index.ts
+    ├── azzle-unstake/index.ts
+    ├── azzle-bank-credits/index.ts
+    └── azzle-claim-earnings/index.ts
 ```
 
 Each `index.ts` is a **self-contained** `Request → response` handler (Bankr
-bundles per service). Handlers import only the generated dual-market manifest
-selector and otherwise make direct Base RPC reads. They return plain objects
-(auto-wrapped as JSON) or a full `Response` for non-2xx cases.
+uploads only that file). A generated dual-market manifest block is inlined by
+`scripts/sync-manifest-surfaces.mjs` so handlers do not import sibling modules.
+They return a `Response` (`application/json`) on every path — Bankr's runtime
+does not auto-wrap plain objects. Service config declares `mimeType`, input/output
+examples, and `extensions.bazaar` so x402 v2 scanners can index the resource.
 
 ## Endpoints
 
-| Service | Returns | Price (AZL) | Params |
+| Service | Returns | Price (USDC) | Params |
 |---------|---------|-------------|--------|
-| `azzle-open-tasks` | Tasks in `POSTED` state | 100 | `?market=standard\|micro&limit=1..100` |
-| `azzle-task` | Single task by strict V2 ref | 100 | `?market=<market>&id=v2:<market>:<id>` |
-| `azzle-task-scope` | Immutable public scope by strict V2 ref | 100 | `?market=<market>&id=v2:<market>:<id>` |
-| `azzle-reputation` | Canonical counters and verifier bond | 200 | `?market=<market>&address=0x...` |
-| `azzle-leaderboard` | Bounded agent / verifier ranking | 200 | `?market=<market>&kind=reputation\|verifiers&limit=` |
-| `azzle-union-overview` | Union staking and credits state | 100 | `?market=standard\|micro` |
+| `azzle-open-tasks` | Tasks in `POSTED` state | $0.01 | `?market=standard\|micro&limit=1..100` |
+| `azzle-task` | Single task by strict V2 ref | $0.01 | `?market=<market>&id=v2:<market>:<id>` |
+| `azzle-task-scope` | Immutable public scope by strict V2 ref | $0.01 | `?market=<market>&id=v2:<market>:<id>` |
+| `azzle-reputation` | Canonical counters and verifier bond | $0.05 | `?market=<market>&address=0x...` |
+| `azzle-leaderboard` | Bounded agent / verifier ranking | $0.05 | `?market=<market>&kind=reputation\|verifiers&limit=` |
+| `azzle-union-overview` | Union staking and credits state | $0.02 | `?market=standard\|micro` |
+| `azzle-deposit-usdc` | Unsigned USDC deposit batch (`approve` + `fundWithUsdc`) | $0.10 | `market` + `exactUsdcIn` or `usdcAmount` |
+| `azzle-post-task` | Unsigned `post()` batch to open a task (not the open-task list) | $0.15 | `market` + `totalAmount` + `durationSeconds` or `deadline` |
+| `azzle-claim-task` | Unsigned `claim()` batch for a POSTED task | $0.10 | `market` + `id=v2:<market>:<id>` |
+| `azzle-stake` | Unsigned Union stake batch (`approve` + `stake`) | $0.10 | `market` + `azlAmount` or `amountAzlWei` |
+| `azzle-unstake` | Unsigned `unstake(amount, recipient)` (immediate AZL transfer) | $0.10 | `market` + recipient/`from` + amount, or `from` for full stake |
+| `azzle-bank-credits` | Unsigned `bankCredits()` checkpoint | $0.05 | `market` |
+| `azzle-claim-earnings` | Unsigned `claim` / `claimPayout` batch | $0.10 | `market` + `recipient` or `from` |
 
 `market` is required on every service. Task-taking services accept only
 `v2:standard:N` or `v2:micro:N`, and reject a task reference whose market does
 not match the explicit `market` parameter. Each request reads one generated
 canonical graph; list and leaderboard responses never merge markets.
 
-Leaderboard discovery scans at most 50,000 blocks and evaluates at most 250
-event-discovered subjects against current contract views. Responses expose the
+`azzle-deposit-usdc`, `azzle-post-task`, `azzle-claim-task`, `azzle-stake`,
+`azzle-unstake`, `azzle-bank-credits`, and `azzle-claim-earnings` accept GET query
+params or a POST JSON body. They return unsigned `{ chainId: 8453, transactions }`
+batches after live onchain checks. Paying for the call does **not** deposit USDC,
+post a task, claim a task, stake, unstake, bank credits, or claim earnings — the
+caller still signs on Base. `azzle-post-task` is the open-task *write*;
+`azzle-open-tasks` is the POSTED-task *list*. V2 `unstake` transfers AZL
+immediately; there is no unstake queue.
+
+Leaderboard discovery scans at most 12,000 blocks and evaluates at most 250
+event-discovered subjects against current contract views. Open-task listing reads
+the newest 250 task ids. Responses expose the
 block window, candidate cap, truncation flags, and a `complete` flag. Reputation
 rows are ordered by canonical `completed`, `wins`, and `losses` counters;
 verifier rows are ordered by current `bondAzlWei`.
 
-Live URL after deploy: `https://x402.bankr.bot/<wallet>/<service>`.
+Live Bankr URL after deploy: `https://x402.bankr.bot/<wallet>/<service>`.
+
+**Bazaar / x402 scan URL** (v2 `resource` + `extensions.bazaar`):
+`https://www.azzle.org/x402/<service>`
+Example: `https://www.azzle.org/x402/azzle-open-tasks`
+
+Bankr's hosted 402 omits those fields. Paste the azzle.org URL into the scanner, not the bankr.bot URL.
 
 ## Prerequisites
 
@@ -92,6 +126,13 @@ bankr x402 deploy azzle-task-scope
 bankr x402 deploy azzle-reputation
 bankr x402 deploy azzle-leaderboard
 bankr x402 deploy azzle-union-overview
+bankr x402 deploy azzle-deposit-usdc
+bankr x402 deploy azzle-post-task
+bankr x402 deploy azzle-claim-task
+bankr x402 deploy azzle-stake
+bankr x402 deploy azzle-unstake
+bankr x402 deploy azzle-bank-credits
+bankr x402 deploy azzle-claim-earnings
 
 bankr x402 list                  # confirm live URLs + versions
 ```
@@ -115,10 +156,17 @@ bankr x402 schema https://x402.bankr.bot/<wallet>/azzle-open-tasks
 # unpaid call → 402 + PaymentRequirements
 curl -i "https://x402.bankr.bot/<wallet>/azzle-open-tasks?market=micro&limit=20"
 
-# paid call with automatic AZZLE payment from your Bankr wallet
+# paid call with automatic USDC payment from your Bankr wallet
 bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-reputation?market=standard&address=<agent-address>"
 bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-task?market=micro&id=v2:micro:42"
 bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-task-scope?market=standard&id=v2:standard:42"
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-deposit-usdc" -X POST -d '{"market":"micro","usdcAmount":"10"}'
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-post-task" -X POST -d '{"market":"micro","totalAmount":"1000000000000000000","durationSeconds":604800}'
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-claim-task" -X POST -d '{"market":"micro","id":"v2:micro:42"}'
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-stake" -X POST -d '{"market":"micro","azlAmount":"10"}'
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-unstake" -X POST -d '{"market":"micro","from":"<wallet>"}'
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-bank-credits" -X POST -d '{"market":"micro"}'
+bankr x402 call "https://x402.bankr.bot/<wallet>/azzle-claim-earnings" -X POST -d '{"market":"micro","from":"<wallet>"}'
 ```
 
 Payments use **settle-after-response**: handlers return a non-2xx (and throw on
@@ -131,8 +179,8 @@ The Bankr agent can do the full lifecycle — endpoints are identical to
 CLI-deployed ones. Example prompts:
 
 ```
-deploy an x402 endpoint called azzle-open-tasks that returns AZZLE POSTED tasks for 100 AZZLE
-change the price of my azzle-reputation endpoint to 500 AZZLE
+deploy an x402 endpoint called azzle-open-tasks that returns AZZLE POSTED tasks for 0.01 USDC
+change the price of my azzle-reputation endpoint to 0.05 USDC
 show me the recent logs for my azzle-open-tasks endpoint
 list my x402 endpoints
 ```
@@ -146,25 +194,26 @@ list my x402 endpoints
 Set via `bankr x402 env set KEY=VALUE` (encrypted at rest) — never through chat.
 These endpoints need no secrets; Base public RPC is the default.
 
-## Pricing in AZZLE
+## Pricing in USDC
 
-Endpoints settle in **AZL** on Base, not USDC.
-Set `tokenAddress` and `currency` on **each service** in `bankr.x402.json` (top-level
-alone is not applied at deploy). `price` is token units, not USD — see Bankr
-[Custom Tokens](https://docs.bankr.bot/x402-cloud/custom-tokens):
+Endpoints settle in **USDC** on Base (`exact` / EIP-3009). `price` is USD
+(0.01–0.15 per call). Do not set `tokenAddress` — Bankr defaults to USDC.
 
-The sync script derives each service's token address from the canonical
-manifest. Do not hand-copy deployment addresses into this README or service
-handlers.
+Each service also declares:
 
-AZL uses **Permit2** (not EIP-3009 like USDC). A payer's first call requires a
-one-time on-chain Permit2 approval; subsequent payments are gasless signed
-transfers. x402 clients read `asset` and `extra.assetTransferMethod` from the 402
-response automatically — no client-side token config needed.
+- `mimeType`: `application/json`
+- `schema.input` / `schema.output` with example values
+- `extensions.bazaar` (`info` + JSON Schema) so x402 v2 scanners can index the
+  route without a self-hosted `bazaarResourceServerExtension`
 
-To switch back to USDC for a service, remove `tokenAddress` and redeploy. The
-`bankr x402 configure` wizard always sets USDC — edit `bankr.x402.json`
-directly for custom tokens, then `bankr x402 deploy <name>`.
+Unpaid Bankr-hosted calls return HTTP 402. Bankr currently places `resource` /
+`description` / `mimeType` on `accepts[0]` and does not copy `extensions.bazaar`
+into that 402. Scan `https://www.azzle.org/x402/<service>` instead — that facade
+rewrites Bankr's 402 into the v2 envelope (`resource.url`, `mimeType`,
+`extensions.bazaar`).
+
+The `bankr x402 configure` wizard prices in USDC. Edit `bankr.x402.json` and
+redeploy with `bankr x402 deploy <name>` to change a price.
 
 ## Relationship to the existing gateway
 
@@ -172,7 +221,7 @@ directly for custom tokens, then `bankr x402 deploy <name>`.
 |-------|-------|------------|
 | V2 access fee (post/claim) | `AgentDepositVaultV2` + `TreasuryRouterV2` | Oracle-derived AZL with a $5 USD policy target; Action Credit may waive |
 | Job payment | `EscrowVaultV2` | AZL escrow on-chain |
-| **Read-data monetization (this folder)** | **Bankr x402 Cloud** | **per-call AZZLE → your wallet** |
+| **Read + unsigned-write monetization (this folder)** | **Bankr x402 Cloud** | **per-call USDC → your wallet** |
 
 The free browser market uses first-party Base RPC routes; these endpoints are
 the paid agent-native discovery interface.

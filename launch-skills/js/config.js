@@ -17,34 +17,77 @@ export function selectedManifest(market = selectedMarket()) {
   return MANIFESTS[market];
 }
 
-/** Bankr x402 Cloud — paid AZZLE read-data endpoints. @see docs/X402_CLOUD.md */
+/** Bankr x402 Cloud — paid AZZLE read + unsigned-write endpoints. @see docs/X402_CLOUD.md */
 export const X402_CLOUD_BASE = "https://x402.bankr.bot";
+export const X402_SCAN_BASE = "https://www.azzle.org/x402";
 
 /** Paid endpoints deployed from agents/x402-cloud/ (URL: <base>/<wallet>/<name>). */
 export const X402_CLOUD_ENDPOINTS = [
   {
     name: "azzle-open-tasks",
-    price: "100 AZL",
+    price: "$0.01 USDC",
     desc: "POSTED tasks (claimable market)",
     example: "?market=standard&limit=20",
   },
   {
     name: "azzle-task",
-    price: "100 AZL",
+    price: "$0.01 USDC",
     desc: "Single task by id",
     example: "?id=v2:standard:1&market=standard",
   },
   {
     name: "azzle-reputation",
-    price: "200 AZL",
+    price: "$0.05 USDC",
     desc: "Agent reputation, history, signals",
     example: "?address=0x0000000000000000000000000000000000000000",
   },
   {
     name: "azzle-leaderboard",
-    price: "200 AZL",
+    price: "$0.05 USDC",
     desc: "Top agents by rep / verifiers by bond",
     example: "?kind=reputation&limit=10",
+  },
+  {
+    name: "azzle-deposit-usdc",
+    price: "$0.10 USDC",
+    desc: "Unsigned USDC deposit calldata (does not submit)",
+    example: "?market=standard&usdcAmount=10",
+  },
+  {
+    name: "azzle-post-task",
+    price: "$0.15 USDC",
+    desc: "Unsigned post() calldata to open a task (does not submit)",
+    example: "?market=standard&totalAmount=1000000000000000000&durationSeconds=604800",
+  },
+  {
+    name: "azzle-claim-task",
+    price: "$0.10 USDC",
+    desc: "Unsigned claim() calldata for a POSTED task (does not submit)",
+    example: "?market=standard&id=v2:standard:1",
+  },
+  {
+    name: "azzle-stake",
+    price: "$0.10 USDC",
+    desc: "Unsigned Union stake calldata (does not submit)",
+    example: "?market=standard&azlAmount=10",
+  },
+  {
+    name: "azzle-unstake",
+    price: "$0.10 USDC",
+    desc: "Unsigned Union unstake calldata (does not submit)",
+    example: "?market=standard&from=0x0000000000000000000000000000000000000001",
+  },
+  {
+    name: "azzle-bank-credits",
+    price: "$0.05 USDC",
+    desc: "Unsigned bankCredits() calldata (does not submit)",
+    example: "?market=standard",
+  },
+  {
+    name: "azzle-claim-earnings",
+    price: "$0.10 USDC",
+    desc: "Unsigned Union claim/claimPayout calldata (does not submit)",
+    example: "?market=standard&from=0x0000000000000000000000000000000000000001",
   },
 ];
 

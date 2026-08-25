@@ -19,16 +19,25 @@ const QUERIES = [
   "autogen agent",
   "mcp server agent",
   "langgraph agent",
+  "elizaos plugin",
+  "virtuals protocol agent",
+  "agent society",
+  "agent marketplace",
+  "openclaw skill",
 ];
 
 export class AgentHunter extends BaseAgent {
+  private queryIndex = 0;
+
   constructor(ctx: ForceContext) {
     super(ctx, ID);
   }
 
   protected async tick(): Promise<void> {
     let count = 0;
-    for (const q of QUERIES) {
+    const batch = 3;
+    for (let i = 0; i < batch; i++) {
+      const q = QUERIES[(this.queryIndex + i) % QUERIES.length];
       const repos = await this.ctx.github.searchRepos(q, 10);
       for (const repo of repos) {
         const parsed = await this.hunterEnrich(
@@ -71,6 +80,7 @@ export class AgentHunter extends BaseAgent {
         count++;
       }
     }
+    this.queryIndex = (this.queryIndex + batch) % QUERIES.length;
     console.log(`[${this.identity.id}] found ${count} agent candidates`);
   }
 }

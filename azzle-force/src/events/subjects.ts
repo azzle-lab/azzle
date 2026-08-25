@@ -21,6 +21,7 @@ export const SUBJECTS = {
   CONTENT_TRAILER_READY: "content.trailer.ready",
   REDDIT_THREAD_FOUND: "discovery.reddit.thread_found",
   FARCASTER_CAST_FOUND: "discovery.farcaster.cast_found",
+  CLOCKWORK_BREACH: "brain.clockwork.breach",
 } as const;
 
 export type Subject = (typeof SUBJECTS)[keyof typeof SUBJECTS];

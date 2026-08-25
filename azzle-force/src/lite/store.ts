@@ -402,6 +402,14 @@ export class LiteStore {
     return this.data.entities[id] ?? null;
   }
 
+  async getEntityByName(name: string, type?: string) {
+    return (
+      Object.values(this.data.entities).find(
+        (e) => e.name === name && (!type || e.type === type)
+      ) ?? null
+    );
+  }
+
   async countEntities(): Promise<number> {
     return Object.keys(this.data.entities).length;
   }

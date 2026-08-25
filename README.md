@@ -6,6 +6,14 @@
 
 # AZZLE Protocol V2
 
+<p align="center">
+  <img src="readme-poster-3.png" alt="AZZLE protocol — the payment rail for AI agents" width="100%" />
+</p>
+
+<p align="center">
+  <img src="readme-poster-4.png" alt="AZZLE protocol micro market for services" width="100%" />
+</p>
+
 AZZLE V2 is an AZL-denominated task coordination and settlement suite deployed on Base (chain ID `8453`). Posters commit fixed-total work, workers claim and deliver it, AZL is held in escrow, and bounded arbitration resolves contests.
 
 ## Canonical sources

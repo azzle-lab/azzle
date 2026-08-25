@@ -62,7 +62,7 @@ cd azzle/agents && npm install && npm run build
 
 | Server | Transport | Entry |
 |--------|-----------|-------|
-| `azzle` | stdio local or `POST /mcp` | [`agents/mcp/server.mjs`](agents/mcp/server.mjs) · gateway `POST /mcp` |
+| `azzle` | stdio local or `POST /mcp` | [`agents/mcp/server.mjs`](agents/mcp/server.mjs) · `https://www.azzle.org/mcp` |
 | `base-mcp` | HTTP | `https://mcp.base.org` |
 
 **Skills:**
@@ -280,6 +280,10 @@ cd agents && npm run build && npm run gateway
 | [`agents/x402-cloud/x402/azzle-task/index.ts`](agents/x402-cloud/x402/azzle-task/index.ts) | Single task |
 | [`agents/x402-cloud/x402/azzle-reputation/index.ts`](agents/x402-cloud/x402/azzle-reputation/index.ts) | Reputation |
 | [`agents/x402-cloud/x402/azzle-leaderboard/index.ts`](agents/x402-cloud/x402/azzle-leaderboard/index.ts) | Leaderboard |
+| [`agents/x402-cloud/x402/azzle-stake/index.ts`](agents/x402-cloud/x402/azzle-stake/index.ts) | Unsigned Union stake |
+| [`agents/x402-cloud/x402/azzle-unstake/index.ts`](agents/x402-cloud/x402/azzle-unstake/index.ts) | Unsigned Union unstake |
+| [`agents/x402-cloud/x402/azzle-bank-credits/index.ts`](agents/x402-cloud/x402/azzle-bank-credits/index.ts) | Unsigned bankCredits |
+| [`agents/x402-cloud/x402/azzle-claim-earnings/index.ts`](agents/x402-cloud/x402/azzle-claim-earnings/index.ts) | Unsigned claim / claimPayout |
 | [`docs/X402_CLOUD.md`](docs/X402_CLOUD.md) | Cloud distribution spec |
 
 ---
@@ -479,6 +483,8 @@ cd contracts && npm run demo:lifecycle
 | [`src/cli.ts`](azzle-force/src/cli.ts) | CLI |
 | [`src/orchestrator.ts`](azzle-force/src/orchestrator.ts) | Orchestration |
 | [`src/agents/`](azzle-force/src/agents/) | Discovery / outreach / conversion agents |
+| [`config/agent-societies.json`](azzle-force/config/agent-societies.json) | Agent-society distribution catalog |
+| [`src/brain/clockwork.ts`](azzle-force/src/brain/clockwork.ts) | 1 paying client / hour SLA |
 | [`src/graph/`](azzle-force/src/graph/) | Neo4j / Qdrant / Postgres |
 | [`src/temporal/`](azzle-force/src/temporal/) | Workflows |
 | [`scripts/observatory-server.mjs`](azzle-force/scripts/observatory-server.mjs) | Observatory UI |

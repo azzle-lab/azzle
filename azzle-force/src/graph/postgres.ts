@@ -100,6 +100,19 @@ export class PostgresStore {
     return res.rows[0] ?? null;
   }
 
+  async getEntityByName(name: string, type?: string) {
+    const res = type
+      ? await this.pool.query(
+          "SELECT * FROM entities WHERE name = $1 AND type = $2 ORDER BY updated_at DESC LIMIT 1",
+          [name, type]
+        )
+      : await this.pool.query(
+          "SELECT * FROM entities WHERE name = $1 ORDER BY updated_at DESC LIMIT 1",
+          [name]
+        );
+    return res.rows[0] ?? null;
+  }
+
   async countEntities(): Promise<number> {
     const res = await this.pool.query("SELECT COUNT(*)::int AS c FROM entities");
     return res.rows[0]?.c ?? 0;

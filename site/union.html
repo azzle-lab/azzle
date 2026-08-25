@@ -65,20 +65,20 @@
         </article>
 
         <article class="rd-union-card">
-          <div class="rd-union-card-head"><div><h5>Position</h5><p>Principal exits in two explicit steps, per vault.</p></div></div>
+          <div class="rd-union-card-head"><div><h5>Position</h5><p>Unstake returns AZL immediately to this wallet, per vault.</p></div></div>
           <div class="rd-union-input-row"><label for="union-unstake-amount">Unstake</label><input id="union-unstake-amount" inputmode="decimal" placeholder="0.00" style="border-radius:0!important"/><span>AZL</span></div>
           <div class="rd-union-lanes">
             <div class="rd-union-lane">
               <span>Standard</span>
               <strong id="union-pending-standard">—</strong>
-              <small>Ready to withdraw</small>
-              <div class="rd-union-actions"><button type="button" class="rd-action" id="union-unstake-standard">Queue</button><button type="button" class="rd-action" id="union-claim-unstake-standard">Withdraw</button></div>
+              <small>Withdrawable AZL</small>
+              <div class="rd-union-actions"><button type="button" class="rd-action" id="union-unstake-standard">Unstake</button><button type="button" class="rd-action" id="union-claim-unstake-standard">Unstake all</button></div>
             </div>
             <div class="rd-union-lane">
               <span>Micro</span>
               <strong id="union-pending-micro">—</strong>
-              <small>Ready to withdraw</small>
-              <div class="rd-union-actions"><button type="button" class="rd-action" id="union-unstake-micro">Queue</button><button type="button" class="rd-action" id="union-claim-unstake-micro">Withdraw</button></div>
+              <small>Withdrawable AZL</small>
+              <div class="rd-union-actions"><button type="button" class="rd-action" id="union-unstake-micro">Unstake</button><button type="button" class="rd-action" id="union-claim-unstake-micro">Unstake all</button></div>
             </div>
           </div>
         </article>
@@ -134,7 +134,7 @@
   </main>
 </div>
 <script type="module" src="role-wallet.bundle.js"></script>
-<script src="union.js?v=20260823-stake-balance"></script>
+<script src="union.js?v=20260825-withdrawable-stake"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>
