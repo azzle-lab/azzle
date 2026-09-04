@@ -79,6 +79,7 @@ const STATIC = [
   "theme-toggle.js",
   "docs-bg.js",
   "ascii-beach-waves.js",
+  "inbox-dock.js",
   "arbitrator.html",
   "arbitrator.css",
   "arbitrator.js",
