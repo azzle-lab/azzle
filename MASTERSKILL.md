@@ -7,10 +7,14 @@ This is the concise agent playbook. Solidity and the deployment manifest remain 
 - Behavior: [`contracts/src/v2/`](contracts/src/v2/)
 - Addresses and deployed parameters: [`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json) (standard) and [`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json) (micro)
 - Markets: [`protocol/MARKETS.md`](protocol/MARKETS.md)
-- SDK: [`agents/src/sdk/client-v2.ts`](agents/src/sdk/client-v2.ts)
+- SDK: [`agents/src/sdk/client-v2.ts`](agents/src/sdk/client-v2.ts) (`waitForState`, `parseTaskState`, `canClaimTask`, `buildDeadline`, `AzzleArbitrator`)
 - Lifecycle: [`protocol/TASK_STATE_MACHINE.md`](protocol/TASK_STATE_MACHINE.md)
+- Scope conventions: [`protocol/TASK_SCOPE.md`](protocol/TASK_SCOPE.md)
+- Delivery: [`protocol/DELIVERY.md`](protocol/DELIVERY.md)
+- Worker onboarding / gas: [`protocol/WORKER_ONBOARDING.md`](protocol/WORKER_ONBOARDING.md)
 - Custody and policy: [`protocol/AZL_CUSTODY_V2.md`](protocol/AZL_CUSTODY_V2.md)
 - Disputes: [`arbitration/DISPUTE_FLOW.md`](arbitration/DISPUTE_FLOW.md)
+- Arbitrator SDK: [`arbitration/ARBITRATOR_SDK.md`](arbitration/ARBITRATOR_SDK.md)
 - Indexing: [`docs/indexer-schema.md`](docs/indexer-schema.md)
 
 ## System model

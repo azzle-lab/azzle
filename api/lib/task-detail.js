@@ -60,7 +60,34 @@ const ESCROW_ABI = [
   },
 ];
 
-let client = null;
+const ARBITRATION_ABI = [
+  {
+    type: "function",
+    name: "disputes",
+    stateMutability: "view",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [
+      {
+        type: "tuple",
+        components: [
+          { name: "taskId", type: "uint256" },
+          { name: "opener", type: "address" },
+          { name: "arbitrator", type: "address" },
+          { name: "posterEvidence", type: "bytes32" },
+          { name: "workerEvidence", type: "bytes32" },
+          { name: "evidenceDeadline", type: "uint64" },
+          { name: "rulingDeadline", type: "uint64" },
+          { name: "status", type: "uint8" },
+          { name: "outcome", type: "uint8" },
+          { name: "slashed", type: "uint256" },
+        ],
+      },
+    ],
+  },
+];
+
+const DISPUTE_STATUS = ["NONE", "EVIDENCE", "RULING", "SETTLED"];
+const DISPUTE_OUTCOME = ["NONE", "POSTER_WINS", "WORKER_WINS", "SPLIT", "MUTUAL"];
 
 function getClient() {
   if (!client) {
@@ -101,9 +128,15 @@ export async function getTaskDetail(taskIdRaw, expectedMarket) {
   const stateIndex = Number(task.state);
   const state = TASK_STATE[stateIndex] ?? "UNKNOWN";
   const totalAmount = task.totalAmount;
-  const lockedBal = locked?.deposited > locked?.released
+  const fundedWei = task.funded;
+  const releasedWei = task.released;
+  const lockedWei = fundedWei > releasedWei ? fundedWei - releasedWei : 0n;
+  const escrowLocked = locked?.deposited > locked?.released
     ? locked.deposited - locked.released
     : 0n;
+  // Registry funded − released is the job lock. Escrow is only a fallback if
+  // the registry row has not been funded yet but the vault already holds AZL.
+  const lockedBal = lockedWei > 0n ? lockedWei : escrowLocked;
   const budgetAzl = Number(formatUnits(totalAmount, 18));
   const lockedAzl = Number(formatUnits(lockedBal, 18));
   const poster = task.poster;
@@ -120,6 +153,41 @@ export async function getTaskDetail(taskIdRaw, expectedMarket) {
     /* scope registry optional */
   }
 
+  const fullyFunded = fundedWei >= totalAmount && totalAmount > 0n;
+  const delivered = Number(task.deliveredAt) > 0;
+  const now = Math.floor(Date.now() / 1000);
+  const canClaim = state === "POSTED";
+  const canFund = state === "CLAIMED" || (state === "ACTIVE" && !fullyFunded);
+  const canDeliver = state === "ACTIVE" && fullyFunded && !delivered;
+
+  let dispute = null;
+  if (state === "DISPUTED" && m.arbitrationModule) {
+    try {
+      const row = await getClient().readContract({
+        address: m.arbitrationModule,
+        abi: ARBITRATION_ABI,
+        functionName: "disputes",
+        args: [id],
+      });
+      const status = Number(row.status);
+      const outcome = Number(row.outcome);
+      dispute = {
+        opener: row.opener,
+        arbitrator: row.arbitrator,
+        posterEvidence: row.posterEvidence,
+        workerEvidence: row.workerEvidence,
+        evidenceDeadline: Number(row.evidenceDeadline),
+        rulingDeadline: Number(row.rulingDeadline),
+        status,
+        statusName: DISPUTE_STATUS[status] ?? "UNKNOWN",
+        outcome,
+        outcomeName: DISPUTE_OUTCOME[outcome] ?? "UNKNOWN",
+        urgent: Number(row.rulingDeadline || row.evidenceDeadline) > 0 && Number(row.rulingDeadline || row.evidenceDeadline) <= now + 3600,
+      };
+    } catch {
+      dispute = null;
+    }
+  }
   const description = onchainScope;
   const discoveryOpen = Boolean(onchainScope);
   const discoveryPrivate = !onchainScope;
@@ -132,10 +200,11 @@ export async function getTaskDetail(taskIdRaw, expectedMarket) {
     state,
     budgetAzl,
     totalAmountAzlWei: totalAmount.toString(),
-    fundedAzlWei: task.funded.toString(),
-    releasedAzlWei: task.released.toString(),
+    fundedAzlWei: fundedWei.toString(),
+    releasedAzlWei: releasedWei.toString(),
+    lockedAzlWei: lockedBal.toString(),
     lockedAzl,
-    funded: task.funded > 0n,
+    funded: fundedWei >= totalAmount && totalAmount > 0n,
     escrowAmount: totalAmount.toString(),
     deadline: Number(task.deadline),
     createdAt: null,
@@ -152,7 +221,11 @@ export async function getTaskDetail(taskIdRaw, expectedMarket) {
     listingDeadlineDays: null,
     listingSavedAt: null,
     escrowMode: null,
-    claimable: state === "POSTED",
+    claimable: canClaim,
+    canClaim,
+    canFund,
+    canDeliver,
+    dispute,
     registryAddress: m.taskRegistry,
     escrowAddress: m.escrowVault,
     chainId: Number(m.chainId),

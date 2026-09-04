@@ -278,6 +278,38 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {},
       }
     }
 
+    if (method === "GET" && (pathname === "/api/get-disputes" || pathname === "/api/market/disputes")) {
+      try {
+        const { listV2Tasks } = await import("../api/lib/tasks-rpc-v2.js");
+        const { getTaskDetail } = await import("../api/lib/task-detail.js");
+        const market = searchParams.get("market");
+        const limit = Number(searchParams.get("limit") ?? 25);
+        const markets = market ? [market] : ["micro", "standard"];
+        const tasks = [];
+        for (const lane of markets) {
+          const listed = await listV2Tasks({ limit, state: "DISPUTED", market: lane });
+          for (const row of listed.tasks ?? []) {
+            let detail = row;
+            try {
+              const full = await getTaskDetail(row.id, lane);
+              if (full) detail = { ...row, ...full };
+            } catch { /* keep scan row */ }
+            tasks.push(detail);
+          }
+        }
+        tasks.sort((a, b) => {
+          const da = Number(a.dispute?.rulingDeadline || a.dispute?.evidenceDeadline || a.deadline || 0);
+          const db = Number(b.dispute?.rulingDeadline || b.dispute?.evidenceDeadline || b.deadline || 0);
+          return da - db;
+        });
+        return apiJson(200, { count: tasks.length, tasks }, {
+          "Cache-Control": "public, s-maxage=15, stale-while-revalidate=60",
+        });
+      } catch (e) {
+        return apiJson(isBadBoundaryInput(e) ? 400 : 502, { error: e.message ?? String(e) });
+      }
+    }
+
     if (method === "GET" && (pathname === "/api/get-open-tasks" || pathname === "/api/market/open")) {
       try {
         const { listV2Tasks } = await import("../api/lib/tasks-rpc-v2.js");

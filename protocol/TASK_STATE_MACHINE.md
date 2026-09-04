@@ -2,11 +2,23 @@
 
 Normative implementation: [`TaskRegistryV2.sol`](../contracts/src/v2/TaskRegistryV2.sol).
 
+Workers **claim first**. The poster **funds after a worker is on the task**. Full funding flips the task to `ACTIVE`. `markDelivered` is valid only in `ACTIVE`.
+
+```
+POSTED ──claim──► CLAIMED ──fund (full)──► ACTIVE ──markDelivered──► (still ACTIVE, deliveredAt set)
+   │                 │                      │
+   └──── cancel ─────┴── expire/cancel ─────┼── openDispute ──► DISPUTED ──rule/timeout──► RESOLVED
+                                            └── expire ──► CANCELLED
+ACTIVE + full release / complete ──► COMPLETED
+```
+
+SDK helpers: `waitForState(taskId, "ACTIVE")`, `taskReadiness(task)` (`canClaim`, `canFund`, `canDeliver`), and `parseTaskState()` so a registry BigInt is not compared to `3`.
+
 ## States
 
-`NONE ? POSTED ? CLAIMED ? ACTIVE ? COMPLETED`
+`NONE → POSTED → CLAIMED → ACTIVE → COMPLETED`
 
-Branches: `POSTED/CLAIMED ? CANCELLED`; expiry of any nonterminal, nondisputed state ? `CANCELLED`; `ACTIVE ? DISPUTED ? RESOLVED`.
+Branches: `POSTED/CLAIMED → CANCELLED`; expiry of any nonterminal, nondisputed state → `CANCELLED`; `ACTIVE → DISPUTED → RESOLVED`.
 
 ## Transitions
 

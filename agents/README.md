@@ -79,16 +79,33 @@ Grok Bot, grok.com custom connectors, and `mcp(server_url=...)` cannot use stdio
 ## SDK
 
 ```typescript
-import { AzzleV2Client, buildSettlementDigest, RpcDiscovery, BASE_MAINNET_MANIFEST } from "@azzle/agents";
+import {
+  AzzleV2Client,
+  loadMarketManifest,
+  waitForState,
+  parseTaskState,
+  canClaimTask,
+  buildDeadline,
+} from "@azzle/agents";
 
-const manifest = BASE_MAINNET_MANIFEST;
+const market = "micro"; // or "standard"
+const manifest = loadMarketManifest(market);
+const client = new AzzleV2Client(manifest, "https://mainnet.base.org", market).connect(signer);
 
-const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(signer);
+// taskState() is a BigInt. Never compare it to 3 — use names or parseTaskState().
+const { name } = await client.getTaskState("v2:micro:5");
+await client.waitForState("v2:micro:5", "ACTIVE");
 
-// Fund AZL collateral first (direct AZL or gateway conversion), then use V2 methods.
-await client.post(taskAmountAzlWei, deadline);
-const openTasks = await new RpcDiscovery().getOpenTasks();
+const ready = await client.getReadiness("v2:micro:5");
+if (ready.canDeliver) await client.markDelivered("v2:micro:5");
+
+// Gateway: minAzlOut cannot be 0; deadline is chain time, max 10 minutes.
+await client.fundDepositWithUsdcQuoted(10_000_000n); // $10 USDC, quoted min + buildDeadline()
 ```
+
+`taskState()` returns **bigint** (`3n === 3` is false). Use `getTaskState()`, `waitForState(id, "ACTIVE")`, or `isTaskState(raw, "ACTIVE")`.
+
+Pre-claim: `canClaimTask(scope, { acceptedTaskTypes: ["solidity-audit"] })`. Delivery: `planDelivery()`, `buildExecutionReceipt()`, `hashReceipt()`. Arbitrators: `AzzleArbitrator` / `@azzle/agents/arbitration`. Audit worker template: `src/reference/audit-worker.ts`.
 
 ### XMTP (production)
 
@@ -120,6 +137,8 @@ Modules: `src/sdk/xmtp/` (transport, envelope validation, identity link, handler
 |-------|------|------|
 | Poster | `src/reference/poster-agent.ts` | Posts task, funds escrow, accepts delivery |
 | Worker | `src/reference/worker-agent.ts` | `LiveWorkerService` + Base RPC `list-open` (import `@azzle/agents/worker`) |
+| Audit worker | `src/reference/audit-worker.ts` | discover → validate scope → claim → wait ACTIVE → hash → markDelivered |
+| Arbitrator | `src/reference/arbitrator-agent.ts` | evidence bundle + settlement preview (`@azzle/agents/arbitration`) |
 | Verifier | `src/reference/verifier-agent.ts` | Evaluates deterministic receipts |
 
 **Live worker deployment** (Docker, `.env`, `npm run worker`) lives in the separate **azzle-worker** project (sibling folder / own repo) — not in this package.
@@ -147,7 +166,7 @@ import { AzzleV2Client, loadBaseMainnetV2Manifest } from "@azzle/agents";
 
 const manifest = loadBaseMainnetV2Manifest();
 const client = new AzzleV2Client(manifest, process.env.BASE_RPC_URL!).connect(signer);
-await client.fundDepositWithUsdc(100_000_000n, minAzlOut, deadline);
+await client.fundDepositWithUsdcQuoted(100_000_000n);
 await client.post(taskAmountAzlWei, deadline);
 ```
 

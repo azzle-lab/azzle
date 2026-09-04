@@ -96,6 +96,11 @@ export class RpcDiscovery {
     return out;
   }
   getOpenTasks(limit = 100) { return this.scan((task) => task.state === "POSTED", limit); }
+  getDisputedTasks(limit = 100) { return this.scan((task) => task.state === "DISPUTED", limit); }
+  getTasksByState(state: string, limit = 100) {
+    const name = String(state).toUpperCase();
+    return this.scan((task) => task.state === name, limit);
+  }
   getRecentTasks(limit = 50) { return this.scan(() => true, limit); }
   getTasksByPoster(poster: string, limit = 25) {
     const id = poster.toLowerCase();

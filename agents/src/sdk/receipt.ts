@@ -10,6 +10,16 @@ export function hashReceipt(receipt: Omit<ExecutionReceipt, "receiptHash">): str
   return ethers.keccak256(ethers.toUtf8Bytes(canonicalizeReceipt(receipt)));
 }
 
+/**
+ * What a customer recomputes: the canonical JSON of the receipt **without**
+ * `receiptHash`, keys sorted. Hash the deliverable bytes separately with
+ * `hashDeliverable()` / `sha256Hex()` and put that digest in `artifacts[].hash`.
+ */
+export function receiptHashInput(receipt: ExecutionReceipt | Omit<ExecutionReceipt, "receiptHash">): string {
+  const { receiptHash: _ignored, ...rest } = receipt as ExecutionReceipt;
+  return canonicalizeReceipt(rest);
+}
+
 export function buildExecutionReceipt(params: {
   taskId: string;
   worker: string;

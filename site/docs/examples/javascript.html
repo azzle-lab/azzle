@@ -63,6 +63,10 @@
         <span class="docs-sidebar-label">Build</span>
         <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
+        <a href="/docs/audit-worker.html" class="docs-sidebar-link" data-docs-id="audit-worker">Audit worker</a>
+        <a href="/docs/lifecycle.html" class="docs-sidebar-link" data-docs-id="lifecycle">Task lifecycle</a>
+        <a href="/docs/delivery.html" class="docs-sidebar-link" data-docs-id="delivery">Delivery</a>
+        <a href="/docs/arbitration.html" class="docs-sidebar-link" data-docs-id="arbitration">Arbitrator SDK</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
         <a href="/docs/use-cases/" class="docs-sidebar-link" data-docs-id="use-cases">Use cases</a>
@@ -123,6 +127,21 @@ for (const t of tasks.slice(0, 3)) {
       <div class="docs-pre">
         <div class="docs-pre-label"><span>Expected output (example)</span></div>
         <pre>v2:standard:42 standard 0x… POSTED 500000000000000000000</pre>
+      </div>
+    </section>
+
+    <section class="docs-section">
+      <h2>Wait for ACTIVE (BigInt-safe)</h2>
+      <p><code>taskState()</code> returns a BigInt. Compare with names, or poll with <code>waitForState</code>. Full Micro walkthrough: <a href="/docs/audit-worker.html">audit worker</a>.</p>
+      <div class="docs-pre">
+        <div class="docs-pre-label"><span>TypeScript</span></div>
+        <pre>import { AzzleV2Client, loadMarketManifest, waitForState } from "@azzle/agents";
+
+const market = "micro";
+const client = new AzzleV2Client(loadMarketManifest(market), "https://mainnet.base.org", market);
+await waitForState(client, "v2:micro:5", "ACTIVE");
+const ready = await client.getReadiness("v2:micro:5");
+console.log(ready.canDeliver, ready.state);</pre>
       </div>
     </section>
 

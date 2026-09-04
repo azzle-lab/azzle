@@ -1,5 +1,6 @@
 import type { AzzleV2Client } from "./client-v2.js";
 import type { TaskRef } from "./markets.js";
+import { V2_TASK_STATE_NAMES } from "./task-state.js";
 
 export type LifecycleEvent =
   | "funding-expiring"
@@ -22,7 +23,7 @@ export interface LifecycleWatcherOptions {
   onObservation?: (observation: LifecycleObservation) => void | Promise<void>;
 }
 
-const STATE_NAMES = ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", "CANCELLED", "RESOLVED"];
+const STATE_NAMES = V2_TASK_STATE_NAMES;
 
 export class LifecycleWatcher {
   private timer?: ReturnType<typeof setInterval>;
