@@ -1,6 +1,12 @@
 import { Contract, ethers } from "ethers";
+import { ARBITRATION_OUTCOMES, ARBITRATION_STATUS_NAMES, type DisputeRecord } from "./arbitration/types.js";
+import { assertValidMinAzlOut, prepareUsdcDeposit } from "./gateway.js";
+import { withAzzleErrors } from "./errors.js";
 import type { BaseMainnetV2Manifest } from "./manifest-v2.js";
 import { namespacedTaskId, parseTaskRef, resolveExpectedMarket, type AzzleMarket, type TaskRef } from "./markets.js";
+import { taskReadiness, type ReadinessOptions, type TaskReadiness } from "./readiness.js";
+import { parseTaskState, V2_TASK_STATE_NAMES as STATE_NAMES, type ParsedTaskState } from "./task-state.js";
+import { waitForState, type WaitForStateOptions } from "./wait.js";
 
 const REGISTRY_ABI = [
   "function post(uint256 totalAmount,uint64 deadline) returns (uint256)",
@@ -43,6 +49,8 @@ const ARBITRATION_ABI = [
   "function beginRuling(uint256 taskId)",
   "function rule(uint256 taskId,uint8 outcome,uint16 workerBps)",
   "function timeout(uint256 taskId)",
+  "function assignArbitrator(uint256 taskId) returns (address)",
+  "function disputes(uint256 taskId) view returns (uint256 taskId,address opener,address arbitrator,bytes32 posterEvidence,bytes32 workerEvidence,uint64 evidenceDeadline,uint64 rulingDeadline,uint8 status,uint8 outcome,uint256 slashed)",
 ];
 
 export interface OnChainTask {
@@ -50,7 +58,7 @@ export interface OnChainTask {
   deadline: bigint; fundingDeadline: bigint; deliveredAt: bigint; state: number; stateName: string;
 }
 
-export const V2_TASK_STATE_NAMES = ["NONE", "POSTED", "CLAIMED", "ACTIVE", "DISPUTED", "COMPLETED", "CANCELLED", "RESOLVED"] as const;
+export const V2_TASK_STATE_NAMES = STATE_NAMES;
 
 export class AzzleV2Client {
   private provider: ethers.JsonRpcProvider;
@@ -141,9 +149,23 @@ export class AzzleV2Client {
   openDispute(taskId: TaskRef | string | bigint, evidenceHash: string) { return this.registry.openDispute(this.localTaskId(taskId), evidenceHash); }
   publishScope(taskId: TaskRef | string, scope: string) { return this.scope.publish(this.localTaskId(taskId), scope); }
   getScope(taskId: TaskRef | string) { return this.scope.scopeOf(this.localTaskId(taskId)) as Promise<string>; }
+  /**
+   * Raw registry `taskState` — ethers returns uint8 as **bigint**.
+   * `3n === 3` is false. Prefer `getTaskState()`, `waitForState()`, or
+   * `parseTaskState()` / `isTaskState(raw, "ACTIVE")`.
+   */
   taskState(taskId: TaskRef | string): Promise<bigint>;
   /** @internal */ taskState(taskId: bigint): Promise<bigint>;
   taskState(taskId: TaskRef | string | bigint) { return this.registry.taskState(this.localTaskId(taskId)) as Promise<bigint>; }
+  async getTaskState(taskId: TaskRef | string | bigint): Promise<ParsedTaskState> {
+    return parseTaskState(await this.taskState(taskId as TaskRef | string));
+  }
+  waitForState(taskId: TaskRef | string, expected: Parameters<typeof waitForState>[2], options?: WaitForStateOptions) {
+    return waitForState(this, taskId, expected, options);
+  }
+  async getReadiness(taskId: TaskRef | string, options?: ReadinessOptions): Promise<TaskReadiness> {
+    return taskReadiness(await this.getTask(taskId), options);
+  }
   async getTask(taskId: TaskRef | string): Promise<OnChainTask>;
   /** @internal */ async getTask(taskId: bigint): Promise<OnChainTask>;
   async getTask(taskId: TaskRef | string | bigint): Promise<OnChainTask> {
@@ -158,10 +180,22 @@ export class AzzleV2Client {
   }
 
   fundDepositWithUsdc(exactUsdcIn: bigint, minAzlOut: bigint, deadline: number) {
-    return this.gateway.fundWithUsdc(exactUsdcIn, minAzlOut, deadline);
+    assertValidMinAzlOut(minAzlOut);
+    return withAzzleErrors(() => this.gateway.fundWithUsdc(exactUsdcIn, minAzlOut, deadline));
   }
   fundDepositWithEth(exactEthIn: bigint, minAzlOut: bigint, deadline: number) {
-    return this.gateway.fundWithEth(minAzlOut, deadline, { value: exactEthIn });
+    assertValidMinAzlOut(minAzlOut);
+    return withAzzleErrors(() => this.gateway.fundWithEth(minAzlOut, deadline, { value: exactEthIn }));
+  }
+  /** Quote minAzlOut from the oracle and a chain-clock deadline, then fund. */
+  async fundDepositWithUsdcQuoted(exactUsdcIn: bigint, slippageBps = 100) {
+    const { minAzlOut, deadline } = await prepareUsdcDeposit({
+      provider: this.provider,
+      usdOracle: this.manifest.usdOracle,
+      exactUsdcIn,
+      slippageBps,
+    });
+    return this.fundDepositWithUsdc(exactUsdcIn, minAzlOut, deadline);
   }
   isDepositIntakePaused() { return this.gateway.intakePaused() as Promise<boolean>; }
   withdrawDeposit(amount: bigint, recipient: string) { return this.vault.withdraw(amount, recipient); }
@@ -196,8 +230,39 @@ export class AzzleV2Client {
   withdrawVerifierBond(amount: bigint) { return this.bonds.withdraw(amount); }
   claimBondPayout(recipient: string) { return this.bonds.claimPayout(recipient); }
 
-  submitEvidence(taskId: TaskRef | string, evidenceHash: string) { return this.arbitration.submitEvidence(this.localTaskId(taskId), evidenceHash); }
-  beginRuling(taskId: TaskRef | string) { return this.arbitration.beginRuling(this.localTaskId(taskId)); }
-  rule(taskId: TaskRef | string, outcome: number, workerBps: number) { return this.arbitration.rule(this.localTaskId(taskId), outcome, workerBps); }
-  timeout(taskId: TaskRef | string) { return this.arbitration.timeout(this.localTaskId(taskId)); }
+  submitEvidence(taskId: TaskRef | string, evidenceHash: string) {
+    return withAzzleErrors(() => this.arbitration.submitEvidence(this.localTaskId(taskId), evidenceHash));
+  }
+  beginRuling(taskId: TaskRef | string) {
+    return withAzzleErrors(() => this.arbitration.beginRuling(this.localTaskId(taskId)));
+  }
+  rule(taskId: TaskRef | string, outcome: number, workerBps: number) {
+    return withAzzleErrors(() => this.arbitration.rule(this.localTaskId(taskId), outcome, workerBps));
+  }
+  timeout(taskId: TaskRef | string) {
+    return withAzzleErrors(() => this.arbitration.timeout(this.localTaskId(taskId)));
+  }
+  assignArbitrator(taskId: TaskRef | string) {
+    return withAzzleErrors(() => this.arbitration.assignArbitrator(this.localTaskId(taskId)));
+  }
+  async getDispute(taskId: TaskRef | string): Promise<DisputeRecord> {
+    const row = await this.arbitration.disputes(this.localTaskId(taskId));
+    const status = Number(row.status ?? row[7]);
+    const outcome = Number(row.outcome ?? row[8]);
+    const outcomeNames = Object.keys(ARBITRATION_OUTCOMES) as Array<keyof typeof ARBITRATION_OUTCOMES>;
+    return {
+      taskId: BigInt(row.taskId ?? row[0]),
+      opener: row.opener ?? row[1],
+      arbitrator: row.arbitrator ?? row[2],
+      posterEvidence: row.posterEvidence ?? row[3],
+      workerEvidence: row.workerEvidence ?? row[4],
+      evidenceDeadline: BigInt(row.evidenceDeadline ?? row[5]),
+      rulingDeadline: BigInt(row.rulingDeadline ?? row[6]),
+      status,
+      statusName: ARBITRATION_STATUS_NAMES[status] ?? `UNKNOWN(${status})`,
+      outcome,
+      outcomeName: outcomeNames[outcome] ?? `UNKNOWN(${outcome})`,
+      slashed: BigInt(row.slashed ?? row[9]),
+    };
+  }
 }

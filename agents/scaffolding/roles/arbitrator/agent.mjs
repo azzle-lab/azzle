@@ -1,11 +1,11 @@
 import { Contract, ethers } from "ethers";
-import { AzzleV2Client, checkWorkerPreflight, logPreflightReport } from "@azzle/agents";
+import { AzzleV2Client, AzzleArbitrator, checkWorkerPreflight, logPreflightReport, previewSettlement } from "@azzle/agents";
 import { loadManifest, requireTaskRef } from "./lib/manifest.mjs";
 import { loadDotEnv } from "./lib/env.mjs";
 
 loadDotEnv(import.meta.url);
 
-const manifest = loadManifest(import.meta.url, "base-8453.json");
+const manifest = loadManifest(import.meta.url);
 import { checkTierEligibility, tierForAmountUsdc6, workerBpsSplit } from "./lib/tiers.mjs";
 import { runResolutionWatchdog } from "./lib/watchdog.mjs";
 
@@ -53,6 +53,34 @@ async function runPreflight() {
     });
     console.log(`[arbitrator] ${gate.label}:`, eligible ? "eligible" : reasons.join("; "));
   }
+}
+
+async function inspectFlow(taskIdArg) {
+  const taskId = requireTaskRef(taskIdArg ?? process.env.TASK_ID);
+  const signer = requireSigner();
+  const client = connectClient(signer);
+  const agent = new AzzleArbitrator(client, await signer.getAddress(), "human-in-the-loop");
+  const bundle = await agent.loadCase(taskId);
+  const suggestion = await agent.suggest(bundle);
+  console.log(JSON.stringify({
+    bundle: {
+      ...bundle,
+      totalAmount: bundle.totalAmount.toString(),
+      funded: bundle.funded.toString(),
+      released: bundle.released.toString(),
+      deadline: bundle.deadline.toString(),
+      deliveredAt: bundle.deliveredAt.toString(),
+      dispute: bundle.dispute && {
+        ...bundle.dispute,
+        taskId: bundle.dispute.taskId.toString(),
+        evidenceDeadline: bundle.dispute.evidenceDeadline.toString(),
+        rulingDeadline: bundle.dispute.rulingDeadline.toString(),
+        slashed: bundle.dispute.slashed.toString(),
+      },
+    },
+    suggestion,
+    preview: previewSettlement(suggestion.intent, suggestion.workerBps),
+  }, null, 2));
 }
 
 async function assignArbitrator(taskIdArg) {
@@ -113,6 +141,10 @@ async function main() {
     await runPreflight();
     return;
   }
+  if (cmd === "inspect") {
+    await inspectFlow(a);
+    return;
+  }
   if (cmd === "assign") {
     await assignArbitrator(a);
     return;
@@ -134,6 +166,7 @@ async function main() {
   console.log("");
   console.log("Commands:");
   console.log("  npm run preflight              # deposit + tier eligibility");
+  console.log("  node agent.mjs inspect <v2:market:N> # scope, delivery, dispute evidence, settlement preview");
   console.log("  node agent.mjs assign <v2:market:N> # permissionless capacity fallback");
   console.log("  node agent.mjs rule <v2:market:N> [workerPercent] # set DISPUTE_OUTCOME=1..4");
   console.log("  npm run watchdog -- <v2:market:N>   # calls V2 timeout after deadlines");

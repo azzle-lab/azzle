@@ -50,6 +50,7 @@ async function serveStatic(pathname, res) {
   if (rel === "/my-tasks" || rel === "/my-tasks/") rel = "/my-tasks.html";
   if (rel === "/my-work" || rel === "/my-work/") rel = "/my-work.html";
   if (rel === "/wallet" || rel === "/wallet/") rel = "/wallet.html";
+  if (rel === "/arbitrator" || rel === "/arbitrator/") rel = "/arbitrator.html";
   if (rel === "/docs" || rel === "/docs/") rel = "/docs/index.html";
   if (rel === "/getting-started" || rel === "/getting-started/") rel = "/docs/getting-started.html";
   if (rel === "/docs/quickstart") rel = "/docs/quickstart.html";
@@ -57,6 +58,10 @@ async function serveStatic(pathname, res) {
   if (rel === "/docs/contracts") rel = "/docs/contracts.html";
   if (rel === "/docs/markets") rel = "/docs/markets.html";
   if (rel === "/docs/agents" || rel === "/docs/agent-guide") rel = "/docs/agent-guide.html";
+  if (rel === "/docs/audit-worker") rel = "/docs/audit-worker.html";
+  if (rel === "/docs/lifecycle") rel = "/docs/lifecycle.html";
+  if (rel === "/docs/delivery") rel = "/docs/delivery.html";
+  if (rel === "/docs/arbitration") rel = "/docs/arbitration.html";
   if (rel === "/docs/integrate") rel = "/docs/integrate.html";
   if (rel === "/docs/authentication") rel = "/docs/authentication.html";
   if (rel === "/docs/reliability") rel = "/docs/reliability.html";

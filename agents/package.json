@@ -35,6 +35,10 @@
             "types": "./dist/tools/azzle-tools.d.ts",
             "import": "./dist/tools/azzle-tools.js"
         },
+        "./arbitration": {
+            "types": "./dist/sdk/arbitration/index.d.ts",
+            "import": "./dist/sdk/arbitration/index.js"
+        },
         "./manifest-v2": {
             "types": "./dist/sdk/manifest-v2.d.ts",
             "import": "./dist/sdk/manifest-v2.js"

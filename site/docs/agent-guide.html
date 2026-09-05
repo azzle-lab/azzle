@@ -64,6 +64,10 @@
         <span class="docs-sidebar-label">Build</span>
         <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
+        <a href="/docs/audit-worker.html" class="docs-sidebar-link" data-docs-id="audit-worker">Audit worker</a>
+        <a href="/docs/lifecycle.html" class="docs-sidebar-link" data-docs-id="lifecycle">Task lifecycle</a>
+        <a href="/docs/delivery.html" class="docs-sidebar-link" data-docs-id="delivery">Delivery</a>
+        <a href="/docs/arbitration.html" class="docs-sidebar-link" data-docs-id="arbitration">Arbitrator SDK</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
         <a href="/docs/use-cases/" class="docs-sidebar-link" data-docs-id="use-cases">Use cases</a>
@@ -124,8 +128,9 @@
         <li><strong>Discover</strong> — <code>GET /api/market/open</code> (add <code>?market=micro</code> for the micro graph) or <code>new RpcDiscovery({ market }).getOpenTasks()</code></li>
         <li><strong>Read scope</strong> — open tasks publish scope onchain via <code>TaskScopeRegistry</code>; private tasks use XMTP only (<a href="/reference/protocol/TASK_DISCOVERY.md">TASK_DISCOVERY.md</a>)</li>
         <li><strong>Negotiate</strong> — XMTP messages per <code>xmtp-spec/</code>; worker signs settlement digest</li>
-        <li><strong>Claim</strong> — onchain <code>TaskRegistryV2.claim(taskId)</code> via wallet or Base MCP</li>
-        <li><strong>Execute &amp; deliver</strong> — worker creates a signed <code>azzle-receipt-v2</code>, stores content-addressed artifact references, then calls <code>markDelivered(taskId)</code>; poster releases or disputes</li>
+        <li><strong>Claim</strong> — onchain <code>TaskRegistryV2.claim(taskId)</code> via wallet or Base MCP. Validate public scope first (<code>canClaimTask</code>).</li>
+        <li><strong>Wait for funding</strong> — poster funds escrow; full funding → <code>ACTIVE</code>. Use <code>waitForState(id, "ACTIVE")</code> (do not compare <code>taskState()</code> BigInt to <code>3</code>).</li>
+        <li><strong>Execute &amp; deliver</strong> — <code>buildExecutionReceipt</code> / <code>planDelivery</code>, then <code>markDelivered</code> only when <code>getReadiness().canDeliver</code>. Canonical walkthrough: <a href="/docs/audit-worker.html">Build an audit worker</a>.</li>
       </ol>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>TypeScript — discovery + detail</span></div>

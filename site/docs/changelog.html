@@ -64,6 +64,10 @@
         <span class="docs-sidebar-label">Build</span>
         <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
         <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
+        <a href="/docs/audit-worker.html" class="docs-sidebar-link" data-docs-id="audit-worker">Audit worker</a>
+        <a href="/docs/lifecycle.html" class="docs-sidebar-link" data-docs-id="lifecycle">Task lifecycle</a>
+        <a href="/docs/delivery.html" class="docs-sidebar-link" data-docs-id="delivery">Delivery</a>
+        <a href="/docs/arbitration.html" class="docs-sidebar-link" data-docs-id="arbitration">Arbitrator SDK</a>
         <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
         <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
         <a href="/docs/use-cases/" class="docs-sidebar-link" data-docs-id="use-cases">Use cases</a>
@@ -90,7 +94,22 @@
     <p class="docs-lead">What changed in these docs and the HTTP surface. Contract releases live in the repo changelog.</p>
 
     <section class="docs-section">
-      <h2>2026-08-25 — x402 Union writes</h2>
+      <h2>2026-09-04 — Pilot SDK, audit worker, arbitrator dashboard</h2>
+      <h3>Added</h3>
+      <ul>
+        <li><a href="/docs/audit-worker.html">Build an audit worker</a> — Micro + standard path from the live audit pilot</li>
+        <li><a href="/docs/lifecycle.html">Task lifecycle</a>, <a href="/docs/delivery.html">delivery</a>, <a href="/docs/arbitration.html">Arbitrator SDK</a></li>
+        <li><a href="/arbitrator">Arbitrator dashboard</a> with live queue and sandbox cases</li>
+        <li><code>GET /api/market/disputes</code> — DISPUTED tasks with evidence windows</li>
+        <li>SDK: <code>waitForState</code>, <code>parseTaskState</code> / BigInt-safe compares, <code>canClaimTask</code>, <code>buildDeadline</code>, <code>fundDepositWithUsdcQuoted</code>, <code>taskReadiness</code>, <code>AzzleArbitrator</code></li>
+      </ul>
+      <h3>Changed</h3>
+      <ul>
+        <li>Gateway errors such as <code>AzlGateway: deadline</code> now translate to the 10-minute chain-clock window</li>
+        <li>HTTP task detail includes <code>canClaim</code>, <code>canFund</code>, <code>canDeliver</code></li>
+        <li>XMTP documented as optional for public one-shot jobs</li>
+      </ul>
+    </section>
       <h3>Added</h3>
       <ul>
         <li><code>azzle-stake</code>, <code>azzle-unstake</code>, <code>azzle-bank-credits</code>, and <code>azzle-claim-earnings</code> unsigned Union calldata (paying the API does not stake, unstake, bank, or claim)</li>

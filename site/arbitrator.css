@@ -1,0 +1,35 @@
+.arb-page{min-height:70vh}
+.arb-toolbar{display:flex;gap:12px;align-items:center}
+.arb-layout{display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:18px;margin-top:18px}
+@media (max-width:900px){.arb-layout{grid-template-columns:1fr}}
+.arb-queue,.arb-detail{
+  border:1px solid var(--b);
+  background:var(--card);
+  border-radius:18px;
+  min-height:420px;
+}
+.arb-queue-head,.arb-panel-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px;border-bottom:1px solid var(--border-faint, var(--b));
+}
+.arb-queue-list{display:flex;flex-direction:column}
+.arb-queue-item{
+  text-align:left;border:0;background:transparent;color:inherit;
+  padding:12px 16px;border-bottom:1px solid var(--border-faint, var(--b));cursor:pointer;
+}
+.arb-queue-item.on,.arb-queue-item:hover{background:var(--row-hover, rgba(20,28,0,.08))}
+.arb-queue-item small,.arb-muted{color:var(--muted);display:block;font-size:.82rem}
+.arb-urgent{color:var(--warn,#8b4300);font-weight:650}
+.arb-empty{padding:28px 20px;color:var(--muted)}
+.arb-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:16px}
+@media (max-width:800px){.arb-grid{grid-template-columns:1fr}}
+.arb-card{border:1px solid var(--border-faint, var(--b));border-radius:14px;padding:12px 14px;background:var(--surface, var(--card))}
+.arb-card h5{margin:0 0 8px;font-size:.92rem}
+.arb-card pre,.arb-card p{margin:0;white-space:pre-wrap;word-break:break-word;font-size:.85rem}
+.arb-actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 16px}
+.arb-preview{margin:0 16px 16px;padding:12px 14px;border-radius:12px;background:var(--s2, var(--surface));font-size:.9rem}
+.arb-reason{margin:0 16px 16px}
+.arb-reason textarea{width:100%;min-height:72px;border-radius:10px;padding:8px;background:var(--bg);color:inherit;border:1px solid var(--b)}
+.arb-metrics{display:flex;gap:16px;padding:0 16px 16px;font-size:.85rem;color:var(--muted)}
+.arb-check{list-style:none;padding:0;margin:0}
+.arb-check li{display:flex;gap:8px;align-items:flex-start;margin:6px 0}

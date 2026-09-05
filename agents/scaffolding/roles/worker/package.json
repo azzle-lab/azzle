@@ -8,7 +8,9 @@
     "start": "node agent.mjs",
     "preflight": "node agent.mjs preflight",
     "list-open": "node agent.mjs list-open",
-    "claim": "node agent.mjs claim"
+    "inspect": "node agent.mjs inspect",
+    "claim": "node agent.mjs claim",
+    "deliver": "node agent.mjs deliver"
   },
   "dependencies": {
     "@azzle/agents": "latest"

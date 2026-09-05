@@ -41,7 +41,7 @@
       <div class="rd-checkout-head rd-checkout-head--switch">
         <div>
           <h4>Post your task</h4>
-          <p>Sign in, deposit once, then list your job. Payment stays in escrow until you approve the work.</p>
+          <p>Sign in, deposit once, then list your job. Payment stays in escrow until you approve the work. Customers pay in USDC; AZL stays under the hood.</p>
         </div>
         <div data-azzle-market-switch data-switch-context="post"></div>
       </div>
@@ -59,6 +59,10 @@
       </div>
       <label class="rd-field">
         <span>What you need done</span>
+        <select id="rd-task-template" aria-label="Task template">
+          <option value="generic">Generic outcome</option>
+          <option value="solidity-audit">Solidity audit — paste address, GitHub URL, or source</option>
+        </select>
         <textarea id="rd-task-scope" rows="3" placeholder="Describe the outcome…"></textarea>
       </label>
       <fieldset class="rd-discovery">
@@ -106,6 +110,12 @@
           <span class="rd-post-action-note">Oracle-priced AZL access fee · <span data-market-copy="access">$5</span> per task</span>
         </button>
       </div>
+      <div class="rd-post-receipt" id="rd-post-receipt" hidden role="status">
+        <p class="rd-post-receipt-kicker">Posted on Base</p>
+        <p class="rd-post-receipt-title" id="rd-post-receipt-title">Task posted</p>
+        <p class="rd-post-receipt-body" id="rd-post-receipt-body"></p>
+        <a class="rd-action rd-action--primary" id="rd-post-receipt-link" href="/my-tasks">Open My tasks</a>
+      </div>
       <p class="rd-checkout-status" id="rd-checkout-status">Sign in to continue.</p>
       <p class="rd-checkout-fine">
         <span class="rd-checkout-fine-lead">Task budget is paid in USD and converted to AZL escrow.</span>
@@ -117,9 +127,10 @@
     </section>
   </div>
 </div>
-<script type="module" src="role-wallet.bundle.js"></script>
+<script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
+<script src="inbox-dock.js?v=20260826-inbox14"></script>
 <script src="markets.js"></script>
-<script src="post-checkout.js?v=20260824-scope"></script>
+<script src="post-checkout.js?v=20260826-receipt"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

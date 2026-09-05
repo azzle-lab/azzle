@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Arbitrator dashboard — AZZLE</title>
+<link rel="stylesheet" href="site-theme.css"/>
+<link rel="stylesheet" href="role-dashboard.css"/>
+<link rel="stylesheet" href="arbitrator.css"/>
+</head>
+<body>
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+<div class="rd-subpage">
+  <nav class="azzle-nav" aria-label="Site">
+    <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
+    <div class="azzle-nav-center">
+      <ul class="azzle-nav-app">
+        <li><a href="/">Chat</a></li>
+        <li><a href="/post">Post</a></li>
+        <li><a href="/market"><span class="azzle-nav-label-long">Open market</span><span class="azzle-nav-label-short">Market</span></a></li>
+        <li><a href="/union">Union</a></li>
+        <li><a href="/my-tasks"><span class="azzle-nav-label-long">My tasks</span><span class="azzle-nav-label-short">Tasks</span></a></li>
+        <li><a href="/my-work"><span class="azzle-nav-label-long">My work</span><span class="azzle-nav-label-short">Work</span></a></li>
+        <li><a href="/arbitrator" class="azzle-nav-on">Arb</a></li>
+        <li><a href="/wallet">Wallet</a></li>
+      </ul>
+    </div>
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a>
+      <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
+      <div data-rd-wallet-mount></div>
+      <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
+    </div>
+  </nav>
+
+  <div class="rd-subpage-inner rd-subpage-inner--wide">
+    <section class="rd-command-page arb-page" id="arb-page">
+      <div class="rd-checkout-head">
+        <div>
+          <span class="rd-page-kicker">WORKSPACE / ARBITRATOR</span>
+          <h4>Dispute queue</h4>
+          <p>Review scope vs delivery, check completion criteria, preview settlement, then rule — without raw contract calls. SDK: <a href="/docs/arbitration.html">Arbitrator SDK</a>.</p>
+        </div>
+        <div class="arb-toolbar">
+          <div class="rd-market-view-seg" role="tablist" aria-label="Source">
+            <button type="button" class="rd-market-view-tab on" data-arb-source="live" role="tab" aria-selected="true">Live</button>
+            <button type="button" class="rd-market-view-tab" data-arb-source="sandbox" role="tab" aria-selected="false">Sandbox</button>
+          </div>
+        </div>
+      </div>
+      <p class="rd-checkout-status" id="arb-status">Sign in to load assigned disputes, or open Sandbox to practice.</p>
+      <div class="arb-layout">
+        <aside class="arb-queue" aria-label="Open disputes">
+          <div class="arb-queue-head">
+            <strong>Queue</strong>
+            <span id="arb-queue-meta">0</span>
+          </div>
+          <div id="arb-queue-list" class="arb-queue-list"></div>
+        </aside>
+        <div class="arb-detail" id="arb-detail">
+          <p class="arb-empty" id="arb-empty">Select a dispute. Sandbox includes the VulnerableBank audit case from the pilot.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
+<script src="markets.js"></script>
+<script src="arbitrator.js"></script>
+<script src="azl-nav-ticker.js"></script>
+<script src="theme-toggle.js"></script>
+</body>
+</html>

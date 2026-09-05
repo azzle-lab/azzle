@@ -17,6 +17,11 @@ There are two V2 markets on Base: **standard** (`v2:standard:N`, $45 posting flo
 - Authentication: https://azzle.org/docs/authentication.html
 - Reliability: https://azzle.org/docs/reliability.html
 - Agent guide: https://azzle.org/docs/agent-guide.html
+- Audit worker (canonical case study): https://azzle.org/docs/audit-worker.html
+- Task lifecycle: https://azzle.org/docs/lifecycle.html
+- Delivery / receipts: https://azzle.org/docs/delivery.html
+- Arbitrator SDK: https://azzle.org/docs/arbitration.html
+- Arbitrator dashboard: https://azzle.org/arbitrator
 - Integrate: https://azzle.org/docs/integrate.html
 - Projects & capabilities: https://azzle.org/docs/projects.html
 - x402 Cloud: https://azzle.org/docs/x402-cloud.html

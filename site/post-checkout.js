@@ -10,6 +10,7 @@
   let postingPlans = [];
   let currentQuota = null;
   let azlPreviews = {};
+  let livePostReceipt = null;
 
   const $ = (id) => document.getElementById(id);
 
@@ -227,11 +228,27 @@
     return open ? open.value === "open" : true;
   }
 
+  function selectedTemplate() {
+    return ($("rd-task-template")?.value || "generic").trim();
+  }
+
+  function buildPostedScope(text) {
+    const trimmed = String(text || "").trim();
+    if (selectedTemplate() !== "solidity-audit") return trimmed;
+    const body = { taskType: "solidity-audit", title: "Smart contract security audit" };
+    if (/^0x[a-fA-F0-9]{40}$/.test(trimmed)) body.address = trimmed;
+    else if (/github\.com/i.test(trimmed)) body.githubUrl = trimmed;
+    else if (/^https?:\/\//i.test(trimmed)) body.sourceUrl = trimmed;
+    else body.source = trimmed;
+    return JSON.stringify(body);
+  }
+
   function readDraftFromForm() {
     const text = ($("rd-task-scope")?.value ?? "").trim();
     return {
       scope: text,
       taskPrompt: text,
+      template: selectedTemplate(),
       budget: ($("rd-task-budget")?.value ?? "").trim(),
       days: parseInt($("rd-task-days")?.value ?? "7", 10),
       discoveryOpen: readDiscoveryOpen(),
@@ -250,8 +267,54 @@
     syncAllDiscoverySegs();
   }
 
-  function setCheckoutStatus(text, kind) {
-    setPanelStatus("rd-checkout-status", text, kind);
+  function postedTaskLabel(taskId) {
+    const value = String(taskId ?? "").trim();
+    const namespaced = value.match(/^v2:(standard|micro):([1-9]\d*)$/i);
+    if (namespaced) {
+      return (namespaced[1].toLowerCase() === "micro" ? "Micro" : "Standard") + " · Task #" + namespaced[2];
+    }
+    return "Task " + value;
+  }
+
+  function showPostReceipt(taskId, extra) {
+    livePostReceipt = { taskId, extra: extra || "" };
+    const card = $("rd-post-receipt");
+    const title = $("rd-post-receipt-title");
+    const body = $("rd-post-receipt-body");
+    const link = $("rd-post-receipt-link");
+    if (title) title.textContent = postedTaskLabel(taskId) + " is live";
+    if (body) {
+      body.textContent =
+        (extra ? extra + " " : "") +
+        "It's on the open market. Track funding and delivery on My tasks.";
+    }
+    if (link) {
+      link.href = "/my-tasks";
+      link.hidden = false;
+    }
+    if (card) card.hidden = false;
+    setCheckoutStatus(
+      postedTaskLabel(taskId) + " posted on Base.",
+      "ok",
+      { href: "/my-tasks", linkLabel: "Open My tasks" }
+    );
+    if ($("rd-checkout")) setStepState("post", "done");
+  }
+
+  function setCheckoutStatus(text, kind, extra) {
+    const el = $("rd-checkout-status");
+    if (!el) return;
+    el.replaceChildren();
+    el.append(String(text ?? ""));
+    if (extra?.href) {
+      el.append(" ");
+      const a = document.createElement("a");
+      a.href = extra.href;
+      a.textContent = extra.linkLabel || "Open My tasks";
+      el.append(a);
+    }
+    el.classList.remove("busy", "ok", "err");
+    if (kind) el.classList.add(kind);
   }
 
   function setCheckoutStatusWithPricingLink(text, kind) {
@@ -633,7 +696,6 @@
         return;
       }
 
-      const lastTaskId = localStorage.getItem(TASK_ID_KEY) ?? "";
       const quotaLine = currentQuota ? formatQuotaLine(currentQuota) : "";
       const quotaBlocked = currentQuota && !currentQuota.canPost;
 
@@ -706,12 +768,9 @@
         if (postBtn) postBtn.disabled = true;
       }
 
-      if (lastTaskId) {
-        setCheckoutStatus(
-          "Task #" + lastTaskId + " posted. An agent will claim it — escrow locks when they do.",
-          "ok"
-        );
-        setStepState("post", "done");
+      if (livePostReceipt) {
+        showPostReceipt(livePostReceipt.taskId, livePostReceipt.extra);
+        if (postBtn) postBtn.disabled = checkoutBusy || quotaBlocked || !status.canPost;
       }
     } catch (e) {
       setCheckoutStatus((e && e.message) || "Could not read wallet status", "err");
@@ -743,7 +802,7 @@
       );
     }
     if (!Number.isFinite(deadlineDays) || deadlineDays <= 0) throw new Error("Invalid deadline.");
-    const description = (draft.taskPrompt || draft.scope || "").trim();
+    const description = buildPostedScope((draft.taskPrompt || draft.scope || "").trim());
     const discoveryOpen = draft.discoveryOpen !== false;
     if (discoveryOpen && !description) throw new Error("Write a public scope before posting.");
     return { description, taskAmountUsd: budgetUsd, deadlineDays, discoveryOpen };
@@ -835,21 +894,29 @@
       }
       const result = await api.postV2(task, (msg) => onProgress?.(msg, "busy"));
       const taskId = window.AZZLE_MARKETS.namespacedTaskId(selectedMarket(), result.taskId);
-      await recordPostSuccess(walletAddress, taskId, result.hash, task);
+      try {
+        await recordPostSuccess(walletAddress, taskId, result.hash, task);
+      } catch {
+        /* Onchain post already succeeded; quota recording is best-effort. */
+      }
       localStorage.setItem(TASK_ID_KEY, taskId);
       const scopeNote =
         task.discoveryOpen !== false && result.scopePublished
-          ? " Scope published onchain."
+          ? "Scope published onchain."
           : task.discoveryOpen === false
-            ? " Private listing — share scope via XMTP."
+            ? "Private listing — share scope via XMTP."
             : "";
+      showPostReceipt(taskId, scopeNote);
       onProgress?.(
-        "Posted · task #" + result.taskId + scopeNote + " Track it at /my-tasks.",
+        postedTaskLabel(taskId) + " posted on Base. Track it on My tasks.",
         "ok"
       );
-      if ($("rd-checkout")) setStepState("post", "done");
-      await refreshCheckout();
-      return result;
+      try {
+        await refreshCheckout();
+      } catch {
+        showPostReceipt(taskId, scopeNote);
+      }
+      return { ...result, taskId, ok: true };
     } catch (e) {
       onProgress?.((e && e.message) || "Post failed", "err");
       await refreshCheckout();
@@ -986,6 +1053,21 @@
 
     $("rd-task-budget")?.addEventListener("input", onBudgetTyped);
     $("rd-task-budget")?.addEventListener("blur", onBudgetCommit);
+    $("rd-task-template")?.addEventListener("change", () => {
+      const audit = selectedTemplate() === "solidity-audit";
+      const scope = $("rd-task-scope");
+      if (scope) {
+        scope.placeholder = audit
+          ? "0x address, GitHub URL, BaseScan/Sourcify link, or Solidity source"
+          : "Describe the outcome…";
+      }
+      const budget = $("rd-task-budget");
+      if (audit && budget && (!budget.value || Number(budget.value) === 100)) {
+        window.AZZLE_MARKETS?.setSelectedMarket?.("micro");
+        budget.value = "30";
+      }
+      saveDraft(readDraftFromForm());
+    });
     ["rd-task-scope", "rd-task-budget", "rd-task-days"].forEach((id) => {
       $(id)?.addEventListener("change", () => {
         if (id === "rd-task-budget") onBudgetCommit();

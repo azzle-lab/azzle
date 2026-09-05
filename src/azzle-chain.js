@@ -593,6 +593,51 @@ const REGISTRY_ABI = [
   },
 ];
 
+const ARBITRATION_WRITE_ABI = [
+  {
+    type: "function",
+    name: "submitEvidence",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "taskId", type: "uint256" },
+      { name: "evidenceHash", type: "bytes32" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "beginRuling",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "rule",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "taskId", type: "uint256" },
+      { name: "outcome", type: "uint8" },
+      { name: "workerBps", type: "uint16" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "timeout",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "assignArbitrator",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "taskId", type: "uint256" }],
+    outputs: [{ name: "arbitrator", type: "address" }],
+  },
+];
+
 const ESCROW_ABI = [
   {
     type: "function",
@@ -1184,6 +1229,21 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       throw new Error("Sign in first");
     },
     async sendDeliveryNotice() {
+      throw new Error("Sign in first");
+    },
+    async submitArbitrationEvidence() {
+      throw new Error("Sign in first");
+    },
+    async beginRuling() {
+      throw new Error("Sign in first");
+    },
+    async ruleDispute() {
+      throw new Error("Sign in first");
+    },
+    async timeoutDispute() {
+      throw new Error("Sign in first");
+    },
+    async assignArbitrator() {
       throw new Error("Sign in first");
     },
     buildDeliveryReceipt() {
@@ -2283,6 +2343,91 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           abi: STAKING_ABI,
           functionName,
           args,
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async submitArbitrationEvidence(taskId, evidenceHash, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Submitting evidence…");
+      const receipt = await runTx("submitEvidence", async () => {
+        const hash = await walletClient.writeContract({
+          address: cfg.contracts.arbitrationModule,
+          abi: ARBITRATION_WRITE_ABI,
+          functionName: "submitEvidence",
+          args: [parseRegistryTaskId(taskId), evidenceHash],
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async beginRuling(taskId, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Opening ruling window…");
+      const receipt = await runTx("beginRuling", async () => {
+        const hash = await walletClient.writeContract({
+          address: cfg.contracts.arbitrationModule,
+          abi: ARBITRATION_WRITE_ABI,
+          functionName: "beginRuling",
+          args: [parseRegistryTaskId(taskId)],
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async ruleDispute(taskId, outcome, workerBps, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Submitting arbitration decision…");
+      const receipt = await runTx("rule", async () => {
+        const hash = await walletClient.writeContract({
+          address: cfg.contracts.arbitrationModule,
+          abi: ARBITRATION_WRITE_ABI,
+          functionName: "rule",
+          args: [parseRegistryTaskId(taskId), Number(outcome), Number(workerBps)],
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async timeoutDispute(taskId, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Timing out unresolved dispute…");
+      const receipt = await runTx("timeout", async () => {
+        const hash = await walletClient.writeContract({
+          address: cfg.contracts.arbitrationModule,
+          abi: ARBITRATION_WRITE_ABI,
+          functionName: "timeout",
+          args: [parseRegistryTaskId(taskId)],
+        });
+        return publicClient.waitForTransactionReceipt({ hash });
+      }, onProgress);
+      return { hash: receipt.transactionHash };
+    },
+
+    async assignArbitrator(taskId, onProgress) {
+      const cfg = await loadConfigForTask(taskId);
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Assigning a bonded panel member…");
+      const receipt = await runTx("assignArbitrator", async () => {
+        const hash = await walletClient.writeContract({
+          address: cfg.contracts.arbitrationModule,
+          abi: ARBITRATION_WRITE_ABI,
+          functionName: "assignArbitrator",
+          args: [parseRegistryTaskId(taskId)],
         });
         return publicClient.waitForTransactionReceipt({ hash });
       }, onProgress);
