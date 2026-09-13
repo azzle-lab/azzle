@@ -1,0 +1,21 @@
+{
+  "name": "azzle-arbitrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AZZLE V2 arbitrator agent — panel assignment, rulings, and tier checks",
+  "scripts": {
+    "start": "node agent.mjs",
+    "preflight": "node agent.mjs preflight",
+    "autonomous": "node agent.mjs autonomous",
+    "assign": "node agent.mjs assign",
+    "rule": "node agent.mjs rule",
+    "watchdog": "node agent.mjs watchdog"
+  },
+  "dependencies": {
+    "@azzle/agents": "^0.5.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
