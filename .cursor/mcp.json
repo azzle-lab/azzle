@@ -10,6 +10,14 @@
     },
     "base-mcp": {
       "url": "https://mcp.base.org"
+    },
+    "typesafe": {
+      "command": "node",
+      "args": ["${workspaceFolder}/agents/mcp/typesafe-server.mjs"],
+      "cwd": "${workspaceFolder}/agents",
+      "env": {
+        "TYPESAFE_API_KEY": "${TYPESAFE_API_KEY}"
+      }
     }
   }
 }
