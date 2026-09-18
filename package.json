@@ -33,7 +33,7 @@
     "@zerodev/ecdsa-validator": "^5.4.9",
     "@zerodev/sdk": "^5.5.10",
     "buffer": "^6.0.3",
-    "ox": "^0.8.9",
+    "ox": "^1.7.4",
     "permissionless": "^0.2.57",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
