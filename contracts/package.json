@@ -52,7 +52,7 @@
     "demo:lifecycle": "hardhat run scripts/lifecycle-local.ts"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
     "dotenv": "^17.4.2",
     "hardhat": "^2.22.0",
     "ts-node": "^10.9.0",
