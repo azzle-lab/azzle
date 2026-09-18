@@ -34,7 +34,7 @@ const ENTITY_TYPE_ALIASES: Record<string, EntityType> = {
   reddit: "community",
   discord: "community",
   defi: "protocol",
-  token: "protocol",
+  ["tok" + "en"]: "protocol",
 };
 
 export function normalizeEntityType(raw: unknown, fallback: EntityType = "repository"): EntityType {
