@@ -56,7 +56,7 @@
     "dotenv": "^17.4.2",
     "hardhat": "^2.22.0",
     "ts-node": "^10.9.0",
-    "typescript": "^5.4.0"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.0",
