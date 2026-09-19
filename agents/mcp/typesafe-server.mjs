@@ -51,7 +51,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (request.params.name !== "typesafe_system_one") {
     throw new Error(`Unknown tool: ${request.params.name}`);
   }
-
   const apiKey = process.env.TYPESAFE_API_KEY;
   if (!apiKey) {
     throw new Error("TYPESAFE_API_KEY is required for the TypeSafe MCP bridge.");
@@ -79,16 +78,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     throw new Error(`TypeSafe API ${response.status}: ${text}`);
   }
 
-  let structuredContent;
-  try {
-    structuredContent = JSON.parse(text);
-  } catch {
-    throw new Error("TypeSafe API returned invalid JSON.");
-  }
-
   return {
     content: [{ type: "text", text }],
-    structuredContent,
+    structuredContent: JSON.parse(text),
   };
 });
 

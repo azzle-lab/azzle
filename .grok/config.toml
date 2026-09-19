@@ -15,3 +15,8 @@ env = { AZZLE_MCP_ALLOWLIST = "read" }
 
 [mcp_servers.base-mcp]
 url = "https://mcp.base.org"
+
+[mcp_servers.typesafe]
+command = "node"
+args = ["agents/mcp/typesafe-server.mjs"]
+startup_timeout_sec = 60
