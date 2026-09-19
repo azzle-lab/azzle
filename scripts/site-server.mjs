@@ -103,6 +103,12 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (path === "/x402" || path === "/x402/" || path === "/.well-known/x402-manifest.json") {
+      const { default: handleX402Index } = await import("../api/x402-index.js");
+      await handleX402Index(req, res);
+      return;
+    }
+
     if (path.startsWith("/api/") || path === "/snap" || path === "/snap/") {
       let body = {};
       if (req.method === "POST") {
