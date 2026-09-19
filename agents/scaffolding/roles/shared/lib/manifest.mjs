@@ -2,15 +2,19 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Load base-8453.json relative to a module URL (Node 18+ compatible). */
-export function loadManifest(moduleUrl, ...pathSegments) {
-  const base = dirname(fileURLToPath(moduleUrl));
-  const file = join(base, ...pathSegments);
-  const manifest = JSON.parse(readFileSync(file, "utf8"));
+function manifestFileForMarket(market) {
+  return market === "micro" ? "base-8453-micro.json" : "base-8453.json";
+}
+
+/** Load the Base manifest for the selected AZZLE_MARKET. */
+export function loadManifest(moduleUrl, manifestFile) {
   const market = String(process.env.AZZLE_MARKET ?? "").trim().toLowerCase();
   if (market !== "standard" && market !== "micro") {
-    throw new Error("Set AZZLE_MARKET=standard or micro");
+    throw new Error("Set AZZLE_MARKET=standard or micro in .env");
   }
+  const base = dirname(fileURLToPath(moduleUrl));
+  const file = join(base, manifestFile ?? manifestFileForMarket(market));
+  const manifest = JSON.parse(readFileSync(file, "utf8"));
   if (manifest.market !== market) {
     throw new Error(`Manifest market '${manifest.market ?? "missing"}' does not match AZZLE_MARKET '${market}'`);
   }
