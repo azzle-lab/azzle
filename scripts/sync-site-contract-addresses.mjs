@@ -103,7 +103,7 @@ const contractCards = [
   ["AzlPaymentGateway", manifest.paymentGateway],
   ["AzzleSuiteV2Factory", manifest.factory],
 ].map(([label, address]) => (
-  `    <a class="ct" href="https://basescan.org/address/${address}" title="${label} — ${address}" target="_blank" rel="noopener noreferrer"><div class="cdot"></div><div class="cname">${label}</div><div class="caddr">${address}</div></a>`
+  `    <a class="ct" href="https://basescan.org/address/${address}" title="${label}  /  ${address}" target="_blank" rel="noopener noreferrer"><div class="cdot"></div><div class="cname">${label}</div><div class="caddr">${address}</div></a>`
 )).join("\n");
 
 // Addresses from the superseded V2 browser/API surface. This is intentionally
