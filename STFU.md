@@ -1,7 +1,12 @@
+---
+name: stfu
+description: "Applies the AZZLE STFU communication discipline: minimum unnecessary intervention, direct answers, bounded uncertainty, no performative helpfulness, and no unnecessary conversational padding."
+---
+
 # STFU.md
 
 > **Agent module for minimum unnecessary intervention**  
-> A Skill by azzle.org: communication discipline for direct, useful, outcome-oriented responses.
+> A communication discipline for direct, useful, outcome-oriented responses.
 
 | | |
 |---|---|
