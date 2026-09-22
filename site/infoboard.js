@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   const COUNTDOWN_END = 1786676400;

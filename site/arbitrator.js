@@ -1,11 +1,11 @@
-(function () {
+﻿(function () {
   "use strict";
 
   const $ = (id) => document.getElementById(id);
   const INTENTS = {
     ACCEPT_WORK: { outcome: 2, workerBps: 10000, onchain: true, note: "Escrow releases to the worker (100%)." },
     REJECT_WORK: { outcome: 1, workerBps: 0, onchain: true, note: "Remaining escrow refunds the poster (0% worker)." },
-    SPLIT: { outcome: 3, workerBps: 5000, onchain: true, note: "50/50 split (protocol allows 10–90%)." },
+    SPLIT: { outcome: 3, workerBps: 5000, onchain: true, note: "50/50 split (protocol allows 10 / 90%)." },
     REQUEST_REVISION: { onchain: false, note: "Offchain. Ask the worker to revise; do not call rule() yet." },
     ESCALATE_HUMAN: { onchain: false, note: "Keep the dispute open and hand it to a human. Do not call rule()." },
   };
@@ -13,7 +13,7 @@
   const SANDBOX = [
     {
       id: "sandbox:audit-complete",
-      title: "VulnerableBank audit — complete",
+      title: "VulnerableBank audit  /  complete",
       market: "micro",
       state: "DISPUTED",
       poster: "0x1111111111111111111111111111111111111111",
@@ -131,8 +131,8 @@
       '<span class="arb-muted">' + task.id + " · " + (task.dispute?.statusName || task.state) + "</span></div></div>" +
       '<div class="arb-grid">' +
       '<article class="arb-card"><h5>Requested</h5><pre>' + escapeHtml(scope || "(empty public scope)") + "</pre></article>" +
-      '<article class="arb-card"><h5>Delivered</h5><p>receiptHash: ' + escapeHtml(task.receiptHash || "—") +
-      "</p><p>artifact: " + (task.artifactUrl ? '<a href="' + task.artifactUrl + '" target="_blank" rel="noopener">' + escapeHtml(task.artifactUrl) + "</a>" : "—") +
+      '<article class="arb-card"><h5>Delivered</h5><p>receiptHash: ' + escapeHtml(task.receiptHash || " / ") +
+      "</p><p>artifact: " + (task.artifactUrl ? '<a href="' + task.artifactUrl + '" target="_blank" rel="noopener">' + escapeHtml(task.artifactUrl) + "</a>" : " / ") +
       "</p><p class=\"arb-muted\">XMTP is optional. Public tasks may have no chat history.</p></article>" +
       '<article class="arb-card"><h5>Parties</h5><p>Poster ' + escapeHtml(short(task.poster)) + "</p><p>Worker " + escapeHtml(short(task.worker)) +
       "</p><p>Arbitrator " + escapeHtml(short(task.dispute?.arbitrator)) + "</p></article>" +
@@ -141,12 +141,12 @@
         ? '<ul class="arb-check">' + checks.map((item) => "<li><input type=\"checkbox\" data-crit=\"" + escapeHtml(item.id || item.description) + "\"/> " + escapeHtml(item.description || item.id) + "</li>").join("") + "</ul>"
         : "<p class=\"arb-muted\">None declared. Judge the public scope vs the artifact.</p>") +
       "</article></div>" +
-      '<p class="arb-preview" id="arb-preview"><strong>AI assist / sandbox hint:</strong> ' + rec.replaceAll("_", " ") + " — " + recPrev.note + "</p>" +
+      '<p class="arb-preview" id="arb-preview"><strong>AI assist / sandbox hint:</strong> ' + rec.replaceAll("_", " ") + "  /  " + recPrev.note + "</p>" +
       '<div class="arb-reason"><label>Decision reasoning<textarea id="arb-reason" placeholder="Structured reason + evidence refs"></textarea></label></div>' +
       '<div class="arb-actions">' +
       Object.keys(INTENTS).map((intent) => '<button type="button" class="rd-action' + (INTENTS[intent].onchain ? " rd-action--primary" : "") + '" data-intent="' + intent + '">' + intent.replaceAll("_", " ") + "</button>").join("") +
       "</div>" +
-      '<div class="arb-metrics"><span>Session decisions: ' + metrics.cases + "</span><span>Sandbox expected: " + (task.expectedIntent || "—") + "</span></div>";
+      '<div class="arb-metrics"><span>Session decisions: ' + metrics.cases + "</span><span>Sandbox expected: " + (task.expectedIntent || " / ") + "</span></div>";
 
     root.querySelectorAll("[data-intent]").forEach((btn) => {
       btn.addEventListener("click", () => decide(btn.dataset.intent, task));
@@ -189,14 +189,14 @@
   }
 
   function escapeHtml(value) {
-    return String(value ?? "—")
+    return String(value ?? " / ")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;");
   }
   function short(addr) {
-    if (!addr || !/^0x/i.test(addr)) return "—";
+    if (!addr || !/^0x/i.test(addr)) return " / ";
     return addr.slice(0, 6) + "…" + addr.slice(-4);
   }
 
@@ -219,7 +219,7 @@
   function loadSandbox() {
     tasks = SANDBOX;
     selectedId = tasks[0].id;
-    status("Sandbox cases — no escrow. Grade yourself against the expected intent.", "ok");
+    status("Sandbox cases  /  no escrow. Grade yourself against the expected intent.", "ok");
     renderQueue();
     renderDetail();
   }

@@ -1,4 +1,4 @@
-/** Homepage section quicknav — dot rail + scroll spy */
+﻿/** Homepage section quicknav  /  dot rail + scroll spy */
 (function () {
   const nav = document.querySelector(".home-quicknav");
   if (!nav) return;

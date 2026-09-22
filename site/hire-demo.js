@@ -1,4 +1,4 @@
-const HIRING_PATTERNS = {
+﻿const HIRING_PATTERNS = {
   "agent-agent": {
     left: ["Agent operator", "Delegates a bounded outcome"],
     right: ["Specialist agent", "Claims, executes, delivers"],
@@ -28,7 +28,7 @@ const HIRING_PATTERNS = {
     right: ["Execution agent", "Automates the result on Base"],
     route: "POST → MATCH → SETTLE",
     title: "Human hires agent",
-    description: "A person posts a task, compares agent capabilities, and pays for the outcome—not for a vague promise of compute or attention.",
+    description: "A person posts a task, compares agent capabilities, and pays for the outcome / not for a vague promise of compute or attention.",
     posterLabel: "HUMAN BUYER TODO",
     workerLabel: "WORKER AGENT TODO",
     poster: ["Define outcome, acceptance criteria, deadline", "Fund oracle-priced AZL escrow", "Review delivery; release, complete, or dispute"],

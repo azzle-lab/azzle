@@ -1,11 +1,11 @@
-(function () {
+﻿(function () {
   const $ = (id) => document.getElementById(id);
   const fmt = (n, unit = "") => Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 6 }) + unit;
   const fmtWei = (n, unit = "") => {
     try {
       return fmt(Number(BigInt(n ?? 0) / 10n ** 18n), unit);
     } catch {
-      return "—";
+      return " / ";
     }
   };
   const num = (value) => {
@@ -81,7 +81,7 @@
       $("union-lead").textContent = standardActive && microActive
         ? "Stake AZL across Standard and Micro. Credits, rewards, and rankings stay isolated per vault."
         : standardActive
-        ? "Standard staking is live. Micro is deployed but not owner-activated yet — the split slider stays at Standard until then."
+        ? "Standard staking is live. Micro is deployed but not owner-activated yet  /  the split slider stays at Standard until then."
         : "Union is deployed on Base. Action Credit mining begins only once staking is activated.";
       $("union-panel").hidden = false;
       const signedIn = Boolean(positionStandard?.signedIn || positionMicro?.signedIn);
@@ -94,25 +94,25 @@
       const stakedStandard = positionStandard ? num(positionStandard.stakedAzl) : 0;
       const stakedMicro = positionMicro ? num(positionMicro.stakedAzl) : 0;
       lastStakedAzl = stakedStandard + stakedMicro;
-      $("union-staked").textContent = wallet ? fmt(stakedStandard + stakedMicro, " AZL") : "—";
-      $("union-staked-standard").textContent = positionStandard ? fmt(positionStandard.stakedAzl) : "—";
-      $("union-staked-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.stakedAzl) : "—") : "n/a";
+      $("union-staked").textContent = wallet ? fmt(stakedStandard + stakedMicro, " AZL") : " / ";
+      $("union-staked-standard").textContent = positionStandard ? fmt(positionStandard.stakedAzl) : " / ";
+      $("union-staked-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.stakedAzl) : " / ") : "n/a";
       const creditsStandard = positionStandard ? num(positionStandard.credits) : 0;
       const creditsMicro = positionMicro ? num(positionMicro.credits) : 0;
-      $("union-credits").textContent = wallet ? fmt(creditsStandard + creditsMicro) : "—";
-      $("union-credits-standard").textContent = positionStandard ? fmt(positionStandard.credits) : "—";
-      $("union-credits-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.credits) : "—") : "n/a";
+      $("union-credits").textContent = wallet ? fmt(creditsStandard + creditsMicro) : " / ";
+      $("union-credits-standard").textContent = positionStandard ? fmt(positionStandard.credits) : " / ";
+      $("union-credits-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.credits) : " / ") : "n/a";
       const rewardsStandard = positionStandard ? num(positionStandard.claimableAzl) : 0;
       const rewardsMicro = positionMicro ? num(positionMicro.claimableAzl) : 0;
-      $("union-rewards").textContent = wallet ? fmt(rewardsStandard + rewardsMicro, " AZL") : "—";
-      $("union-rewards-standard").textContent = positionStandard ? fmt(positionStandard.claimableAzl) : "—";
-      $("union-rewards-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.claimableAzl) : "—") : "n/a";
-      $("union-pending-standard").textContent = positionStandard ? fmt(positionStandard.stakedAzl, " AZL") : "—";
-      $("union-pending-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.stakedAzl, " AZL") : "—") : "Not live";
-      $("union-remaining-standard").textContent = overviewStandard ? fmtWei(overviewStandard.creditsRemaining) : "—";
-      $("union-remaining-micro").textContent = microLive && overviewMicro ? fmtWei(overviewMicro.creditsRemaining) : "—";
-      $("union-total-standard").textContent = overviewStandard ? fmtWei(overviewStandard.totalStakedAzl, " AZL") : "—";
-      $("union-total-micro").textContent = microLive && overviewMicro ? fmtWei(overviewMicro.totalStakedAzl, " AZL") : "—";
+      $("union-rewards").textContent = wallet ? fmt(rewardsStandard + rewardsMicro, " AZL") : " / ";
+      $("union-rewards-standard").textContent = positionStandard ? fmt(positionStandard.claimableAzl) : " / ";
+      $("union-rewards-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.claimableAzl) : " / ") : "n/a";
+      $("union-pending-standard").textContent = positionStandard ? fmt(positionStandard.stakedAzl, " AZL") : " / ";
+      $("union-pending-micro").textContent = microLive ? (positionMicro ? fmt(positionMicro.stakedAzl, " AZL") : " / ") : "Not live";
+      $("union-remaining-standard").textContent = overviewStandard ? fmtWei(overviewStandard.creditsRemaining) : " / ";
+      $("union-remaining-micro").textContent = microLive && overviewMicro ? fmtWei(overviewMicro.creditsRemaining) : " / ";
+      $("union-total-standard").textContent = overviewStandard ? fmtWei(overviewStandard.totalStakedAzl, " AZL") : " / ";
+      $("union-total-micro").textContent = microLive && overviewMicro ? fmtWei(overviewMicro.totalStakedAzl, " AZL") : " / ";
       renderSplit();
       status(
         standardActive && microActive
@@ -141,7 +141,7 @@
       status(
         lastWalletAzl <= 0
           ? (lastStakedAzl > 0
-            ? "This wallet has 0 AZL left to stake. The " + fmt(lastStakedAzl, " AZL") + " already in Union cannot be staked again — add AZL to the wallet first."
+            ? "This wallet has 0 AZL left to stake. The " + fmt(lastStakedAzl, " AZL") + " already in Union cannot be staked again  /  add AZL to the wallet first."
             : "This wallet has 0 AZL available to stake. Union staking pulls from Wallet AZL, not from protocol collateral.")
           : "This stake needs " + fmt(parts.total, " AZL") + " but the wallet only has " + fmt(lastWalletAzl, " AZL") + ".",
         "err"
@@ -168,15 +168,15 @@
     try {
       const wei = BigInt(value);
       const whole = Number(wei / 10n ** 18n);
-      if (!Number.isFinite(whole)) return "—";
+      if (!Number.isFinite(whole)) return " / ";
       if (whole >= 1e9) return (whole / 1e9).toLocaleString(undefined, { maximumFractionDigits: 2 }) + "B AZL";
       if (whole >= 1e6) return (whole / 1e6).toLocaleString(undefined, { maximumFractionDigits: 2 }) + "M AZL";
       if (whole >= 10000) return (whole / 1e3).toLocaleString(undefined, { maximumFractionDigits: 1 }) + "k AZL";
       return whole.toLocaleString(undefined, { maximumFractionDigits: 0 }) + " AZL";
-    } catch { return "—"; }
+    } catch { return " / "; }
   };
   const formatCredits = (value) => {
-    try { return (Number(BigInt(value)) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 }); } catch { return "—"; }
+    try { return (Number(BigInt(value)) / 1e18).toLocaleString(undefined, { maximumFractionDigits: 2 }); } catch { return " / "; }
   };
   const boards = { standard: [], micro: [] };
   const boardMeta = { standard: { live: true }, micro: { live: true } };

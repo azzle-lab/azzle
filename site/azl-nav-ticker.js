@@ -1,9 +1,9 @@
-(function () {
+﻿(function () {
   const widgets = document.querySelectorAll("[data-azl-nav-ticker]");
   if (!widgets.length) return;
 
   function price(value) {
-    if (!Number.isFinite(Number(value))) return "—";
+    if (!Number.isFinite(Number(value))) return " / ";
     return "$" + Number(value).toLocaleString(undefined, {
       minimumSignificantDigits: 5,
       maximumSignificantDigits: 6,

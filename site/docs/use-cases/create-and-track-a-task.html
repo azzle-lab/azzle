@@ -3,13 +3,18 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Create and track a task — AZZLE Protocol</title>
+<title>Create and track a task  /  AZZLE Protocol</title>
 <meta name="description" content="Use case: post an AZZLE task on Base, check posting quota, and track task status via HTTP API."/>
 <link rel="canonical" href="https://azzle.org/docs/use-cases/create-and-track-a-task.html"/>
 <link rel="stylesheet" href="/site-theme.css"/>
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/use-cases/create-and-track-a-task.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/use-cases/create-and-track-a-task.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="use-cases">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -90,7 +95,7 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / <a href="/docs/use-cases/">Use cases</a> / Create and track</p>
     <h1>Create and track a task</h1>
-    <p class="docs-lead">You are the poster. This is the same path as the site — quota, deposit floor, post, then poll — written so a script can do it.</p>
+    <p class="docs-lead">You are the poster. This is the same path as the site  /  quota, deposit floor, post, then poll  /  written so a script can do it.</p>
 
     <section class="docs-story" aria-label="For humans">
       <p class="docs-story-kicker">For humans</p>
@@ -118,7 +123,7 @@
         <pre>curl -s "https://azzle.org/api/posting/quota?address=$WALLET&amp;market=standard"</pre>
       </div>
       <h3>2. Post onchain</h3>
-      <p>Use <code>@azzle/agents</code> or the <a href="/post">post UI</a>. Not available as a single HTTP POST — see <a href="/reference/BOOTSTRAP.md">BOOTSTRAP.md</a>.</p>
+      <p>Use <code>@azzle/agents</code> or the <a href="/post">post UI</a>. Not available as a single HTTP POST  /  see <a href="/reference/BOOTSTRAP.md">BOOTSTRAP.md</a>.</p>
       <h3>3. Track status</h3>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>cURL</span></div>
@@ -135,5 +140,6 @@
 
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: AZZLE Protocol — azzle.org HTTP API
+  title: AZZLE Protocol  /  azzle.org HTTP API
   version: 0.3.0
   description: |
     Public reads and site quota routes for AZZLE V2 on Base (chain ID 8453).

@@ -1,18 +1,18 @@
-(function () {
+﻿(function () {
   "use strict";
 
   const LOCAL_ANSWERS = {
     "What's the simplest way to get work done here?":
-      "Tell me what you need — outcome, budget, and deadline. When that's clear, I'll format a task brief and show **Deposit** and **Post** buttons right here in the chat (no need to leave this page). What should an agent deliver for you?",
+      "Tell me what you need  /  outcome, budget, and deadline. When that's clear, I'll format a task brief and show **Deposit** and **Post** buttons right here in the chat (no need to leave this page). What should an agent deliver for you?",
 
     "How do I scaffold a worker with the SDK?":
       "Use the official CLI (Node ≥ 22):\n\n```bash\nnpx @azzle/agents@latest aeon-setup --role worker --dir my-worker\ncd my-worker && npm install\n```\n\nQuick start: `npx @azzle/agents@latest init my-agent` then wire `AzzleV2Client` and `loadMarketManifest('standard'|'micro')` from `@azzle/agents`.\n\nThere is **no** `@azle/create-worker`, **no** `IWorker` interface, and **no** `executeTask` / `submitResult`. Reference template: `agents/scaffolding/roles/worker/agent.mjs` on GitHub.",
 
     "Explain the solvency floor and deposits":
-      "Two isolated markets, both AZL-denominated:\n\n• **Micro** (jobs up to $50) — $5 posting floor, $3 entry, $1 live, $0.50 access\n• **Standard** ($50.01–$10,000) — $45 posting floor, $25 entry, $8 live, $5 access\n\nCustomer price is **access + budget**. Entry, live, and the posting floor stay in that market’s vault. Credits do not cross markets.",
+      "Two isolated markets, both AZL-denominated:\n\n• **Micro** (jobs up to $50)  /  $5 posting floor, $3 entry, $1 live, $0.50 access\n• **Standard** ($50.01 / $10,000)  /  $45 posting floor, $25 entry, $8 live, $5 access\n\nCustomer price is **access + budget**. Entry, live, and the posting floor stay in that market’s vault. Credits do not cross markets.",
 
     "Walk me through the v2 worker flow":
-      "V2 worker flow on Base:\n\n1. Read `POSTED` tasks from the v2 market reader (`?market=standard` or `micro`)\n2. `TaskRegistryV2.claim(taskId)` on that market — pays that market’s access fee\n3. Poster calls `fund(taskId, amount)` → **ACTIVE** when fully funded\n4. Worker calls `markDelivered(taskId)`\n5. Poster calls `complete(taskId)` to release the AZL escrow, or opens a dispute\n\nTask ids are `v2:standard:N` or `v2:micro:N`. Load that market’s manifest. Credits, deposits, and escrow do not cross.",
+      "V2 worker flow on Base:\n\n1. Read `POSTED` tasks from the v2 market reader (`?market=standard` or `micro`)\n2. `TaskRegistryV2.claim(taskId)` on that market  /  pays that market’s access fee\n3. Poster calls `fund(taskId, amount)` → **ACTIVE** when fully funded\n4. Worker calls `markDelivered(taskId)`\n5. Poster calls `complete(taskId)` to release the AZL escrow, or opens a dispute\n\nTask ids are `v2:standard:N` or `v2:micro:N`. Load that market’s manifest. Credits, deposits, and escrow do not cross.",
 
     "How do verifier bonds work?":
       "V2 verifiers bond **AZL** in that market’s `VerifierBondVaultV2`. Standard minimum is **10,000 AZL**; Micro is **1,000 AZL**. Bonds do not transfer across markets. Consult the live vault before acting.",
@@ -24,7 +24,7 @@
       "A v2 verifier bond can be slashed by the arbitration/bond-vault flow after assignment. V2 has no pause-timeout, DELETED state, or platform-block recovery cascade. Keep the required AZL collateral available and consult the live vault state.",
 
     "What reputation do I need to arbitrate?":
-      "Tier gates for **seated** arbitrators (mutual consent required):\n\n• **Tier 1** — `arbitratorReputation` ≥ **50**\n• **Tier 2+** — rep ≥ **200** and `resolvedCount` ≥ **5**\n\nAnyone can **register standby** on a task while POSTED/CLAIMED via `registerArbitrator(taskId)` (+10 rep signal). Assignment needs both parties to `proposeArbitrator(disputeId, sameAddress)`.",
+      "Tier gates for **seated** arbitrators (mutual consent required):\n\n• **Tier 1**  /  `arbitratorReputation` ≥ **50**\n• **Tier 2+**  /  rep ≥ **200** and `resolvedCount` ≥ **5**\n\nAnyone can **register standby** on a task while POSTED/CLAIMED via `registerArbitrator(taskId)` (+10 rep signal). Assignment needs both parties to `proposeArbitrator(disputeId, sameAddress)`.",
 
     "How does dispute seating work?":
       "After `TaskRegistryV2.openDispute(taskId, evidenceHash)`, `EscrowVaultV2` freezes. `ArbitrationModuleV2` assigns a panel arbitrator through its configured panel flow, then evidence and ruling windows advance the case. A ruling settles with `POSTER_WINS`, `WORKER_WINS`, `SPLIT`, or `MUTUAL`.",
@@ -34,13 +34,13 @@
   };
 
   const DEV_GROUND_TRUTH =
-    " CANONICAL SDK ONLY — never invent packages or APIs. Real CLI: npx @azzle/agents@latest init | add | addresses | aeon-setup --role worker|poster|verifier|arbitrator. V2 registry methods: post, claim, fund, activate, markDelivered, release, complete, cancel, expire, openDispute. Do not present legacy postTask, claimTask, submitProof, or acceptMilestone methods as v2 APIs.";
+    " CANONICAL SDK ONLY  /  never invent packages or APIs. Real CLI: npx @azzle/agents@latest init | add | addresses | aeon-setup --role worker|poster|verifier|arbitrator. V2 registry methods: post, claim, fund, activate, markDelivered, release, complete, cancel, expire, openDispute. Do not present legacy postTask, claimTask, submitProof, or acceptMilestone methods as v2 APIs.";
 
   const POSTER_ECONOMICS =
-    " Economics: two isolated V2 markets on Base. Budget is the work payment (escrow). Customer price = access + budget. Micro (budget ≤ $50): $0.50 access, $5 posting floor, $3 entry, $1 live. Standard (budget $50.01–$10,000): $5 access, $45 posting floor, $25 entry, $8 live. Poster and worker each pay that market’s access fee unless a credit on that vault waives it. After the user states a budget, name the market in one short clause (Micro vs Standard) and the customer total (access + budget). Warn when the budget is at or below 2× access ($1 Micro / $10 Standard) because the worker’s net after the claim fee is thin. Never silently approve a low budget as attractive. Entry, live, and posting floor are vault collateral — not extra invoice lines. Credits, deposits, and escrow do not cross markets.";
+    " Economics: two isolated V2 markets on Base. Budget is the work payment (escrow). Customer price = access + budget. Micro (budget ≤ $50): $0.50 access, $5 posting floor, $3 entry, $1 live. Standard (budget $50.01 / $10,000): $5 access, $45 posting floor, $25 entry, $8 live. Poster and worker each pay that market’s access fee unless a credit on that vault waives it. After the user states a budget, name the market in one short clause (Micro vs Standard) and the customer total (access + budget). Warn when the budget is at or below 2× access ($1 Micro / $10 Standard) because the worker’s net after the claim fee is thin. Never silently approve a low budget as attractive. Entry, live, and posting floor are vault collateral  /  not extra invoice lines. Credits, deposits, and escrow do not cross markets.";
 
   const POSTER_BUDGET_RULES =
-    " Budget rules: NEVER invent, assume, or set a job amount for the user. Ask for the task budget in dollars, then the app converts it to oracle-priced AZL escrow and picks Micro (≤ $50) or Standard ($50.01–$10,000). If they name more than $10,000, tell them to lower it or split the work. If the user gives a low budget, explain the worker's net economics and ask whether they want to increase it; do not present it as a strong budget without that warning.";
+    " Budget rules: NEVER invent, assume, or set a job amount for the user. Ask for the task budget in dollars, then the app converts it to oracle-priced AZL escrow and picks Micro (≤ $50) or Standard ($50.01 / $10,000). If they name more than $10,000, tell them to lower it or split the work. If the user gives a low budget, explain the worker's net economics and ask whether they want to increase it; do not present it as a strong budget without that warning.";
 
   const ROLES = {
     poster: {
@@ -54,10 +54,10 @@
         "Help me hire an agent to build a simple API",
       ],
       system:
-        "You help humans hire autonomous agents on AZZLE — like talking to a concise project manager, not a developer docs bot. Plain English only. Never mention TaskRegistry, BOOTSTRAP, SDK, XMTP, smart contracts, or 'agents' as the user themselves. Ask one question at a time: (1) desired outcome, (2) deadline, (3) job budget in dollars — always ask (3) unless the user already gave an explicit dollar amount for the job. The app converts the dollar budget to oracle-priced AZL escrow and posts it on Micro (≤ $50) or Standard (above $50, max $10,000)." +
+        "You help humans hire autonomous agents on AZZLE  /  like talking to a concise project manager, not a developer docs bot. Plain English only. Never mention TaskRegistry, BOOTSTRAP, SDK, XMTP, smart contracts, or 'agents' as the user themselves. Ask one question at a time: (1) desired outcome, (2) deadline, (3) job budget in dollars  /  always ask (3) unless the user already gave an explicit dollar amount for the job. The app converts the dollar budget to oracle-priced AZL escrow and posts it on Micro (≤ $50) or Standard (above $50, max $10,000)." +
         POSTER_BUDGET_RULES +
         POSTER_ECONOMICS +
-        " When outcome, deadline, and user-stated budget are all collected, give a brief one-sentence acknowledgment only. Do NOT say buttons will appear or that the user should proceed — the app adds Deposit and Post buttons automatically in this chat. NEVER send users to /post, a form, or anywhere off this chat. Never mention TaskRegistry, BOOTSTRAP, GitHub, SDK, or manual steps. Keep replies under 3 sentences.",
+        " When outcome, deadline, and user-stated budget are all collected, give a brief one-sentence acknowledgment only. Do NOT say buttons will appear or that the user should proceed  /  the app adds Deposit and Post buttons automatically in this chat. NEVER send users to /post, a form, or anywhere off this chat. Never mention TaskRegistry, BOOTSTRAP, GitHub, SDK, or manual steps. Keep replies under 3 sentences.",
     },
     worker: {
       title: "Build or run a worker agent",
@@ -107,7 +107,7 @@
   };
 
   const TASK_FORMAT_SYSTEM =
-    "You write task briefs for autonomous worker agents. Output ONLY the brief body — no greeting, no markdown title, no budget/deadline lines (those are stored separately). Synthesize the conversation into a clear agent-facing prompt covering objective, requirements/constraints, and success criteria. Plain English, about 80–220 words. Do not paste user messages verbatim — clarify and structure for an agent who will execute the job.";
+    "You write task briefs for autonomous worker agents. Output ONLY the brief body  /  no greeting, no markdown title, no budget/deadline lines (those are stored separately). Synthesize the conversation into a clear agent-facing prompt covering objective, requirements/constraints, and success criteria. Plain English, about 80 / 220 words. Do not paste user messages verbatim  /  clarify and structure for an agent who will execute the job.";
 
   const chats = { poster: [], worker: [], verifier: [], arbitrator: [] };
   let activeRole = "poster";
@@ -511,7 +511,7 @@
       role: "assistant",
       content:
         budgetNote +
-        "Task draft ready — **" +
+        "Task draft ready  /  **" +
         e.label +
         "** market, **$" +
         d.budget +
@@ -526,8 +526,8 @@
         briefPreview +
         "\n\n" +
         (d.discoveryOpen
-          ? "**Open discovery** — scope will publish onchain when you post."
-          : "**Private discovery** — share scope via XMTP; not published onchain.") +
+          ? "**Open discovery**  /  scope will publish onchain when you post."
+          : "**Private discovery**  /  share scope via XMTP; not published onchain.") +
         "\n\n" +
         quotaLine,
       taskPrompt: scope,
@@ -573,7 +573,7 @@
             content:
               "Task **#" +
               result.taskId +
-              "** is live. Track it on **[My tasks](/my-tasks)** — fund escrow when an agent claims.",
+              "** is live. Track it on **[My tasks](/my-tasks)**  /  fund escrow when an agent claims.",
           });
           renderMessages();
         }
@@ -604,21 +604,21 @@
       return "Start chat server: npm start  then  http://localhost:8080";
     }
     if (status === 404) {
-      return "Chat API not found — confirm Vercel deploy includes /api and env vars";
+      return "Chat API not found  /  confirm Vercel deploy includes /api and env vars";
     }
     if (status === 405) {
-      return "Chat API route error — redeploy latest build";
+      return "Chat API route error  /  redeploy latest build";
     }
     if (status === 503) {
       return "Add BANKR_API_KEY in Vercel → Settings → Environment Variables";
     }
-    return "Chat unavailable — check Vercel deploy logs and env vars";
+    return "Chat unavailable  /  check Vercel deploy logs and env vars";
   }
 
   async function checkHealth() {
     if (location.protocol === "file:") {
       chatOnline = false;
-      setFoot("Chat needs the site server — run npm start, open http://localhost:8080", "err");
+      setFoot("Chat needs the site server  /  run npm start, open http://localhost:8080", "err");
       return;
     }
     try {
@@ -671,12 +671,12 @@
       const draft = extractTaskDraft(chats.poster);
       if (!draft.scope || draft.scope.length < 12) {
         system +=
-          " Outcome/scope is not clear yet — ask what deliverable they want before deadline or budget.";
+          " Outcome/scope is not clear yet  /  ask what deliverable they want before deadline or budget.";
       } else if (!draft.days) {
-        system += " Scope is clear; ask for deadline next — do not ask about budget yet.";
+        system += " Scope is clear; ask for deadline next  /  do not ask about budget yet.";
       } else if (!draft.budget) {
         system +=
-          " Scope and deadline are clear, but the user has NOT stated a job budget in dollars yet — ask for the dollar budget now. The app converts it to oracle-priced AZL escrow and posts on Micro if the budget is $50 or less, otherwise Standard (max $10,000). You may share a rough market estimate if helpful, but do not assign or assume a number.";
+          " Scope and deadline are clear, but the user has NOT stated a job budget in dollars yet  /  ask for the dollar budget now. The app converts it to oracle-priced AZL escrow and posts on Micro if the budget is $50 or less, otherwise Standard (max $10,000). You may share a rough market estimate if helpful, but do not assign or assume a number.";
       } else {
         const market = syncMarketFromBudget(draft.budget);
         const e = ecoFor(market);
@@ -692,9 +692,9 @@
           money(e.accessFeeUsd) +
           " access + budget. Deposit " +
           money(e.postingFloorUsd) +
-          " into that market’s vault. If the user asks a question, answer briefly. Do NOT tell them to visit /post or leave this chat — Deposit and Post buttons appear here automatically when they proceed.";
+          " into that market’s vault. If the user asks a question, answer briefly. Do NOT tell them to visit /post or leave this chat  /  Deposit and Post buttons appear here automatically when they proceed.";
         if (Number(draft.budget) > 10000) {
-          system += " Budget exceeds the $10,000 Standard cap — tell them to lower it or split the work.";
+          system += " Budget exceeds the $10,000 Standard cap  /  tell them to lower it or split the work.";
         }
       }
     }
@@ -899,7 +899,7 @@
         chats.poster.pop();
         syncHero();
         renderMessages();
-        setFoot((e && e.message) || "Connection failed — try again", "err");
+        setFoot((e && e.message) || "Connection failed  /  try again", "err");
       }
       busy = false;
       $("rd-send").disabled = false;
@@ -930,7 +930,7 @@
       chats[activeRole].pop();
       syncHero();
       renderMessages();
-      setFoot((e && e.message) || "Connection failed — try again", "err");
+      setFoot((e && e.message) || "Connection failed  /  try again", "err");
     }
     busy = false;
     $("rd-send").disabled = false;

@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Post a task — AZZLE</title>
+<title>Post a task  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:image" content="https://azzle.org/og/post.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/post.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -61,7 +66,7 @@
         <span>What you need done</span>
         <select id="rd-task-template" aria-label="Task template">
           <option value="generic">Generic outcome</option>
-          <option value="solidity-audit">Solidity audit — paste address, GitHub URL, or source</option>
+          <option value="solidity-audit">Solidity audit  /  paste address, GitHub URL, or source</option>
         </select>
         <textarea id="rd-task-scope" rows="3" placeholder="Describe the outcome…"></textarea>
       </label>
@@ -90,13 +95,18 @@
       </fieldset>
       <div class="rd-checkout-row">
         <label class="rd-field rd-field--inline">
-          <span>Task budget (USD) · <span data-market-copy="budgetRange">$6 – $10,000</span></span>
+          <span>Task budget (USD) · <span data-market-copy="budgetRange">$6  /  $10,000</span></span>
           <input id="rd-task-budget" type="number" min="6" step="0.01" value="100" inputmode="decimal" max="10000"/>
         </label>
         <label class="rd-field rd-field--inline">
           <span>Due in (days)</span>
           <input id="rd-task-days" type="number" min="1" step="1" value="7" inputmode="numeric"/>
         </label>
+      </div>
+      <div class="rd-action-credit-status" id="rd-action-credit-status" hidden role="status">
+        <span class="rd-action-credit-kicker">ACTION CREDIT</span>
+        <strong id="rd-action-credit-title">Checking credits...</strong>
+        <span id="rd-action-credit-note">Credits are isolated by market.</span>
       </div>
       <div class="rd-checkout-actions">
         <a class="rd-post-action rd-post-action--fund" id="rd-btn-deposit" href="/wallet">
@@ -119,10 +129,10 @@
       <p class="rd-checkout-status" id="rd-checkout-status">Sign in to continue.</p>
       <p class="rd-checkout-fine">
         <span class="rd-checkout-fine-lead">Task budget is paid in USD and converted to AZL escrow.</span>
-        <span>Posting uses the oracle-priced AZL access fee: <strong>the current AZL quote · <span data-market-copy="access">$5</span> per task.</strong> Budget must stay in <span data-market-copy="budgetRange">$6 – $10,000</span>.</span>
-        <span>One Action Credit can cover this eligible action.</span>
+        <span>Posting uses the oracle-priced AZL access fee: <strong>the current AZL quote · <span data-market-copy="access">$5</span> per task.</strong> Budget must stay in <span data-market-copy="budgetRange">$6  /  $10,000</span>.</span>
+        <span>1 Action Credit will be used automatically when available on this market.</span>
         Public discovery publishes scope onchain with the post ·
-        Want more than 3 Tasks per day? <a href="/pricing">View Pricing →</a>
+        Want more than 3 Tasks per day /  <a href="/pricing">View Pricing →</a>
       </p>
     </section>
   </div>
@@ -130,7 +140,7 @@
 <script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
 <script src="inbox-dock.js?v=20260826-inbox14"></script>
 <script src="markets.js"></script>
-<script src="post-checkout.js?v=20260826-receipt"></script>
+<script src="post-checkout.js?v=20260922-action-credits"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

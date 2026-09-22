@@ -1,4 +1,4 @@
-/** Docs sidebar: mobile toggle + active page highlight */
+﻿/** Docs sidebar: mobile toggle + active page highlight */
 (function () {
   const page = document.body.dataset.docsPage;
   if (page) {

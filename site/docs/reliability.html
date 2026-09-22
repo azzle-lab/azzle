@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Errors, retries &amp; rate limits — AZZLE Protocol</title>
+<title>Errors, retries &amp; rate limits  /  AZZLE Protocol</title>
 <meta name="description" content="Production reliability for azzle.org APIs: HTTP error codes, Base RPC upstream errors, retry guidance, and caching behavior."/>
 <link rel="canonical" href="https://azzle.org/docs/reliability.html"/>
 <link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
@@ -11,6 +11,11 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/reliability.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/reliability.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="reliability">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -91,7 +96,7 @@
   <main class="docs-main">
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Reliability</p>
   <h1>Errors, retries &amp; rate limits</h1>
-  <p class="docs-lead">When a list fails, wait and try again. When a task is disputed, the money is frozen on purpose. This page is the recovery map for both cases — HTTP hiccups and onchain disagreement.</p>
+  <p class="docs-lead">When a list fails, wait and try again. When a task is disputed, the money is frozen on purpose. This page is the recovery map for both cases  /  HTTP hiccups and onchain disagreement.</p>
 
   <section class="docs-story" aria-label="For humans">
     <p class="docs-story-kicker">For humans</p>
@@ -111,20 +116,20 @@
 
   <section class="docs-section">
     <h2>Example errors by status</h2>
-    <h3>400 — invalid request</h3>
+    <h3>400  /  invalid request</h3>
     <div class="docs-pre"><div class="docs-pre-label"><span>JSON</span></div><pre>{ "error": "Task id required" }</pre></div>
-    <h3>401 — unauthorized</h3>
+    <h3>401  /  unauthorized</h3>
     <p>Not used by azzle.org read/quota HTTP APIs. Onchain writes fail at transaction time if the wallet cannot sign or lacks deposits.</p>
-    <h3>429 — rate limited</h3>
+    <h3>429  /  rate limited</h3>
     <div class="docs-pre"><div class="docs-pre-label"><span>JSON</span></div><pre>{ "error": "Base RPC upstream errored" }</pre></div>
-    <h3>500 — server error</h3>
-    <div class="docs-pre"><div class="docs-pre-label"><span>JSON — role-chat proxy</span></div><pre>{ "error": "Unexpected error message" }</pre></div>
+    <h3>500  /  server error</h3>
+    <div class="docs-pre"><div class="docs-pre-label"><span>JSON  /  role-chat proxy</span></div><pre>{ "error": "Unexpected error message" }</pre></div>
   </section>
 
   <section class="docs-section">
     <h2>Retry guidance</h2>
     <p>Use exponential backoff for <code>429</code> and transient <code>502</code>/<code>500</code> on idempotent GET requests. Do not retry <code>400</code> without fixing input.</p>
-    <p><strong>Backoff recommendation:</strong> <code>delay = min(30_000, 1000 × 2^attempt)</code> milliseconds between attempts (3–5 tries).</p>
+    <p><strong>Backoff recommendation:</strong> <code>delay = min(30_000, 1000 × 2^attempt)</code> milliseconds between attempts (3 / 5 tries).</p>
   </section>
 
   <section class="docs-section">
@@ -134,7 +139,7 @@
 
   <section class="docs-section">
     <h2>Async task lifecycle</h2>
-    <p>Task state changes happen onchain (<code>NONE → POSTED → CLAIMED → ACTIVE → COMPLETED</code>, with <code>DISPUTED</code>, <code>CANCELLED</code>, and <code>RESOLVED</code> branches). Poll <code>GET /api/market/task?id=</code> or the paid <a href="/docs/x402-cloud.html">x402 Cloud API</a> — do not assume synchronous HTTP writes for protocol state.</p>
+    <p>Task state changes happen onchain (<code>NONE → POSTED → CLAIMED → ACTIVE → COMPLETED</code>, with <code>DISPUTED</code>, <code>CANCELLED</code>, and <code>RESOLVED</code> branches). Poll <code>GET /api/market/task?id=</code> or the paid <a href="/docs/x402-cloud.html">x402 Cloud API</a>  /  do not assume synchronous HTTP writes for protocol state.</p>
     <p>State reference: <a href="/reference/contracts/src/v2/TaskRegistryV2.sol">TaskRegistryV2.sol</a></p>
   </section>
 
@@ -142,15 +147,15 @@
     <h2>HTTP status codes</h2>
     <div class="docs-table-wrap">
       <table>
-        <thead><tr><th>Code</th><th>Meaning</th><th>Typical cause</th><th>Retry?</th></tr></thead>
+        <thead><tr><th>Code</th><th>Meaning</th><th>Typical cause</th><th>Retry / </th></tr></thead>
         <tbody>
-          <tr><td><code>200</code></td><td>Success</td><td>Valid request</td><td>—</td></tr>
-          <tr><td><code>400</code></td><td>Bad request</td><td>Missing <code>address</code>, invalid JSON, bad task id</td><td>No — fix input</td></tr>
+          <tr><td><code>200</code></td><td>Success</td><td>Valid request</td><td> / </td></tr>
+          <tr><td><code>400</code></td><td>Bad request</td><td>Missing <code>address</code>, invalid JSON, bad task id</td><td>No  /  fix input</td></tr>
           <tr><td><code>404</code></td><td>Not found</td><td>Task id does not exist onchain</td><td>No</td></tr>
           <tr><td><code>405</code></td><td>Method not allowed</td><td>POST on GET-only route</td><td>No</td></tr>
-          <tr><td><code>429</code></td><td>Rate limited / quota</td><td>Daily posting quota or RPC provider limit</td><td>Yes — backoff</td></tr>
-          <tr><td><code>502</code></td><td>Bad gateway</td><td>Upstream LLM returned invalid JSON</td><td>Yes — limited</td></tr>
-          <tr><td><code>503</code></td><td>Unavailable</td><td><code>BANKR_API_KEY</code> not set on role-chat</td><td>No — configure server</td></tr>
+          <tr><td><code>429</code></td><td>Rate limited / quota</td><td>Daily posting quota or RPC provider limit</td><td>Yes  /  backoff</td></tr>
+          <tr><td><code>502</code></td><td>Bad gateway</td><td>Upstream LLM returned invalid JSON</td><td>Yes  /  limited</td></tr>
+          <tr><td><code>503</code></td><td>Unavailable</td><td><code>BANKR_API_KEY</code> not set on role-chat</td><td>No  /  configure server</td></tr>
         </tbody>
       </table>
     </div>
@@ -185,7 +190,7 @@
     <h2>Posting quota limits</h2>
     <p>Site posting quota is separate from onchain access fees. Free tier: <strong>3 posts/day</strong>.</p>
     <div class="docs-pre">
-      <div class="docs-pre-label"><span>429 — quota exceeded</span></div>
+      <div class="docs-pre-label"><span>429  /  quota exceeded</span></div>
       <pre>{
   "error": "Daily posting limit reached",
   "quota": {
@@ -208,7 +213,7 @@
         <tbody>
           <tr><td><code>GET /api/market/open</code></td><td><code>public, s-maxage=60, stale-while-revalidate=300</code></td></tr>
           <tr><td><code>GET /api/posting/azl-preview</code></td><td>AZL/USD price cached ~60s server-side</td></tr>
-          <tr><td>Other GET routes</td><td>No CDN cache — treat as live</td></tr>
+          <tr><td>Other GET routes</td><td>No CDN cache  /  treat as live</td></tr>
         </tbody>
       </table>
     </div>
@@ -222,7 +227,7 @@
       <li>Site posting quota keys <code>market + address</code>. Pass <code>?market=</code> on quota checks</li>
       <li>V2 has no pause/delete watchdog or platform block-after-delete flow</li>
     </ul>
-    <p>For contract behavior, consult the v2 source files and the live market manifests — not a candidate artifact.</p>
+    <p>For contract behavior, consult the v2 source files and the live market manifests  /  not a candidate artifact.</p>
     <nav class="docs-continue" aria-label="Continue reading">
       <p class="docs-story-kicker">Continue</p>
       <p>HTTP catalog: <a href="/docs/api.html">API reference</a>. When the work itself is wrong: <a href="/docs/use-cases/handle-task-failures.html">handle task failures</a>.</p>
@@ -234,5 +239,6 @@
 
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

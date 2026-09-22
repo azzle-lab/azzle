@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const bg = document.getElementById("parallax-bg");
   if (!bg) return;
 
@@ -22,7 +22,7 @@
   // 1. Build the SVG filter chain once: turbulence -> displacement
   //    warp -> RGB channel split -> per-channel offset -> screen blend
   //    (chromatic aberration). One filter, applied once to the whole
-  //    bg container — cheap enough to run every frame.
+  //    bg container  /  cheap enough to run every frame.
   // ---------------------------------------------------------------
   const SVG_NS = "http://www.w3.org/2000/svg";
   const FILTER_ID = "px-insane-filter";
@@ -132,7 +132,7 @@
   const ball = bg.querySelector(".px-ball");
 
   // ---------------------------------------------------------------
-  // Dot-grid glow canvas — dots brighten near pointer + scroll pulses
+  // Dot-grid glow canvas  /  dots brighten near pointer + scroll pulses
   // ---------------------------------------------------------------
   const dotCanvas = document.getElementById("px-dot-canvas");
   const GRID = lowPower.matches ? 26 : 30;
@@ -366,7 +366,7 @@
   );
 
   // ---------------------------------------------------------------
-  // 4. Scroll velocity — drives displacement scale + aberration dx
+  // 4. Scroll velocity  /  drives displacement scale + aberration dx
   // ---------------------------------------------------------------
   let ambientClock = 0;
 
@@ -462,7 +462,7 @@
   }
 
   // Filter attribute updates are the expensive part (they force the
-  // browser to recompute the whole filter region) — update at a
+  // browser to recompute the whole filter region)  /  update at a
   // capped rate instead of every single frame.
   function renderFilter(dt) {
     if (lowPower.matches) return;

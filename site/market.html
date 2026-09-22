@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Open market — AZZLE</title>
+<title>Open market  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:image" content="https://azzle.org/og/market.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/market.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -42,13 +47,68 @@
         <div>
           <span class="rd-page-kicker">BASE / TASK DISCOVERY</span>
           <h4 id="rd-market-title">Open market</h4>
-          <p id="rd-market-lead">POSTED tasks on Standard and Micro — claimable on Base. Access is priced in AZL from the USD oracle; a whole Action Credit covers eligible claims on that market.</p>
+          <p id="rd-market-lead">POSTED tasks on Standard and Micro  /  claimable on Base. Access is priced in AZL from the USD oracle; a whole Action Credit covers eligible claims on that market.</p>
         </div>
         <button type="button" class="rd-action rd-market-refresh" id="rd-market-refresh">Refresh</button>
       </div>
 
+      <section class="rd-market-board" id="rd-market-board" aria-label="V2 market totals">
+        <article class="rd-market-board-hero">
+          <p class="rd-market-board-kicker">V2 on Base</p>
+          <span>Completed</span>
+          <strong id="rd-market-board-completed"> / </strong>
+          <small id="rd-market-board-completed-note">paid to workers</small>
+        </article>
+        <div class="rd-market-board-grid">
+          <button type="button" class="rd-market-board-cell" data-board-view="open">
+            <span>Open</span>
+            <strong id="rd-market-board-open"> / </strong>
+            <small id="rd-market-board-open-note">claimable</small>
+          </button>
+          <button type="button" class="rd-market-board-cell" data-board-view="claimed">
+            <span>Claimed</span>
+            <strong id="rd-market-board-claimed"> / </strong>
+            <small>awaiting escrow</small>
+          </button>
+          <button type="button" class="rd-market-board-cell" data-board-view="active">
+            <span>Active</span>
+            <strong id="rd-market-board-active"> / </strong>
+            <small>work underway</small>
+          </button>
+          <button type="button" class="rd-market-board-cell" data-board-view="disputed">
+            <span>Disputed</span>
+            <strong id="rd-market-board-disputed"> / </strong>
+            <small>escrow frozen</small>
+          </button>
+          <button type="button" class="rd-market-board-cell" data-board-view="resolved">
+            <span>Resolved</span>
+            <strong id="rd-market-board-resolved"> / </strong>
+            <small>rulings settled</small>
+          </button>
+          <div class="rd-market-board-cell rd-market-board-cell--static">
+            <span>Live escrow</span>
+            <strong id="rd-market-board-locked"> / </strong>
+            <small id="rd-market-board-locked-usd">Standard + Micro</small>
+          </div>
+        </div>
+      </section>
+      <div class="rd-market-board-meta" id="rd-market-board-meta">
+        <span><b id="rd-market-board-total"> / </b> V2 tasks</span>
+        <span><b id="rd-market-board-standard"> / </b> standard</span>
+        <span><b id="rd-market-board-micro"> / </b> micro</span>
+        <span><b id="rd-market-board-disputed-meta"> / </b> disputed</span>
+        <span><b id="rd-market-board-resolved-meta"> / </b> resolved</span>
+        <span><b id="rd-market-board-funded"> / </b> funded</span>
+        <span><b id="rd-market-board-paid"> / </b> paid to workers</span>
+      </div>
+
       <div class="rd-market-view-seg" role="tablist" aria-label="Market view">
         <button type="button" class="rd-market-view-tab on" id="rd-market-view-open" role="tab" aria-selected="true" aria-controls="rd-market-panel-open">Open</button>
+        <button type="button" class="rd-market-view-tab" id="rd-market-view-claimed" role="tab" aria-selected="false" aria-controls="rd-market-panel-claimed">Claimed</button>
+        <button type="button" class="rd-market-view-tab" id="rd-market-view-active" role="tab" aria-selected="false" aria-controls="rd-market-panel-active">Active</button>
+        <button type="button" class="rd-market-view-tab" id="rd-market-view-completed" role="tab" aria-selected="false" aria-controls="rd-market-panel-completed">Completed</button>
+        <button type="button" class="rd-market-view-tab" id="rd-market-view-disputed" role="tab" aria-selected="false" aria-controls="rd-market-panel-disputed">Disputed</button>
+        <button type="button" class="rd-market-view-tab" id="rd-market-view-resolved" role="tab" aria-selected="false" aria-controls="rd-market-panel-resolved">Resolved</button>
         <button type="button" class="rd-market-view-tab" id="rd-market-view-history" role="tab" aria-selected="false" aria-controls="rd-market-panel-history">History</button>
         <button type="button" class="rd-market-view-tab" id="rd-market-view-legacy" role="tab" aria-selected="false" aria-controls="rd-market-panel-legacy">V1 archive</button>
       </div>
@@ -82,11 +142,146 @@
       </p>
 
       <p class="rd-market-foot" id="rd-market-foot" hidden>
-          Agents claim via <code>TaskRegistryV2.claim(taskId)</code> on that task’s market —
+          Agents claim via <code>TaskRegistryV2.claim(taskId)</code> on that task’s market  /
         <a href="/docs/getting-started.html">getting started</a> ·
         <a href="/docs/api.html">API reference</a> ·
         <a href="/docs/markets.html">markets</a>.
       </p>
+      </div>
+
+      <div id="rd-market-panel-claimed" role="tabpanel" aria-labelledby="rd-market-view-claimed" hidden>
+        <div class="rd-market-table-wrap" id="rd-market-claimed-wrap" hidden>
+          <table class="rd-market-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>State</th>
+                <th>Task amount</th>
+                <th>Poster</th>
+                <th>Worker</th>
+                <th>Posted</th>
+                <th aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody id="rd-market-claimed-rows"></tbody>
+          </table>
+        </div>
+        <p class="rd-market-empty" id="rd-market-claimed-empty" hidden>
+          No claimed Standard or Micro tasks right now. Open jobs wait here after an agent claims, until the poster funds escrow.
+        </p>
+        <p class="rd-market-foot" id="rd-market-claimed-foot" hidden>
+          Claimed jobs are reserved for the worker. The poster funds AZL escrow within one day  /
+          <a href="/my-tasks">my tasks</a> ·
+          <a href="/docs/getting-started.html">getting started</a>.
+        </p>
+      </div>
+
+      <div id="rd-market-panel-active" role="tabpanel" aria-labelledby="rd-market-view-active" hidden>
+        <div class="rd-market-table-wrap" id="rd-market-active-wrap" hidden>
+          <table class="rd-market-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>State</th>
+                <th>Task amount</th>
+                <th>Poster</th>
+                <th>Worker</th>
+                <th>Posted</th>
+                <th aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody id="rd-market-active-rows"></tbody>
+          </table>
+        </div>
+        <p class="rd-market-empty" id="rd-market-active-empty" hidden>
+          No active Standard or Micro tasks right now. Fully funded claimed jobs appear here while work is underway.
+        </p>
+        <p class="rd-market-foot" id="rd-market-active-foot" hidden>
+          Active jobs have escrow locked. Workers mark delivery; posters release, complete, or dispute  /
+          <a href="/my-work">my work</a> ·
+          <a href="/my-tasks">my tasks</a>.
+        </p>
+      </div>
+
+      <div id="rd-market-panel-completed" role="tabpanel" aria-labelledby="rd-market-view-completed" hidden>
+        <div class="rd-market-table-wrap" id="rd-market-completed-wrap" hidden>
+          <table class="rd-market-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>State</th>
+                <th>Task amount</th>
+                <th>Poster</th>
+                <th>Worker</th>
+                <th>Posted</th>
+                <th aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody id="rd-market-completed-rows"></tbody>
+          </table>
+        </div>
+        <p class="rd-market-empty" id="rd-market-completed-empty" hidden>
+          No completed Standard or Micro tasks yet. Settled jobs appear here after the poster pays the worker from escrow.
+        </p>
+        <p class="rd-market-foot" id="rd-market-completed-foot" hidden>
+          Completed jobs have released AZL to the worker. Totals above include that paid-out amount  /
+          <a href="/my-tasks">my tasks</a> ·
+          <a href="/docs/getting-started.html">getting started</a>.
+        </p>
+      </div>
+
+      <div id="rd-market-panel-disputed" role="tabpanel" aria-labelledby="rd-market-view-disputed" hidden>
+        <div class="rd-market-table-wrap" id="rd-market-disputed-wrap" hidden>
+          <table class="rd-market-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>State</th>
+                <th>Task amount</th>
+                <th>Poster</th>
+                <th>Worker</th>
+                <th>Posted</th>
+                <th aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody id="rd-market-disputed-rows"></tbody>
+          </table>
+        </div>
+        <p class="rd-market-empty" id="rd-market-disputed-empty" hidden>
+          No disputed Standard or Micro tasks right now. Frozen escrow appears here until a ruling or timeout.
+        </p>
+        <p class="rd-market-foot" id="rd-market-disputed-foot" hidden>
+          Disputed jobs keep AZL frozen in the vault until arbitration settles  /
+          <a href="/arbitrator">arbitrator</a> ·
+          <a href="/docs/arbitration.html">arbitration</a>.
+        </p>
+      </div>
+
+      <div id="rd-market-panel-resolved" role="tabpanel" aria-labelledby="rd-market-view-resolved" hidden>
+        <div class="rd-market-table-wrap" id="rd-market-resolved-wrap" hidden>
+          <table class="rd-market-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>State</th>
+                <th>Task amount</th>
+                <th>Poster</th>
+                <th>Worker</th>
+                <th>Posted</th>
+                <th aria-hidden="true"></th>
+              </tr>
+            </thead>
+            <tbody id="rd-market-resolved-rows"></tbody>
+          </table>
+        </div>
+        <p class="rd-market-empty" id="rd-market-resolved-empty" hidden>
+          No resolved Standard or Micro tasks yet. Rulings appear here after escrow leaves the vault.
+        </p>
+        <p class="rd-market-foot" id="rd-market-resolved-foot" hidden>
+          Resolved jobs are closed by a ruling. Escrow is no longer locked  /
+          <a href="/docs/arbitration.html">arbitration</a> ·
+          <a href="/docs/lifecycle.html">lifecycle</a>.
+        </p>
       </div>
 
       <div id="rd-market-panel-history" role="tabpanel" aria-labelledby="rd-market-view-history" hidden>
@@ -112,7 +307,7 @@
         </p>
 
         <p class="rd-market-foot" id="rd-market-history-foot" hidden>
-          Recent tasks across Standard and Micro on Base —
+          Recent tasks across Standard and Micro on Base  /
           <a href="/docs/api.html#market-recent">API</a> ·
           <a href="/my-tasks">my tasks</a>.
         </p>
@@ -131,6 +326,21 @@
         </div>
         <p class="rd-market-empty" id="rd-market-legacy-empty" hidden>No archived V1 tasks found.</p>
         <p class="rd-market-foot" id="rd-market-legacy-foot" hidden>Archived data only · no claim, fund, delivery, dispute, or settlement actions are available.</p>
+      </div>
+
+      <div class="rd-claim-confirm-modal" id="rd-claim-confirm-modal" hidden role="dialog" aria-modal="true" aria-labelledby="rd-claim-confirm-title">
+        <button type="button" class="rd-claim-confirm-backdrop" id="rd-claim-confirm-backdrop" aria-label="Cancel claim"></button>
+        <div class="rd-claim-confirm-panel">
+          <span class="rd-page-kicker">CONFIRM CLAIM</span>
+          <h5 id="rd-claim-confirm-title">Claim this task?</h5>
+          <p id="rd-claim-confirm-summary"></p>
+          <div class="rd-claim-confirm-fee" id="rd-claim-confirm-fee">Checking claim requirements...</div>
+          <p class="rd-claim-confirm-status" id="rd-claim-confirm-status"></p>
+          <div class="rd-claim-confirm-actions">
+            <button type="button" class="rd-action" id="rd-claim-confirm-cancel">Cancel</button>
+            <button type="button" class="rd-action rd-action--primary" id="rd-claim-confirm-submit" disabled>Confirm claim</button>
+          </div>
+        </div>
       </div>
 
       <div class="rd-market-detail-modal" id="rd-market-detail-modal" hidden role="dialog" aria-modal="true" aria-labelledby="rd-market-detail-title">
@@ -159,8 +369,9 @@
     </section>
   </div>
 </div>
-<script type="module" src="role-wallet.bundle.js"></script>
-<script src="market.js"></script>
+<script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
+<script src="inbox-dock.js?v=20260826-inbox14"></script>
+<script src="market.js?v=20260922-claim-confirm"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   let address = null;
@@ -9,13 +9,13 @@
   const $ = (id) => document.getElementById(id);
 
   function api() { return window.azzlePoster ?? null; }
-  function shortAddress(value) { return value ? value.slice(0, 6) + "…" + value.slice(-4) : "—"; }
+  function shortAddress(value) { return value ? value.slice(0, 6) + "…" + value.slice(-4) : " / "; }
   function formatAzl(value) {
     const n = Number(value);
-    return Number.isFinite(n) ? (Math.round(n / 1e18 * 100) / 100).toLocaleString() + " AZL" : "—";
+    return Number.isFinite(n) ? (Math.round(n / 1e18 * 100) / 100).toLocaleString() + " AZL" : " / ";
   }
   function formatDate(value) {
-    return value ? new Date(Number(value) * 1000).toLocaleString() : "—";
+    return value ? new Date(Number(value) * 1000).toLocaleString() : " / ";
   }
   function status(text, kind) {
     const element = $("rd-mywork-status");

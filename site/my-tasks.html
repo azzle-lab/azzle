@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>My tasks — AZZLE</title>
+<title>My tasks  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:image" content="https://azzle.org/og/my-tasks.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/my-tasks.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -37,7 +42,7 @@
         <div>
           <span class="rd-page-kicker">WORKSPACE / POSTER</span>
           <h4>My tasks</h4>
-          <p>Track posted jobs, funding, delivery receipts, verification status, and V2 settlement actions including cancel and expire.</p>
+          <p>Every task is a private XMTP chatroom with the worker. Open the inbox (bottom right) or use the chatroom button on each card.</p>
         </div>
         <a href="/post" class="rd-action rd-action--primary rd-mytasks-new">Post new task</a>
       </div>
@@ -48,10 +53,16 @@
         <button type="button" class="rd-market-view-tab" data-market-filter="standard" role="tab" aria-selected="false">Standard</button>
         <button type="button" class="rd-market-view-tab" data-market-filter="micro" role="tab" aria-selected="false">Micro</button>
       </div>
+      <div class="rd-market-view-seg" role="tablist" aria-label="Task status">
+        <button type="button" class="rd-market-view-tab on" data-status-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="rd-market-view-tab" data-status-filter="live" role="tab" aria-selected="false">Live</button>
+        <button type="button" class="rd-market-view-tab" data-status-filter="completed" role="tab" aria-selected="false">Completed</button>
+      </div>
       <div class="rd-mytasks-ledger" id="rd-mytasks-ledger" hidden>
         <span><b id="rd-mytasks-funded">0 AZL</b> funded</span>
         <span><b id="rd-mytasks-locked">0 AZL</b> locked</span>
-        <span><b id="rd-mytasks-released">0 AZL</b> released</span>
+        <span><b id="rd-mytasks-released">0 AZL</b> paid to workers</span>
+        <span><b id="rd-mytasks-completed">0</b> completed</span>
         <span><b id="rd-mytasks-disputed">0</b> disputed</span>
       </div>
 
@@ -66,7 +77,7 @@
 <dialog class="rd-receipt-dialog" id="rd-mytasks-confirm-dialog" aria-labelledby="rd-mytasks-confirm-title">
   <form method="dialog" id="rd-mytasks-confirm-form">
     <div class="rd-receipt-head">
-      <h5 id="rd-mytasks-confirm-title">Cancel this task?</h5>
+      <h5 id="rd-mytasks-confirm-title">Cancel this task / </h5>
       <button type="submit" value="cancel" aria-label="Close">&times;</button>
     </div>
     <p id="rd-mytasks-confirm-task"></p>
@@ -91,9 +102,10 @@
     </menu>
   </form>
 </dialog>
-<script type="module" src="role-wallet.bundle.js"></script>
+<script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
+<script src="inbox-dock.js?v=20260826-inbox16"></script>
 <script src="markets.js"></script>
-<script src="my-tasks.js"></script>
+<script src="my-tasks.js?v=20260826-inbox16"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

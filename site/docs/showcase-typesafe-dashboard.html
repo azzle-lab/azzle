@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>TypeSafe × AZZLE  /  Judgment dashboard</title>
+  <meta name="description" content="Interactive TypeSafe showcase for AZZLE task routing, urgency, and review decisions."/>
+  <link rel="stylesheet" href="/site-theme.css"/>
+  <style>
+    :root{--showcase-bg:#090c13;--showcase-card:#111722;--showcase-card2:#151e2c;--showcase-line:rgba(255,255,255,.1);--showcase-blue:#76dcff;--showcase-green:#dfff00;--showcase-text:#f4f7fb;--showcase-muted:#91a0b4}
+    body{min-height:100vh;background:radial-gradient(circle at 80% 0%,rgba(64,151,208,.18),transparent 34%),var(--showcase-bg);color:var(--showcase-text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+    .ts-wrap{width:min(1180px,calc(100% - 36px));margin:0 auto;padding:42px 0 80px}
+    .ts-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:64px}
+    .ts-brand{display:flex;align-items:center;gap:10px;color:var(--showcase-text);text-decoration:none;font-weight:800;letter-spacing:-.03em}
+    .ts-brand-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--showcase-blue),#5d7cff);color:#06101a;font-weight:900}
+    .ts-source{color:var(--showcase-muted);font-size:12px;text-decoration:none}.ts-source:hover{color:var(--showcase-blue)}
+    .ts-hero{max-width:760px;margin-bottom:34px}.ts-kicker{color:var(--showcase-blue);font:700 11px/1 ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase}.ts-hero h1{margin:16px 0;font-size:clamp(38px,6vw,72px);line-height:.98;letter-spacing:-.065em}.ts-hero p{color:var(--showcase-muted);font-size:17px;line-height:1.6}
+    .ts-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr);gap:18px}.ts-card{border:1px solid var(--showcase-line);border-radius:18px;background:linear-gradient(150deg,rgba(255,255,255,.045),rgba(255,255,255,.015)),var(--showcase-card);padding:22px;box-shadow:0 18px 60px rgba(0,0,0,.2)}.ts-card h2{font-size:17px;margin-bottom:6px}.ts-card-intro{color:var(--showcase-muted);font-size:13px;line-height:1.5;margin-bottom:18px}
+    .ts-field{display:grid;gap:8px;margin:15px 0}.ts-field label{font:700 10px/1 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--showcase-muted)}textarea,.ts-input{width:100%;border:1px solid var(--showcase-line);border-radius:12px;background:#0b111b;color:var(--showcase-text);padding:13px;font:14px/1.5 inherit;outline:0}textarea{min-height:150px;resize:vertical}textarea:focus,.ts-input:focus{border-color:var(--showcase-blue);box-shadow:0 0 0 3px rgba(118,220,255,.12)}
+    .ts-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.ts-btn{border:0;border-radius:10px;padding:11px 15px;background:var(--showcase-blue);color:#07131b;font-weight:800;cursor:pointer}.ts-btn.secondary{background:transparent;border:1px solid var(--showcase-line);color:var(--showcase-text)}.ts-btn:disabled{opacity:.5;cursor:wait}
+    .ts-question{border-top:1px solid var(--showcase-line);padding:14px 0}.ts-question:first-of-type{border-top:0}.ts-q-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.ts-q-name{font-weight:800}.ts-type{color:var(--showcase-blue);font:700 10px ui-monospace,monospace;text-transform:uppercase}.ts-q-copy{color:var(--showcase-muted);font-size:12px;line-height:1.4;margin-top:5px}.ts-answer{margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(118,220,255,.08);color:var(--showcase-blue);font:700 13px ui-monospace,monospace}.ts-bar{height:7px;margin-top:9px;overflow:hidden;border-radius:99px;background:#263142}.ts-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--showcase-blue),#8b8cff)}
+    .ts-json{min-height:360px;max-height:560px;overflow:auto;margin:0;border-radius:12px;background:#080d15;color:#b9eaff;padding:15px;font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap}.ts-status{display:flex;align-items:center;gap:8px;color:var(--showcase-muted);font-size:12px;margin-top:14px}.ts-dot{width:8px;height:8px;border-radius:50%;background:var(--showcase-green)}.ts-dot.busy{background:#ffd36e;animation:pulse 1s infinite}.ts-dot.err{background:#ff6b81}@keyframes pulse{50%{opacity:.35}}
+    .ts-footer{color:var(--showcase-muted);font-size:12px;line-height:1.6;margin-top:18px}.ts-footer code{color:var(--showcase-blue)}
+    @media(max-width:800px){.ts-layout{grid-template-columns:1fr}.ts-top{margin-bottom:42px}.ts-wrap{width:min(100% - 24px,620px)}}
+
+    /* Signal-lab treatment: the interface should feel precise, alive, and slightly unstable. */
+    body{overflow-x:hidden;background-color:#05080d;background-image:linear-gradient(rgba(118,220,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(118,220,255,.035) 1px,transparent 1px),radial-gradient(circle at 78% -5%,rgba(55,179,211,.22),transparent 32%),radial-gradient(circle at 10% 90%,rgba(223,255,0,.07),transparent 28%);background-size:42px 42px,42px 42px,100% 100%,100% 100%}
+    body::before{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0,rgba(255,255,255,.018) 1px,transparent 1px,transparent 4px);mix-blend-mode:screen;opacity:.45}
+    body::after{content:"SIGNAL // TS-01     SECURE EVALUATION CHANNEL     LIVE";position:fixed;right:18px;bottom:12px;z-index:21;color:rgba(118,220,255,.32);font:700 9px/1 ui-monospace,monospace;letter-spacing:.12em;pointer-events:none}
+    .ts-wrap{position:relative}.ts-wrap::before{content:"";position:absolute;left:-18px;top:118px;bottom:80px;width:1px;background:linear-gradient(transparent,var(--showcase-blue),transparent);opacity:.45}
+    .ts-top{margin-bottom:58px;border-bottom:1px solid rgba(118,220,255,.16);padding-bottom:14px}.ts-brand{font-family:ui-monospace,monospace;text-transform:uppercase;font-size:12px;letter-spacing:.12em}.ts-brand-mark{border-radius:2px;box-shadow:0 0 24px rgba(118,220,255,.3);font-size:15px}
+    .ts-source{font-family:ui-monospace,monospace;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.ts-hero{position:relative}.ts-kicker{display:flex;align-items:center;gap:9px}.ts-kicker::before{content:"[";color:var(--showcase-green)}.ts-kicker::after{content:"]";color:var(--showcase-green)}.ts-hero h1{max-width:730px;text-shadow:2px 0 rgba(118,220,255,.18),-2px 0 rgba(223,255,0,.1);animation:signal-drift 9s steps(1,end) infinite}.ts-hero p{max-width:650px;font-family:ui-monospace,monospace;font-size:13px}
+    .ts-card{position:relative;border-radius:4px;border-color:rgba(118,220,255,.18);background:linear-gradient(135deg,rgba(118,220,255,.055),transparent 45%),rgba(12,18,28,.88);box-shadow:0 0 0 1px rgba(0,0,0,.45),0 22px 80px rgba(0,0,0,.3)}.ts-card::before{content:"●  ONLINE";position:absolute;right:20px;top:20px;color:rgba(223,255,0,.62);font:700 8px/1 ui-monospace,monospace;letter-spacing:.12em}.ts-card h2{font-family:ui-monospace,monospace;text-transform:uppercase;font-size:12px;letter-spacing:.1em;color:var(--showcase-blue)}.ts-card-intro,.ts-footer,.ts-q-copy{font-family:ui-monospace,monospace}
+    .ts-field label,.ts-type{color:var(--showcase-green);font-size:9px}.ts-field label::before{content:"// ";color:var(--showcase-muted)}textarea,.ts-input{border-radius:2px;border-color:rgba(118,220,255,.2);background:rgba(2,7,13,.8);font-family:ui-monospace,monospace;caret-color:var(--showcase-green)}textarea:focus,.ts-input:focus{border-color:var(--showcase-green);box-shadow:0 0 0 1px var(--showcase-green),0 0 22px rgba(223,255,0,.12)}
+    .ts-btn{border-radius:2px;text-transform:uppercase;letter-spacing:.07em;font:800 10px ui-monospace,monospace;box-shadow:0 0 18px rgba(118,220,255,.15)}.ts-btn:hover{filter:brightness(1.14);transform:translateY(-1px)}.ts-btn.secondary{border-radius:2px;font:700 10px ui-monospace,monospace}
+    .ts-question{border-color:rgba(118,220,255,.12)}.ts-answer{border-radius:2px;border-left:2px solid var(--showcase-green);background:rgba(223,255,0,.055);color:var(--showcase-green);text-shadow:0 0 12px rgba(223,255,0,.4)}.ts-bar{border-radius:1px;background:#172533}.ts-bar i{background:linear-gradient(90deg,var(--showcase-green),var(--showcase-blue));box-shadow:0 0 10px var(--showcase-blue)}
+    .ts-json{border-radius:2px;border:1px solid rgba(118,220,255,.12);font-size:11px;box-shadow:inset 0 0 28px rgba(0,0,0,.4)}.ts-status{font-family:ui-monospace,monospace;text-transform:uppercase;font-size:9px;letter-spacing:.08em}.ts-dot{box-shadow:0 0 10px currentColor}
+    .ts-compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}.ts-compare-panel{min-width:0}.ts-compare-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;color:var(--showcase-muted);font:700 9px/1 ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}.ts-compare-label strong{color:var(--showcase-blue)}.ts-compare-output{min-height:220px;max-height:420px;overflow:auto;border:1px solid rgba(118,220,255,.12);border-radius:2px;background:#080d15;color:#c1d0dc;padding:15px;font:12px/1.65 ui-monospace,monospace;white-space:pre-wrap}.ts-compare-output.typesafe{color:#dfff00;background:rgba(223,255,0,.035)}.ts-compare-note{margin-top:9px;color:var(--showcase-muted);font:10px/1.5 ui-monospace,monospace}
+    @keyframes signal-drift{0%,93%,100%{transform:none;clip-path:none}94%{transform:translateX(2px);clip-path:inset(0 0 48% 0)}95%{transform:translateX(-1px);clip-path:inset(52% 0 0 0)}96%{transform:none;clip-path:none}}
+    @media(max-width:800px){.ts-layout,.ts-compare{grid-template-columns:1fr}}
+    @media(prefers-reduced-motion:reduce){.ts-hero h1{animation:none}.ts-btn:hover{transform:none}}
+
+    /* Live signal chamber: a responsive light field makes the dashboard feel
+       like an instrument panel without obscuring the evaluation controls. */
+    .ts-signal-field{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;--mx:50vw;--my:35vh}
+    .ts-signal-field::before{content:"";position:absolute;left:var(--mx);top:var(--my);width:42rem;height:42rem;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(118,220,255,.14),rgba(118,220,255,.035) 22%,transparent 66%);filter:blur(8px);transition:left .35s ease-out,top .35s ease-out}
+    .ts-signal-field::after{content:"";position:absolute;inset:-20%;background:conic-gradient(from 220deg at 50% 50%,transparent 0 18%,rgba(118,220,255,.055) 20%,transparent 24% 47%,rgba(223,255,0,.045) 49%,transparent 54% 100%);animation:signal-orbit 18s linear infinite}
+    .ts-beam{position:absolute;top:-15%;bottom:-15%;width:1px;background:linear-gradient(transparent,rgba(118,220,255,.42),transparent);box-shadow:0 0 22px rgba(118,220,255,.35);transform:rotate(18deg);opacity:.45}
+    .ts-beam.one{left:18%;animation:beam-drift 8s ease-in-out infinite}.ts-beam.two{right:22%;transform:rotate(-24deg);animation:beam-drift 11s 1s ease-in-out infinite reverse}
+    .ts-telemetry{display:flex;gap:8px;align-items:center;margin-top:24px;color:rgba(223,255,0,.72);font:700 9px/1 ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+    .ts-telemetry i{display:block;width:44px;height:3px;background:linear-gradient(90deg,var(--showcase-green),transparent);animation:telemetry-pulse 1.8s ease-in-out infinite}
+    .ts-wrap{z-index:1}.ts-card{transform-style:preserve-3d;transition:transform .25s ease,box-shadow .25s ease}
+    .ts-card:hover{box-shadow:0 26px 90px rgba(0,0,0,.42),0 0 0 1px rgba(118,220,255,.08)}
+    @keyframes signal-orbit{to{transform:rotate(360deg)}}@keyframes beam-drift{50%{opacity:.85;transform:translateX(5vw) rotate(18deg)}}@keyframes telemetry-pulse{50%{width:88px;opacity:.35}}
+    @media(prefers-reduced-motion:reduce){.ts-signal-field::after,.ts-beam,.ts-telemetry i{animation:none}.ts-card{transition:none}}
+    @media(max-width:800px){.ts-signal-field{position:absolute;height:100vh}.ts-card:hover{transform:none}}
+  </style>
+<meta property="og:image" content="https://azzle.org/og/docs/showcase-typesafe-dashboard.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/showcase-typesafe-dashboard.png"/>
+  <script src="/theme-init.js"></script>
+</head>
+<body>
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+  <div class="ts-signal-field" aria-hidden="true"><span class="ts-beam one"></span><span class="ts-beam two"></span></div>
+  <div class="ts-wrap">
+    <header class="ts-top"><a class="ts-brand" href="/"><span class="ts-brand-mark">T</span><span>TypeSafe <span style="color:var(--showcase-muted)">×</span> AZZLE</span></a><a class="ts-source" href="https://docs.typesafe.ai/introduction.md" target="_blank" rel="noopener">Read TypeSafe docs ↗</a></header>
+    <section class="ts-hero"><div class="ts-kicker">System One / Jev showcase</div><h1>Judgment you can wire into code.</h1><p>Three typed questions evaluate the same AZZLE task state in parallel: which market fits, whether it is urgent, and how much review risk it carries.</p><div class="ts-telemetry"><i></i><span>signal path / deterministic handoff / live</span></div></section>
+    <main class="ts-layout">
+      <section class="ts-card">
+        <h2>Evaluation state</h2><p class="ts-card-intro">Edit the state, then send it through the server-side TypeSafe proxy. Your API key never reaches this page.</p>
+        <div class="ts-field"><label for="ts-state">Task state</label><textarea id="ts-state">Design a production agent workflow that discovers open AZZLE tasks across two network deployments without mixing manifests, selects Standard or Micro, validates public versus private scope, handles network-specific asset decimals and gas, prepares an MCP transaction that stops at approvalUrl, and recovers safely if the RPC changes between quote and submission. Return the architecture, invariants, failure modes, and test plan.</textarea></div>
+        <div class="ts-actions"><button class="ts-btn" id="ts-run" type="button">Run Jev evaluation</button><button class="ts-btn secondary" id="ts-demo" type="button">Load another example</button></div>
+        <p class="ts-footer">Uses <code>POST /api/typesafe</code> → <code>https://api.typesafe.ai/v1/systemone</code>. The API key is configured as <code>TYPESAFE_API_KEY</code> on the server.</p>
+      </section>
+      <section class="ts-card">
+        <h2>Typed answers</h2><p class="ts-card-intro">Choice, Noul, and Score are returned as structured values with probabilities and confidence.</p>
+        <div id="ts-answers"><div class="ts-question"><div class="ts-q-head"><span class="ts-q-name">Waiting for evaluation</span><span class="ts-type">ready</span></div><p class="ts-q-copy">Run the sample to see TypeSafe decisions.</p></div></div>
+        <div class="ts-status"><span class="ts-dot" id="ts-dot"></span><span id="ts-status">Ready</span></div>
+      </section>
+      <section class="ts-card" style="grid-column:1/-1">
+        <h2>Same state / same questions</h2><p class="ts-card-intro">Both systems receive the identical task state and the identical four decision questions. The normal model is asked to produce JSON; TypeSafe returns its native typed response. Compare agreement, structure, and confidence / not different tasks.</p>
+        <div class="ts-compare">
+          <div class="ts-compare-panel"><div class="ts-compare-label"><strong>Normal LLM</strong><span id="ts-normal-model">homepage model</span></div><pre class="ts-compare-output" id="ts-normal-output">Run an evaluation to compare the responses.</pre><p class="ts-compare-note">Same state + same criteria · prompted JSON · unconstrained generation</p></div>
+          <div class="ts-compare-panel"><div class="ts-compare-label"><strong>TypeSafe Jev</strong><span>jev-latest</span></div><pre class="ts-compare-output typesafe" id="ts-typesafe-output">Run an evaluation to compare the responses.</pre><p class="ts-compare-note">Choice + Noul + Score · typed answers · probabilities · confidence</p></div>
+        </div>
+      </section>
+      <section class="ts-card" style="grid-column:1/-1"><h2>Raw response</h2><p class="ts-card-intro">The dashboard does not flatten the result; inspect the typed response your application can consume.</p><pre class="ts-json" id="ts-json">{ "status": "ready" }</pre></section>
+    </main>
+  </div>
+  <script>
+    (() => {
+      const stateEl = document.getElementById("ts-state"), run = document.getElementById("ts-run"), demo = document.getElementById("ts-demo");
+      const answers = document.getElementById("ts-answers"), raw = document.getElementById("ts-json"), status = document.getElementById("ts-status"), dot = document.getElementById("ts-dot");
+      const normalOutput = document.getElementById("ts-normal-output"), typesafeOutput = document.getElementById("ts-typesafe-output"), normalModelEl = document.getElementById("ts-normal-model");
+      const signalField = document.querySelector(".ts-signal-field"), cards = [...document.querySelectorAll(".ts-card")];
+      if (window.matchMedia("(pointer:fine)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        addEventListener("pointermove", (event) => {
+          signalField.style.setProperty("--mx", `${event.clientX}px`);
+          signalField.style.setProperty("--my", `${event.clientY}px`);
+          cards.forEach((card) => {
+            const rect = card.getBoundingClientRect();
+            const x = (event.clientX - (rect.left + rect.width / 2)) / rect.width;
+            const y = (event.clientY - (rect.top + rect.height / 2)) / rect.height;
+            const active = rect.top < innerHeight && rect.bottom > 0;
+            card.style.transform = active  /  `perspective(1100px) rotateX(${y * -1.2}deg) rotateY(${x * 1.2}deg)` : "";
+          });
+        });
+        addEventListener("pointerleave", () => cards.forEach((card) => { card.style.transform = ""; }));
+      }
+      let normalModel = "deepseek-v4-flash";
+      fetch("/api/role-chat/health").then((response) => response.json()).then((health) => { if (health.model) normalModel = health.model; normalModelEl.textContent = normalModel; }).catch(() => { normalModelEl.textContent = normalModel; });
+      const examples = [
+        "Design a production agent workflow that discovers open AZZLE tasks across two network deployments without mixing manifests, selects Standard or Micro, validates public versus private scope, handles network-specific asset decimals and gas, prepares an MCP transaction that stops at approvalUrl, and recovers safely if the RPC changes between quote and submission. Return the architecture, invariants, failure modes, and test plan.",
+        "A worker receives a task reference v2:micro:417 from an untrusted marketplace response. It must determine whether the task is public, load the correct network-qualified Micro manifest, verify the connected chain, compare the task registry and payment gateway addresses against the manifest, and refuse to sign if the wallet is on the wrong network. Design the verification sequence and adversarial tests.",
+        "Build a dispute-resilient execution plan for a task that requires an external API, private XMTP negotiation, network-specific collateral, delivery receipts, and an MCP wallet approval. The external API times out after the task is claimed, the first receipt hash is wrong, and the wallet changes networks before payout. Specify what can be retried, what must be recomputed, and what must stop for human review.",
+        "Add a short README section explaining how to run the existing health-check script. Keep the change isolated, include one example command, and return the edited file plus a verification note.",
+        "Fix a malformed JSON fixture in the test folder, run the focused test, and report the exact failure that was corrected. Do not touch production code.",
+        "Machine a replacement aluminum bracket from the supplied drawing. Confirm stock thickness, hole locations, tolerances, edge finishing, and inspection measurements before delivery. Return the machining plan, assumptions, and a concise inspection checklist.",
+        "Diagnose an intermittent 24-volt control-panel fault. Trace the circuit safely, identify the likely failed component, document required lockout and meter checks, and propose a repair only after verifying the wiring against the schematic."
+      ];
+      let example = 0;
+      function setStatus(text, kind) { status.textContent = text; dot.className = "ts-dot" + (kind  /  " " + kind : ""); }
+      function esc(value) { return String(value).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+      function renderAnswers(payload) {
+        const data = payload.answers || {};
+        answers.innerHTML = Object.entries(data).map(([name, answer]) => {
+          const type = answer.type || "answer";
+          let value = answer.choice  /  /  answer.score  /  /  answer.noul;
+          if (typeof value === "number") value = value.toFixed(3);
+          const probabilities = answer.probabilities  /  Object.entries(answer.probabilities).map(([label, probability]) => `<div class="ts-q-copy">${esc(label)} · ${(Number(probability) * 100).toFixed(1)}%</div><div class="ts-bar"><i style="width:${Math.max(0, Math.min(100, Number(probability) * 100))}%"></i></div>`).join("") : "";
+          return `<div class="ts-question"><div class="ts-q-head"><span class="ts-q-name">${esc(name)}</span><span class="ts-type">${esc(type)}</span></div><div class="ts-answer">${esc(value)}</div>${probabilities}<p class="ts-q-copy">confidence ${answer.confidence == null  /  "n/a" : Number(answer.confidence).toFixed(3)}</p></div>`;
+        }).join("") || "<p class='ts-card-intro'>No answers returned.</p>";
+      }
+      async function evaluate() {
+        run.disabled = true; setStatus("Running side-by-side evaluation…", "busy"); raw.textContent = "Loading…"; normalOutput.textContent = "Loading normal model…"; typesafeOutput.textContent = "Loading TypeSafe…";
+        try {
+          const state = stateEl.value;
+          const questions = {
+            market:{type:"choice",instructions:"Which AZZLE market fits this task after considering scope, coordination burden, failure recovery, and verification complexity / ",criteria:{micro:"Small, bounded, low-cost work with a narrow deliverable and few dependencies.",standard:"Larger, multi-step, cross-system, security-sensitive, or coordination-heavy work."}},
+            unsafe_boundary:{type:"noul",instructions:"Does this task contain a material risk of crossing a network, market, asset-decimal, custody, authorization, or approval boundary without an explicit verification step / "},
+            review_risk:{type:"score",instructions:"How much human review risk remains after the proposed workflow is implemented / ",criteria:["Low risk: deterministic checks cover the happy path and failure cases are bounded.","Moderate risk: some semantic judgment or external dependency remains and needs sampled review.","High risk: a wrong decision could move funds, expose private scope, mix deployments, or falsely mark work complete."]},
+            recovery:{type:"choice",instructions:"What should the agent do when a required external dependency or chain precondition fails / ",criteria:{retry:"Retry only an idempotent read or transport operation after checking freshness.",recompute:"Recompute quotes, manifest data, hashes, or transaction parameters before continuing.",escalate:"Stop and request human review because authorization, funds, scope, or correctness is uncertain."}}
+          };
+          const normalRequest = fetch("/api/role-chat", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ model:normalModel, system:"Return ONLY compact valid JSON for these four decisions. No reasoning, markdown, or extra keys. Each value must be a direct answer with a brief reason: market (micro or standard), unsafe_boundary (true or false), review_risk (number 0 to 1), recovery (retry, recompute, or escalate).", messages:[{role:"user",content:`TASK STATE:\\n${state}\\n\\nUse these criteria: micro means small bounded low-cost work; standard means larger, multi-step, cross-system, security-sensitive, or coordination-heavy. unsafe_boundary is true when network, market, decimals, custody, authorization, or approval needs explicit verification. review_risk is 0 for deterministic bounded checks, .5 for remaining judgment/dependencies, 1 when errors could move funds, expose scope, mix deployments, or falsely complete work. recovery chooses retry only for fresh idempotent reads, recompute for stale quotes/manifests/hashes/transactions, otherwise escalate.`}]}) }).then(async (response) => ({ response, payload: await response.json() })).catch((error) => ({ error }));
+          const typesafeRequest = fetch("/api/typesafe", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({state, model:"jev-latest", questions}) }).then(async (response) => ({ response, payload: await response.json() })).catch((error) => ({ error }));
+          const results = { normal: null, typesafe: null };
+          let completed = 0;
+          const finishOne = (name, payload) => {
+            results[name] = payload;
+            completed += 1;
+            raw.textContent = JSON.stringify(results, null, 2);
+            if (completed === 1) setStatus(`${name === "normal"  /  "Normal model" : "TypeSafe"} complete · comparison is live`, "");
+            if (completed === 2) setStatus("Comparison complete", "");
+          };
+          normalRequest.then(({response, payload, error}) => {
+            if (error) { normalOutput.textContent = `Normal model failed: ${error.message}`; finishOne("normal", {error: error.message}); return; }
+            if (!response.ok) { normalOutput.textContent = JSON.stringify(payload, null, 2); finishOne("normal", payload); return; }
+          const normalText = payload.text || payload.choices?.[0]?.message?.content || "Normal model returned no text.";
+            try { normalOutput.textContent = JSON.stringify(JSON.parse(normalText), null, 2); } catch { normalOutput.textContent = normalText; }
+            finishOne("normal", payload);
+          });
+          typesafeRequest.then(({response, payload, error}) => {
+            if (error) { typesafeOutput.textContent = `TypeSafe failed: ${error.message}`; finishOne("typesafe", {error: error.message}); return; }
+            if (!response.ok) { typesafeOutput.textContent = JSON.stringify(payload, null, 2); finishOne("typesafe", payload); return; }
+            renderAnswers(payload); typesafeOutput.textContent = JSON.stringify(payload, null, 2); finishOne("typesafe", payload);
+          });
+          run.disabled = false;
+        } catch (error) { raw.textContent = JSON.stringify({error:error.message}, null, 2); setStatus(error.message, "err"); run.disabled = false; }
+      }
+      run.addEventListener("click", evaluate); demo.addEventListener("click", () => { stateEl.value = examples[example++ % examples.length]; });
+    })();
+  </script>
+  <script src="/theme-toggle.js"></script>
+</body>
+</html>

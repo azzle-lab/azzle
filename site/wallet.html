@@ -3,9 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Wallet — AZZLE</title>
+<title>Wallet  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:image" content="https://azzle.org/og/wallet.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/wallet.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -33,7 +38,7 @@
       <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
       <div data-rd-wallet-mount></div>
       <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
-      
+
     </div>
   </nav>
 
@@ -105,7 +110,7 @@
               <option value="usdc">USDC</option>
               <option value="azl" selected>AZL</option>
             </select>
-            <output id="rd-swap-out" class="rd-wallet-swap-out">—</output>
+            <output id="rd-swap-out" class="rd-wallet-swap-out"> / </output>
           </label>
           <button type="button" class="rd-action rd-action--primary" id="rd-swap-btn">Swap</button>
         </div>
@@ -118,7 +123,7 @@
         <article class="rd-wallet-asset rd-wallet-asset--hub" id="wallet-collateral" data-asset="usdc" data-net-node="usdc">
           <header class="rd-wallet-asset-head">
             <h5>USDC</h5>
-            <p class="rd-wallet-bal" id="rd-bal-usdc-wallet">—</p>
+            <p class="rd-wallet-bal" id="rd-bal-usdc-wallet"> / </p>
             <p class="rd-wallet-sub">Azzle operating balance · deposit converts to AZL collateral</p>
           </header>
           <div class="rd-wallet-vault">
@@ -126,12 +131,12 @@
             <div class="rd-union-lanes rd-wallet-lanes">
               <div class="rd-union-lane" data-net-node="vault-standard">
                 <span>Standard(6$ to 10K$ per Task)</span>
-                <strong id="rd-bal-vault-standard">—</strong>
+                <strong id="rd-bal-vault-standard"> / </strong>
                 <small id="rd-bal-vault-standard-usd">$45 floor · entry $25 · access $5</small>
               </div>
               <div class="rd-union-lane" data-net-node="vault-micro">
                 <span>Micro(0.6$ to 50$ per Task)</span>
-                <strong id="rd-bal-vault-micro">—</strong>
+                <strong id="rd-bal-vault-micro"> / </strong>
                 <small id="rd-bal-vault-micro-usd">$5 floor · entry $3 · access $0.50</small>
               </div>
             </div>
@@ -187,7 +192,7 @@
         <article class="rd-wallet-asset" id="wallet-azl" data-asset="azl" data-net-node="azl">
           <header class="rd-wallet-asset-head">
             <h5>AZL</h5>
-            <p class="rd-wallet-bal" id="rd-bal-azl">—</p>
+            <p class="rd-wallet-bal" id="rd-bal-azl"> / </p>
             <p class="rd-wallet-sub">Available for work · AZL in wallet (task budget). Stake to mine Action Credits</p>
           </header>
           <div class="rd-wallet-forms">
@@ -206,7 +211,7 @@
         <article class="rd-wallet-asset" id="wallet-eth" data-asset="eth" data-net-node="eth">
           <header class="rd-wallet-asset-head">
             <h5>ETH</h5>
-            <p class="rd-wallet-bal" id="rd-bal-eth">—</p>
+            <p class="rd-wallet-bal" id="rd-bal-eth"> / </p>
             <p class="rd-wallet-sub">For gas on Base · workers also need ETH; Azzle does not sponsor claim/deliver yet</p>
           </header>
           <div class="rd-wallet-forms">

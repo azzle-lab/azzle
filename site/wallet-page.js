@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   const $ = (id) => document.getElementById(id);
@@ -41,13 +41,13 @@
 
   function fmtUsdc(n) {
     const v = Number(n);
-    if (!Number.isFinite(v)) return "—";
+    if (!Number.isFinite(v)) return " / ";
     return "$" + v.toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
 
   function fmtAzl(n) {
     const v = Number(n);
-    if (!Number.isFinite(v)) return "—";
+    if (!Number.isFinite(v)) return " / ";
     if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(1) + "B AZL";
     if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + "M AZL";
     return v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " AZL";
@@ -55,7 +55,7 @@
 
   function fmtEth(n) {
     const v = Number(n);
-    if (!Number.isFinite(v)) return "—";
+    if (!Number.isFinite(v)) return " / ";
     if (v < 0.0001) return v.toExponential(2) + " ETH";
     return v.toLocaleString(undefined, { maximumFractionDigits: 6 }) + " ETH";
   }
@@ -120,7 +120,7 @@
     const allowanceHint = $("rd-usdc-allowance-hint");
     if (allowanceHint && lane) {
       allowanceHint.textContent =
-        "USDC gateway allowance: $" + lane.usdcVaultAllowance + " — approval is batched with deposit when needed";
+        "USDC gateway allowance: $" + lane.usdcVaultAllowance + "  /  approval is batched with deposit when needed";
     }
   }
 
@@ -128,7 +128,7 @@
     const azlEl = $("rd-bal-vault-" + market);
     const usdEl = $("rd-bal-vault-" + market + "-usd");
     const e = eco(market);
-    if (azlEl) azlEl.textContent = lane?.configured ? fmtAzl(lane.usdcVault) : "—";
+    if (azlEl) azlEl.textContent = lane?.configured ? fmtAzl(lane.usdcVault) : " / ";
     if (!usdEl) return;
     if (!lane?.configured) {
       usdEl.textContent = money(e.postingFloorUsd) + " floor · vault unavailable";
@@ -148,7 +148,7 @@
     else if (caution) status = " · below " + money(floor) + " floor";
     let text =
       "Collateral value $" +
-      (Number.isFinite(vaultUsd) ? vaultUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—") +
+      (Number.isFinite(vaultUsd) ? vaultUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : " / ") +
       " (20% haircut)" +
       status;
     if (Number.isFinite(marketUsd) && marketUsd > 0) {
@@ -177,7 +177,7 @@
 
     const status = $("rd-wallet-status");
     if (status && b.partial) {
-      status.textContent = "Some Base token reads are delayed — retrying automatically.";
+      status.textContent = "Some Base token reads are delayed  /  retrying automatically.";
       status.classList.remove("ok");
       status.classList.add("busy");
     }
@@ -383,7 +383,7 @@
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const msg = data.error || "Swap request failed.";
-      throw new Error(data.detail && data.detail !== msg ? msg + " — " + data.detail : msg);
+      throw new Error(data.detail && data.detail !== msg ? msg + "  /  " + data.detail : msg);
     }
     return data;
   }
@@ -397,12 +397,12 @@
     swapQuoteAbort = abort;
     syncSwapButton();
     if (from === to) {
-      if (out) out.textContent = "—";
+      if (out) out.textContent = " / ";
       setSwapQuote("Pick two different tokens.", "err");
       return;
     }
     if (!amount || Number(amount) <= 0) {
-      if (out) out.textContent = "—";
+      if (out) out.textContent = " / ";
       setSwapQuote("Enter an amount for a live quote.");
       return;
     }
@@ -415,7 +415,7 @@
       const data = await callSwap({ action: "quote", from, to, amount }, abort.signal);
       if (seq !== swapQuoteSeq) return;
       const quote = data.quote || {};
-      if (out) out.textContent = (quote.estOutputDisplay || "—") + " " + to.toUpperCase();
+      if (out) out.textContent = (quote.estOutputDisplay || " / ") + " " + to.toUpperCase();
       setSwapQuote(
         "≈ " +
           quote.estOutputDisplay +
@@ -429,7 +429,7 @@
       );
     } catch (e) {
       if (seq !== swapQuoteSeq || abort.signal.aborted) return;
-      if (out) out.textContent = "—";
+      if (out) out.textContent = " / ";
       setSwapQuote((e && e.message) || "Could not quote this pair.", "err");
     }
   }
@@ -448,7 +448,7 @@
       setSwapQuote("Swap " + (data.status || "pending") + "…");
       await new Promise((resolve) => setTimeout(resolve, 1600));
     }
-    throw new Error("Swap is still pending — check the wallet again in a moment.");
+    throw new Error("Swap is still pending  /  check the wallet again in a moment.");
   }
 
   async function enableSwaps() {
@@ -493,7 +493,7 @@
       swapPayload: quoted.signRequest.body,
     });
     if (!started?.actionId) throw new Error("Swap did not start. Try again.");
-    setSwapQuote("Swap submitted — waiting for confirmation…");
+    setSwapQuote("Swap submitted  /  waiting for confirmation…");
     const done = await pollSwap(started.actionId, from, to);
     setSwapQuote(
       "Swapped to " + (done.outputDisplay ? done.outputDisplay + " " : "") + to.toUpperCase() + ".",
@@ -596,7 +596,7 @@
         await refresh();
       } else if (result?.status === "submitted") {
         setOnrampHint("Submitted. USDC can take a minute to arrive.", "ok");
-        setStatus("Onramp submitted — waiting for USDC.", "ok");
+        setStatus("Onramp submitted  /  waiting for USDC.", "ok");
         await refresh();
       }
     } catch (e) {
@@ -697,7 +697,7 @@
     setStatus("Confirm in your wallet…", "busy");
     try {
       await fn(poster, (msg) => setStatus(msg, "busy"));
-      setStatus("Done — refreshing balances…", "ok");
+      setStatus("Done  /  refreshing balances…", "ok");
       await refresh();
     } catch (e) {
       setStatus((e && e.message) || "Transaction failed", "err");

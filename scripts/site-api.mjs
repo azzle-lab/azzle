@@ -1,5 +1,5 @@
 /**
- * Shared HTTP handlers for azzle.org — local site-server + Vercel /api/*.
+ * Shared HTTP handlers for azzle.org  /  local site-server + Vercel /api/*.
  * Heavy deps (viem) load only for posting/chain routes.
  */
 import { loadEnvFile } from "./manifest.mjs";
@@ -249,6 +249,17 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {},
         return apiJson(200, { tasks });
       } catch (e) {
         return apiJson(400, { error: e.message ?? String(e) });
+      }
+    }
+
+    if (method === "GET" && (pathname === "/api/get-market-totals" || pathname === "/api/market/totals")) {
+      try {
+        const { summarizeV2Markets } = await import("../api/lib/tasks-rpc-v2.js");
+        return apiJson(200, await summarizeV2Markets(), {
+          "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
+        });
+      } catch (e) {
+        return apiJson(503, { error: "v2_unavailable", message: e.message ?? String(e) });
       }
     }
 

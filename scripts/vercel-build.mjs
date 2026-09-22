@@ -1,5 +1,5 @@
 /**
- * Vercel build — wallet bundle + static site into public/
+ * Vercel build  /  wallet bundle + static site into public/
  * Stages in .vercel-static first, then swaps in (avoids Vercel reading public/ mid-build).
  */
 import * as esbuild from "esbuild";
@@ -70,6 +70,14 @@ const STATIC = [
   "icon.svg",
   "wordmark.svg",
   "docs.css",
+  "brand-guidelines.html",
+  "brand-guidelines.css",
+  "brandguideazzle.png",
+  "azzletypee.png",
+  "fonts/ClashDisplay.ttf",
+  "llms.html",
+  "llms.css",
+  "og-llms.png",
   "llms.txt",
   "openapi.yaml",
   "sitemap.xml",
@@ -175,7 +183,16 @@ try {
   await copyDirRecursive(docsDir, join(stage, "docs"));
   console.log("[vercel-build] docs/ copied");
 } catch {
-  console.warn("[vercel-build] WARN: site/docs/ missing — developer docs not staged");
+  console.warn("[vercel-build] WARN: site/docs/ missing  /  developer docs not staged");
+}
+
+const ogDir = join(site, "og");
+try {
+  await access(ogDir, constants.R_OK);
+  await copyDirRecursive(ogDir, join(stage, "og"));
+  console.log("[vercel-build] branded OG images copied");
+} catch {
+  console.warn("[vercel-build] WARN: site/og/ missing  /  OG images not staged");
 }
 
 await esbuild.build({
@@ -209,7 +226,7 @@ if (privyAppId) {
   );
   console.log("[vercel-build] privy-config.json written");
 } else {
-  console.warn("[vercel-build] WARN: PRIVY_APP_ID unset — Sign in will stay disabled");
+  console.warn("[vercel-build] WARN: PRIVY_APP_ID unset  /  Sign in will stay disabled");
 }
 
 await rm(out, { recursive: true, force: true });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>V2 Explorer — AZZLE Protocol Docs</title>
+  <title>V2 Explorer  /  AZZLE Protocol Docs</title>
   <meta name="description" content="Interactive reference for the complete AZZLE V2 Base deployment graph, lifecycle, oracle, custody, arbitration, staking, and Action Credits."/>
   <link rel="canonical" href="https://azzle.org/docs/azzle-v2-explorer.html"/>
   <link rel="stylesheet" href="/site-theme.css"/>
@@ -325,6 +325,11 @@
       .page-v2-explorer .tour-bar { padding-left:24px; padding-right:24px; }
     }
   </style>
+<meta property="og:image" content="https://azzle.org/og/docs/azzle-v2-explorer.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/azzle-v2-explorer.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs page-v2-explorer" data-docs-page="v2-explorer">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -373,7 +378,7 @@
     <div class="hero">
       <div class="eyebrow">Base · V2 onchain schematic · read-only<span class="cursor">&nbsp;</span></div>
       <h1>AZZLE <span>V2</span></h1>
-      <p class="intro">A map of the contracts behind one job: how dollars become AZL, how a task is posted and paid, and what happens if someone disputes. Addresses come from the live V2 manifest — this page does not invent them.</p>
+      <p class="intro">A map of the contracts behind one job: how dollars become AZL, how a task is posted and paid, and what happens if someone disputes. Addresses come from the live V2 manifest  /  this page does not invent them.</p>
       <div class="badge-row">
         <span class="badge v2">FINALIZED V2 DEPLOYMENT</span>
         <span class="badge">AZL · 18 DECIMALS</span>
@@ -426,7 +431,7 @@
       ['release', '10 · Deployment Gate']
     ];
     const app = document.querySelector('#app'), nav = document.querySelector('#nav');
-    const section = (id, title, lead, body) => `<section id="${id}"><h2><span>${sections.findIndex(x => x[0] === id)+1 < 10 ? '0' : ''}${sections.findIndex(x => x[0] === id)+1}</span>${title}</h2><p class="lead">${lead}</p>${body}</section>`;
+    const section = (id, title, lead, body) => `<section id="${id}"><h2><span>${sections.findIndex(x => x[0] === id)+1 < 10  /  '0' : ''}${sections.findIndex(x => x[0] === id)+1}</span>${title}</h2><p class="lead">${lead}</p>${body}</section>`;
     const card = (title, code, copy, cls='') => `<article class="card ${cls}"><div class="code">${code}</div><h3>${title}</h3><p>${copy}</p></article>`;
 
     const pages = {
@@ -509,7 +514,7 @@
             <div class="step"><i>⚖</i><div><b>Dispute</b><p>Either party can freeze a funded remainder from CLAIMED or ACTIVE, with an evidence hash.</p></div></div>
           </div></div>
         </div>
-        <div class="callout"><b>Cap accounting.</b> The registry stores the task’s USD6 value at posting using <code>quoteUsdForAzlPar</code>—not the collateral haircut—and deletes that latch only on terminal transition.</div>
+        <div class="callout"><b>Cap accounting.</b> The registry stores the task’s USD6 value at posting using <code>quoteUsdForAzlPar</code> / not the collateral haircut / and deletes that latch only on terminal transition.</div>
       `),
       custody: section('custody', 'AZL custody and settlement', 'The deposit ledger and task escrow are separate AZL liabilities. Both reject fee-on-transfer accounting discrepancies and preserve solvency through deferred payouts.', `
         <div class="callout"><b>In simple words.</b> Your deposit balance is your protocol wallet. A task escrow is a separate locked pot for one job. Keeping them separate prevents one task’s payout from changing everyone else’s deposit accounting.</div>
@@ -645,7 +650,7 @@
             <div class="step"><i>1</i><div><b>Validate Base constants</b><p>Chain ID, immutable external addresses, production PoolKey, and dependency code must match.</p></div></div>
             <div class="step"><i>2</i><div><b>CREATE2 all 16 components</b><p>Init code is deployed in a deterministic component order; graph edges are wired only after code exists.</p></div></div>
             <div class="step"><i>3</i><div><b>Validate reciprocal graph links</b><p>Factory checks oracle stack, route, custody, task, arbitration, treasury, and staking relationships.</p></div></div>
-            <div class="step"><i>4</i><div><b>Propose governance ownership</b><p>Owned components—including the delayed-reference adapter—require Safe acceptance.</p></div></div>
+            <div class="step"><i>4</i><div><b>Propose governance ownership</b><p>Owned components / including the delayed-reference adapter / require Safe acceptance.</p></div></div>
           </div></div>
           <div class="card"><h3>Governance activation checklist</h3><div class="stack">
             <div class="step"><i>✓</i><div><b>Manifest and deployed graph validated</b><p>Write and independently verify the V2 manifest from the emitted deployment event and deployed code.</p></div></div>
@@ -735,13 +740,13 @@
         }));
         config.edges.forEach(edge => {
           const from=rects[edge.from], to=rects[edge.to]; if(!from || !to) return;
-          const down = to.cy >= from.cy, sx=from.cx, sy=down ? from.y+from.h : from.y, tx=to.cx, ty=down ? to.y : to.y+to.h;
+          const down = to.cy >= from.cy, sx=from.cx, sy=down  /  from.y+from.h : from.y, tx=to.cx, ty=down  /  to.y : to.y+to.h;
           const mid=(sy+ty)/2 + (edge.offset || 0);
           const p=document.createElementNS(ns,'path');
           p.setAttribute('d', `M ${sx} ${sy} L ${sx} ${mid} L ${tx} ${mid} L ${tx} ${ty}`);
           const colors = {operations:'#39ff88', money:'#33e0c8', oracle:'#ffcf5c', arbitration:'#ff3df0', credits:'#5ec8ff', factory:'#8aa79b'};
           p.setAttribute('data-edge',''); p.setAttribute('class','svg-edge'); p.setAttribute('fill','none'); p.setAttribute('stroke', colors[edge.group] || colors.operations);
-          p.setAttribute('stroke-width',edge.group==='factory' ? '1.1' : '1.8'); p.setAttribute('marker-end',`url(#v2-arrow-${edge.group || 'operations'})`); p.dataset.group=edge.group; p.dataset.from=edge.from; p.dataset.to=edge.to;
+          p.setAttribute('stroke-width',edge.group==='factory'  /  '1.1' : '1.8'); p.setAttribute('marker-end',`url(#v2-arrow-${edge.group || 'operations'})`); p.dataset.group=edge.group; p.dataset.from=edge.from; p.dataset.to=edge.to;
           if(edge.group === 'factory') p.setAttribute('stroke-dasharray','5 4');
           svg.appendChild(p); renderedEdges.push(p);
           if(edge.label) {
@@ -788,7 +793,7 @@
         renderedEdges.forEach(edge => {
           const key=`${edge.dataset.from}:${edge.dataset.to}:${edge.dataset.group}`;
           const isRelevant=relevant.has(key);
-          edge.style.opacity = isRelevant ? '1' : selected ? '.04' : layer === 'all' ? '.68' : '.14';
+          edge.style.opacity = isRelevant  /  '1' : selected  /  '.04' : layer === 'all'  /  '.68' : '.14';
           edge.classList.toggle('edge-related', isRelevant && !!selected && edge.tagName === 'path');
         });
         const detail=document.querySelector('#architecture-detail');
@@ -961,8 +966,8 @@
       const label = tourLabels[id] || id;
       const micro = microTourFor(id);
       const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const beatDuration = reduced ? 60 : 1150;
-      const tailDuration = reduced ? 900 : 1700;
+      const beatDuration = reduced  /  60 : 1150;
+      const tailDuration = reduced  /  900 : 1700;
       const beats = [];
       if (micro && !reduced) {
         beats.push(() => { if (micro.kind === 'layers') { setArchitectureLayerButton('all'); architecture.setFocus('all'); } else { micro.graph.setFocus('all'); } });
@@ -1037,7 +1042,7 @@
     function tourJump(delta) {
       clearTourTimers();
       const current = document.querySelector('section.active');
-      let idx = tourIds.indexOf(current ? current.id : 'overview');
+      let idx = tourIds.indexOf(current  /  current.id : 'overview');
       idx = (idx + delta + tourIds.length) % tourIds.length;
       if (tour.active && tour.playing) { playSection(idx); }
       else {
@@ -1060,8 +1065,9 @@
       if (tour.active && !e.target.closest('#tourBar')) stopTour();
     }, true);
 
-    activate(location.hash.slice(1) in pages ? location.hash.slice(1) : 'overview');
+    activate(location.hash.slice(1) in pages  /  location.hash.slice(1) : 'overview');
   </script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>
