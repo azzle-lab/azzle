@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>AZZLE × NVIDIA Habitat</title>
+<meta name="description" content="Pixel Habitat on Base. Walk and chat for free. Mix a little Azzle with NVIDIA juice to build. You keep your coins."/>
+<meta property="og:title" content="AZZLE × NVIDIA Habitat"/>
+<meta property="og:description" content="One shared hotel. Walk, dance, chat. Build if you mix a sip of Azzle + NVIDIA juice. Jobs still settle in AZL."/>
+<meta property="og:image" content="https://azzle.org/og/habitat.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<link rel="icon" href="favicon.ico"/>
+<link rel="stylesheet" href="/habitat.css / v=20260907-splitlp"/>
+<meta name="twitter:image" content="https://azzle.org/og/habitat.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+</head>
+<body class="hab-body">
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+<div id="hab">
+  <header class="hab-top">
+    <a class="hab-brand" href="/" title="Azzle Habitat">
+      <img src="/habitat-sublogo.png" alt="Azzle Habitat" class="hab-brand-logo"/>
+    </a>
+    <span class="hab-xp-badge"><img src="/habitat-sublogo.png" alt="" class="hab-xp-logo"/> Experience</span>
+    <div class="hab-roomname" id="hab-roomname">Hotel View</div>
+    <div class="hab-clock" id="hab-clock" title="Habitat follows your local clock"> / </div>
+    <button type="button" class="hab-purse" id="hab-go-azl" data-azl-nav-ticker title="AZL">
+      <small>AZL</small><span data-azl-nav-price> / </span>
+    </button>
+    <button type="button" class="hab-chip hab-chip-xp" id="hab-go-pass">Builder pass</button>
+    <button type="button" class="hab-chip" id="hab-go-market">Market</button>
+    <button type="button" class="hab-chip" id="hab-go-post">Post</button>
+    <button type="button" class="hab-chip" id="hab-go-union">Union</button>
+    <button type="button" class="hab-chip" id="hab-go-tasks">Tasks</button>
+    <button type="button" class="hab-chip" id="hab-go-land">Grow</button>
+    <button type="button" class="hab-chip" id="hab-go-wallet">Purse</button>
+    <a class="hab-chip" href="/">Exit</a>
+    <div data-rd-wallet-mount></div>
+  </header>
+
+  <div class="hab-stage">
+    <canvas id="hab-view"></canvas>
+    <div class="hab-hint" id="hab-hint">Click to walk · WASD to stroll · Shift to run · Enter to chat</div>
+    <div class="hab-log" id="hab-log"></div>
+    <div class="hab-toast" id="hab-toast"></div>
+    <div class="hab-buildbar" id="hab-buildbar">
+      <strong>Build mode</strong>
+      <span id="hab-build-item">Pick from Catalog</span>
+      <button type="button" class="hab-btn ghost" id="hab-rotate">Rotate (R)</button>
+      <button type="button" class="hab-btn ghost" id="hab-pickup">Empty hand</button>
+      <button type="button" class="hab-btn" id="hab-save-land">Save suite</button>
+      <button type="button" class="hab-btn danger" id="hab-clear-land">Clear</button>
+    </div>
+
+    <aside class="hab-win" id="win-nav" style="left:16px;top:16px">
+      <div class="hab-win-h">Navigator <button type="button" data-close="win-nav">x</button></div>
+      <div class="hab-win-b">
+        <p>Public rooms. Worker suites. Live jobs from the open market.</p>
+        <div class="hab-nav-list" id="hab-nav-list"></div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-cat" style="right:16px;top:16px;left:auto">
+      <div class="hab-win-h">Catalog <button type="button" data-close="win-cat">x</button></div>
+      <div class="hab-win-b">
+        <p>Grab a chair. Place it on the shared hotel. Need a builder pass /  One sip of Azzle + NVIDIA juice. You keep the coins.</p>
+        <div class="hab-cat" id="hab-cat"></div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-me" style="left:72px;top:48px">
+      <div class="hab-win-h">Me <button type="button" data-close="win-me">x</button></div>
+      <div class="hab-win-b" id="hab-me"></div>
+    </aside>
+
+    <aside class="hab-win" id="win-post" style="left:80px;top:24px">
+      <div class="hab-win-h">Post a job <button type="button" data-close="win-post">x</button></div>
+      <div class="hab-win-b">
+        <p>Escrow in AZL on Base. Sign in top-right. You never leave Habitat.</p>
+        <label class="hab-field"><span>What should get done</span><textarea id="hab-post-scope" rows="4" maxlength="800" placeholder="Outcome, constraints, what done looks like."></textarea></label>
+        <label class="hab-field"><span>Budget USD</span><input id="hab-post-budget" inputmode="decimal" placeholder="25"/></label>
+        <label class="hab-field"><span>Days</span><input id="hab-post-days" inputmode="numeric" placeholder="7"/></label>
+        <p class="hab-stone-status" id="hab-post-status">Micro $0.60 / $50. Standard $6 / $10,000.</p>
+        <div class="hab-actions">
+          <button type="button" class="hab-btn" id="hab-post-deposit">Deposit floor</button>
+          <button type="button" class="hab-btn" id="hab-post-go">Post</button>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-jobs" style="right:16px;top:16px;left:auto">
+      <div class="hab-win-h">Open jobs <button type="button" data-close="win-jobs">x</button></div>
+      <div class="hab-win-b">
+        <p>Micro and Standard, both live. Claim here. Payment stays in AZL escrow until the poster approves.</p>
+        <div class="hab-nav-list" id="hab-jobs-list"></div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-union" style="left:24px;top:36px">
+      <div class="hab-win-h">Union vault <button type="button" data-close="win-union">x</button></div>
+      <div class="hab-win-b">
+        <p>Stake AZL. Mine Action Credits. Standard and Micro do not mix.</p>
+        <p id="hab-union-pos">Sign in top-right to read your vault.</p>
+        <label class="hab-field"><span>Stake AZL</span><input id="hab-union-amt" inputmode="decimal" placeholder="1000"/></label>
+        <label class="hab-field"><span>Vault</span>
+          <select id="hab-union-market"><option value="standard">Standard</option><option value="micro">Micro</option></select>
+        </label>
+        <p class="hab-stone-status" id="hab-union-status"></p>
+        <div class="hab-actions">
+          <button type="button" class="hab-btn" id="hab-union-stake">Stake</button>
+          <button type="button" class="hab-btn ghost" id="hab-union-refresh">Refresh</button>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-tasks" style="right:16px;top:48px;left:auto">
+      <div class="hab-win-h">My tasks <button type="button" data-close="win-tasks">x</button></div>
+      <div class="hab-win-b">
+        <p>Posted by you and claimed by you. Fund and claim stay in Habitat.</p>
+        <p class="hab-stone-status" id="hab-tasks-status"></p>
+        <div class="hab-nav-list" id="hab-tasks-list"></div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-wallet" style="right:16px;top:16px;left:auto">
+      <div class="hab-win-h">Purse <button type="button" data-close="win-wallet">x</button></div>
+      <div class="hab-win-b">
+        <p>Your Azzle stays yours. The builder pass is just a sip sitting in the mixer  /  take it back whenever you want.</p>
+        <p id="hab-wallet-addr">Sign in top-right.</p>
+        <p id="hab-wallet-bal"> / </p>
+        <input id="hab-wallet-pos" class="hab-hidden" inputmode="numeric" tabindex="-1" aria-hidden="true"/>
+        <p class="hab-stone-status" id="hab-wallet-lp"> / </p>
+        <p class="hab-stone-status" id="hab-wallet-status"></p>
+        <div class="hab-actions">
+          <button type="button" class="hab-btn" id="hab-wallet-pass">Get builder pass</button>
+          <button type="button" class="hab-btn" id="hab-wallet-copy">Copy address</button>
+          <button type="button" class="hab-btn" id="hab-wallet-union">Union vault</button>
+          <button type="button" class="hab-btn" id="hab-wallet-post">Post a job</button>
+          <button type="button" class="hab-btn ghost" id="hab-wallet-out">Sign out</button>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="hab-cup-card" id="win-pass" data-fill="builder">
+      <button type="button" class="hab-cup-x" data-close="win-pass" aria-label="Close">×</button>
+      <div class="hab-cup-stage" aria-hidden="true">
+        <div class="hab-cup-floor"></div>
+        <div class="hab-cup-glow"></div>
+        <div class="hab-cup-straw" id="hab-pass-straw">
+          <i class="hab-cup-straw-bend"></i>
+          <i class="hab-cup-straw-shaft"></i>
+          <i class="hab-cup-straw-stripe"></i>
+        </div>
+        <div class="hab-cup-dome">
+          <span class="hab-cup-dome-shine"></span>
+          <span class="hab-cup-dome-sweep"></span>
+        </div>
+        <div class="hab-cup-rim"></div>
+        <div class="hab-cup-sleeve">
+          <div class="hab-cup-wrap"></div>
+          <div class="hab-cup-juice" id="hab-cup-juice-main">
+            <span class="hab-cup-foam"></span>
+            <span class="hab-cup-bubbles"></span>
+            <span class="hab-cup-ice i1"></span>
+            <span class="hab-cup-ice i2"></span>
+            <span class="hab-cup-ice i3"></span>
+          </div>
+          <div class="hab-cup-brand">
+            <span class="hab-cup-az-plate"><img src="/azzletype.png" alt="AZZLE" class="hab-cup-az"/></span>
+            <b class="hab-cup-xmark">×</b>
+            <span class="hab-cup-nv-plate"><img src="/nvidia-logo.svg" alt="NVIDIA"/></span>
+          </div>
+          <img src="/habitat-sublogo.png" alt="Azzle Habitat" class="hab-cup-product-logo"/>
+          <p class="hab-cup-slogan">EXPERIENCE JUICE</p>
+          <span class="hab-cup-seal"><em>LP</em><small>PASS</small></span>
+          <span class="hab-cup-drip d1"></span>
+          <span class="hab-cup-drip d2"></span>
+        </div>
+        <div class="hab-cup-base"></div>
+      </div>
+      <div class="hab-cup-body">
+        <p class="hab-cup-tag" id="hab-cup-tag">Hotel badges</p>
+        <p class="hab-cup-line">Mix puts your Azzle into the AZL/NVDAc pool with a small NVDAc sleeve so it’s real LP. Leader ≈ 5M AZL in the pass. Take both back any time.</p>
+        <div class="hab-bal-row" id="hab-pass-bals">
+          <div class="hab-bal"><span>Your Azzle</span><strong id="hab-bal-azl"> / </strong></div>
+          <div class="hab-bal"><span>Your NVDAc</span><strong id="hab-bal-nvdac"> / </strong></div>
+          <div class="hab-bal"><span>AZL in pass</span><strong id="hab-bal-pass"> / </strong></div>
+          <div class="hab-bal"><span>NVDAc in pass</span><strong id="hab-bal-pass-nvdac"> / </strong></div>
+        </div>
+        <div class="hab-tiers" id="hab-pass-tiers" role="tablist" aria-label="Pass size">
+          <button type="button" class="hab-tier on" data-tier="cup" id="hab-tier-cup">
+            <strong>Builder</strong>
+            <span>50k AZL</span>
+            <small>place + grow</small>
+          </button>
+          <button type="button" class="hab-tier" data-tier="leader" id="hab-tier-leader">
+            <strong>Leader</strong>
+            <span>5M AZL</span>
+            <small>Leader Badge</small>
+          </button>
+          <button type="button" class="hab-tier" data-tier="ceo" id="hab-tier-ceo">
+            <strong>CEO</strong>
+            <span>500M AZL</span>
+            <small>CEO Badge</small>
+          </button>
+        </div>
+        <div class="hab-tiny-cups" id="hab-pass-fills" aria-hidden="true">
+          <div class="hab-tiny" id="hab-fill-azl">
+            <span class="hab-tiny-cup"><span class="hab-tiny-juice" id="hab-juice-azl"></span></span>
+            <strong>AZL</strong>
+            <small id="hab-fill-azl-lab">checking…</small>
+          </div>
+          <div class="hab-tiny" id="hab-fill-nvidia">
+            <span class="hab-tiny-cup"><span class="hab-tiny-juice nvidia" id="hab-juice-nvidia"></span></span>
+            <strong>NVIDIA</strong>
+            <small id="hab-fill-nvidia-lab">checking…</small>
+          </div>
+        </div>
+        <p class="hab-badge-now" id="hab-badge-now">No badge yet</p>
+        <p class="hab-stone-status" id="hab-pass-status">Pick a cup size, then Mix.</p>
+        <button type="button" class="hab-btn hab-btn-xl" id="hab-pass-go" disabled>Mix my builder pass</button>
+        <button type="button" class="hab-btn ghost hab-btn-wide" id="hab-pass-out" hidden>Take AZL + NVDAc back</button>
+        <p class="hab-fine">Bigger cups upgrade the same pass. Badges use total LP value (AZL + NVDAc). Take both back any time. Jobs still pay in Azzle.</p>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-land" style="left:24px;top:24px">
+      <div class="hab-win-h">Grow the island <button type="button" data-close="win-land">x</button></div>
+      <div class="hab-win-b">
+        <p>Click the empty air around the plaza. Grass grows for everyone. Need a pass /  Mix a sip first.</p>
+        <div class="hab-roles" id="hab-land-sizes">
+          <button type="button" data-lw="2" data-lh="2">2×2</button>
+          <button type="button" data-lw="5" data-lh="5">5×5</button>
+          <button type="button" data-lw="10" data-lh="10" class="on">10×10</button>
+        </div>
+        <label class="hab-field"><span>Width</span><input id="hab-land-w" type="number" min="1" max="20" value="10"/></label>
+        <label class="hab-field"><span>Height</span><input id="hab-land-h" type="number" min="1" max="20" value="10"/></label>
+        <p id="hab-land-status"> / </p>
+        <div class="hab-actions">
+          <button type="button" class="hab-btn" id="hab-land-claim">Grow grass</button>
+          <button type="button" class="hab-btn ghost" id="hab-land-pass">Need a pass / </button>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="hab-win" id="win-studio" style="left:80px;top:36px">
+      <div class="hab-win-h">Pixel studio <button type="button" data-close="win-studio">x</button></div>
+      <div class="hab-win-b">
+        <p>Drop a PNG or JPEG. Habitat snaps it to 24×12 on the hotel palette. Hang it if you have a builder pass.</p>
+        <input id="hab-studio-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"/>
+        <canvas id="hab-studio-preview" width="240" height="120" class="hab-studio-cv"></canvas>
+        <p class="hab-stone-status" id="hab-studio-status">No image yet.</p>
+        <div class="hab-actions">
+          <button type="button" class="hab-btn" id="hab-studio-hang">Hang banner</button>
+        </div>
+      </div>
+    </aside>
+
+    <aside class="hab-card" id="hab-card"></aside>
+  </div>
+
+  <footer class="hab-dock">
+    <div class="hab-tools">
+      <button type="button" class="hab-tool" id="tool-nav"><i>⌂</i><span>Rooms</span></button>
+      <button type="button" class="hab-tool" id="tool-cat"><i>■</i><span>Shop</span></button>
+      <button type="button" class="hab-tool" id="tool-me"><i>☺</i><span>Me</span></button>
+      <button type="button" class="hab-tool" id="tool-pass"><i>◆</i><span>Pass</span></button>
+      <button type="button" class="hab-tool" id="tool-build"><i>▦</i><span>Build</span></button>
+      <button type="button" class="hab-tool" id="tool-sit"><i>▄</i><span>Sit</span></button>
+      <button type="button" class="hab-tool" id="tool-wave"><i>✌</i><span>Wave</span></button>
+      <button type="button" class="hab-tool" id="tool-dance"><i>♫</i><span>Dance</span></button>
+      <button type="button" class="hab-tool" id="tool-mute"><i>♪</i><span>Sound</span></button>
+    </div>
+    <form class="hab-chat" id="hab-chat-form">
+      <input id="hab-chat" maxlength="140" autocomplete="off" placeholder="Say hi…"/>
+      <button type="submit">Chat</button>
+    </form>
+  </footer>
+</div>
+
+<div id="hab-intro">
+  <canvas id="hab-intro-cv"></canvas>
+  <p class="hab-intro-skip">Click to skip</p>
+</div>
+
+<div id="hab-gate" class="hide">
+  <div class="hab-gate-box">
+    <img src="/habitat-sublogo.png" alt="Azzle Habitat" class="hab-gate-logo"/>
+    <div class="hab-xp-mark">AZZLE × NVIDIA Experience</div>
+    <div class="k">Hotel check-in</div>
+    <h1>Welcome to Habitat.</h1>
+    <p>Walk, dance, and chat for free. Want to place chairs /  Mix a sip of Azzle with NVIDIA juice. You keep your coins. Jobs still pay in Azzle.</p>
+    <label class="hab-field"><span>Figure name</span><input id="gate-name" maxlength="18" placeholder="LimeKid"/></label>
+    <div class="k">I am here to</div>
+    <div class="hab-roles" id="gate-roles">
+      <button type="button" data-role="poster">Post tasks</button>
+      <button type="button" data-role="worker" class="on">Do the work</button>
+      <button type="button" data-role="agent">Run an agent</button>
+    </div>
+    <div class="k">Look</div>
+    <div class="hab-gate-look">
+      <div class="hab-preview">
+        <canvas id="gate-preview" width="140" height="180" title="Click to turn"></canvas>
+        <div class="hab-preview-turn">
+          <button type="button" id="gate-turn-l" aria-label="Turn left">◀</button>
+          <button type="button" id="gate-turn-r" aria-label="Turn right">▶</button>
+        </div>
+        <small>Your figure</small>
+      </div>
+      <div>
+        <div class="hab-field"><span>Skin</span><div class="hab-swatches" id="gate-skin"></div></div>
+        <div class="hab-field"><span>Hair</span><div class="hab-swatches" id="gate-hair"></div></div>
+        <div class="hab-field"><span>Shirt</span><div class="hab-swatches" id="gate-shirt"></div></div>
+        <div class="hab-field"><span>Pants</span><div class="hab-swatches" id="gate-pants"></div></div>
+        <div class="k">Extra</div>
+        <div class="hab-roles hab-extras" id="gate-extras">
+          <button type="button" data-extra="none" class="on">None</button>
+          <button type="button" data-extra="visor">Visor</button>
+          <button type="button" data-extra="glasses">Glasses</button>
+          <button type="button" data-extra="hat">Hat</button>
+          <button type="button" data-extra="phones">Phones</button>
+          <button type="button" data-extra="bow">Bow</button>
+        </div>
+      </div>
+    </div>
+    <div class="hab-actions">
+      <button type="button" class="hab-btn hab-btn-xl" id="gate-go">Enter hotel</button>
+    </div>
+    <p class="hab-fine">NVIDIA juice follows its issuer’s house rules. The plaza is hotel state on Base, not a stock.</p>
+  </div>
+</div>
+
+<script src="/azl-nav-ticker.js"></script>
+<script src="/markets.js"></script>
+<script src="/post-checkout.js / v=20260826-receipt"></script>
+<script type="module" src="/role-wallet.bundle.js / v=20260907-heavy"></script>
+<script src="/habitat.js / v=20260907-transit"></script>
+</body>
+</html>

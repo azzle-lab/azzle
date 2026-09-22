@@ -215,6 +215,12 @@ function parseRegistryTaskId(taskId) {
   return BigInt(parseTaskRef(taskId).localId);
 }
 
+function parseScopeTaskId(taskId) {
+  const value = String(taskId ?? "").trim();
+  if (/^\d+$/.test(value)) return BigInt(value);
+  return parseRegistryTaskId(value);
+}
+
 async function loadConfigForTask(taskId) {
   return loadSiteConfig(parseTaskRef(taskId).market);
 }
@@ -834,7 +840,7 @@ async function readOnchainScope(publicClient, scopeRegistry, taskId) {
       address: scopeRegistry,
       abi: SCOPE_REGISTRY_ABI,
       functionName: "scopeOf",
-      args: [parseRegistryTaskId(taskId)],
+      args: [parseScopeTaskId(taskId)],
     });
     const text = String(scope ?? "").trim();
     return text || null;
@@ -850,7 +856,7 @@ async function writeSetScope(walletClient, publicClient, scopeRegistry, taskId, 
       address: scopeRegistry,
       abi: SCOPE_REGISTRY_ABI,
       functionName: "publish",
-      args: [parseRegistryTaskId(taskId), scope.trim()],
+      args: [parseScopeTaskId(taskId), scope.trim()],
     });
     return publicClient.waitForTransactionReceipt({ hash });
   }, onProgress);
@@ -1270,7 +1276,7 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       requireConfiguredAddress("pricing policy", c?.pricingPolicy);
 
       const publicClient = getPublicClient(cfg);
-      const [usdcBal, depositBal, availableBal, azlBal, usdcAllowGateway, quote] = await Promise.all([
+      const [usdcBal, depositBal, availableBal, azlBal, usdcAllowGateway, quote, stakingActive, credits] = await Promise.all([
         publicClient.readContract({
           address: c.usdc,
           abi: ERC20_ABI,
@@ -1306,6 +1312,21 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
           abi: PRICING_POLICY_ABI,
           functionName: "quoteTask",
         }),
+        c.stakingVault
+          ? publicClient.readContract({
+              address: c.stakingVault,
+              abi: STAKING_ABI,
+              functionName: "stakingActive",
+            }).catch(() => false)
+          : false,
+        c.stakingVault
+          ? publicClient.readContract({
+              address: c.stakingVault,
+              abi: STAKING_ABI,
+              functionName: "creditsOf",
+              args: [address],
+            }).catch(() => 0n)
+          : 0n,
       ]);
 
       const deposit = depositBal ?? 0n;
@@ -1314,10 +1335,14 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       const entryDeposit = quote?.entryDeposit ?? 0n;
       const liveTaskReserve = quote?.liveTaskReserve ?? 0n;
       const accessFee = quote?.accessFee ?? 0n;
+      const actionCredits = credits ?? 0n;
+      const usesActionCredit = Boolean(stakingActive) && actionCredits >= 10n ** 18n;
+      const chargedAccessFee = usesActionCredit ? 0n : accessFee;
+      const requiredAvailable = entryDeposit + liveTaskReserve + chargedAccessFee;
       const needsDeposit = deposit < entryDeposit;
-      const needsPostTopUp = available < entryDeposit + liveTaskReserve + accessFee;
+      const needsPostTopUp = available < requiredAvailable;
       const postCollateralShortfallAzl = needsPostTopUp
-        ? entryDeposit + liveTaskReserve + accessFee - available
+        ? requiredAvailable - available
         : 0n;
       const needsUsdcApprove = (usdcAllowGateway ?? 0n) === 0n;
       const collateralShortfallAzl = needsDeposit ? entryDeposit - deposit : 0n;
@@ -1347,12 +1372,16 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         needsUsdcApprove,
         depositReady: !needsDeposit,
         canDeposit: usdc > 0n,
-        canPost:
-          available >= entryDeposit + liveTaskReserve + accessFee &&
-          (azlBal ?? 0n) >= AZL_PER_ACTION,
+        canPost: available >= requiredAvailable &&
+          (usesActionCredit || (azlBal ?? 0n) >= AZL_PER_ACTION),
+        usesActionCredit,
+        actionCredits: formatUnits(actionCredits, 18),
+        wholeActionCredits: (actionCredits / 10n ** 18n).toString(),
+        stakingActive: Boolean(stakingActive),
         taskFloorMin: formatUnits(liveTaskReserve, 18),
-        listingFeeUsdc: formatUnits(accessFee, 18),
+        listingFeeUsdc: formatUnits(chargedAccessFee, 18),
         accessFeeAzl: formatUnits(accessFee, 18),
+        chargedAccessFeeAzl: formatUnits(chargedAccessFee, 18),
         accessFeeUsd: selectedMarket() === "micro" ? "0.50 per task" : "5 per task",
         entryDepositMin: formatUnits(entryDeposit, 18),
         collateralShortfallAzl: formatUnits(collateralShortfallAzl, 18),

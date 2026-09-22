@@ -1,4 +1,4 @@
-(function (global) {
+﻿(function (global) {
   "use strict";
 
   var ZERO = "0x0000000000000000000000000000000000000000";
@@ -7,7 +7,7 @@
     standard: {
       id: "standard",
       label: "Standard",
-      range: "$6 – $10k",
+      range: "$6  /  $10k",
       entryDepositUsd: 25,
       liveTaskReserveUsd: 8,
       accessFeeUsd: 5,
@@ -23,7 +23,7 @@
     micro: {
       id: "micro",
       label: "Micro",
-      range: "$0.60 – $50",
+      range: "$0.60  /  $50",
       entryDepositUsd: 3,
       liveTaskReserveUsd: 1,
       accessFeeUsd: 0.5,
@@ -47,7 +47,7 @@
 
   function money(n) {
     var value = Number(n);
-    if (!Number.isFinite(value)) return "—";
+    if (!Number.isFinite(value)) return " / ";
     if (value >= 1000) return "$" + value.toLocaleString("en-US");
     if (Number.isInteger(value)) return "$" + value;
     return "$" + value.toFixed(2);
@@ -75,7 +75,7 @@
       exit: money(e.exitCompensationUsd) + " / " + money(e.exitProtocolShareUsd),
       minTask: money(e.minTaskUsd),
       maxTask: money(e.maxTaskUsd),
-      budgetRange: money(e.minTaskUsd) + " – " + money(e.maxTaskUsd),
+      budgetRange: money(e.minTaskUsd) + "  /  " + money(e.maxTaskUsd),
       creditRate: e.creditRate,
       creditCap: e.creditCap,
     };

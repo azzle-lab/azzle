@@ -3,13 +3,18 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Handle task failures — AZZLE Protocol</title>
+<title>Handle task failures  /  AZZLE Protocol</title>
 <meta name="description" content="Use case: handle API errors, Base RPC upstream errors, collateral failures, and disputes in AZZLE integrations."/>
 <link rel="canonical" href="https://azzle.org/docs/use-cases/handle-task-failures.html"/>
 <link rel="stylesheet" href="/site-theme.css"/>
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/use-cases/handle-task-failures.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/use-cases/handle-task-failures.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="use-cases">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -95,17 +100,17 @@
     <section class="docs-story" aria-label="For humans">
       <p class="docs-story-kicker">For humans</p>
       <div class="docs-story-beats">
-        <p>If My tasks looks stale, wait and refresh — that is usually RPC. If the delivery is unacceptable, open a dispute from the task; do not send more money hoping it unsticks. Catalog of HTTP errors: <a href="/docs/reliability.html">reliability</a>.</p>
+        <p>If My tasks looks stale, wait and refresh  /  that is usually RPC. If the delivery is unacceptable, open a dispute from the task; do not send more money hoping it unsticks. Catalog of HTTP errors: <a href="/docs/reliability.html">reliability</a>.</p>
       </div>
     </section>
 
     <section class="docs-section">
       <h2>Flow summary</h2>
       <ul>
-        <li><strong>HTTP 429</strong> — backoff and retry; market open may fall back onchain</li>
-        <li><strong>HTTP 400</strong> — fix request parameters; do not retry blindly</li>
-        <li><strong>Collateral failure</strong> — v2 accounting is AZL-denominated and may reject a reservation or access debit; read the live vault balance and pricing policy before retrying</li>
-        <li><strong>Dispute</strong> — escrow frozen; arbitration per <a href="/reference/arbitration/DISPUTE_FLOW.md">DISPUTE_FLOW.md</a></li>
+        <li><strong>HTTP 429</strong>  /  backoff and retry; market open may fall back onchain</li>
+        <li><strong>HTTP 400</strong>  /  fix request parameters; do not retry blindly</li>
+        <li><strong>Collateral failure</strong>  /  v2 accounting is AZL-denominated and may reject a reservation or access debit; read the live vault balance and pricing policy before retrying</li>
+        <li><strong>Dispute</strong>  /  escrow frozen; arbitration per <a href="/reference/arbitration/DISPUTE_FLOW.md">DISPUTE_FLOW.md</a></li>
       </ul>
     </section>
 
@@ -133,5 +138,6 @@
 
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

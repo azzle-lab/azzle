@@ -4,6 +4,7 @@ import { base } from "viem/chains";
 import { isMarketLive, loadMarketManifest, normalizeMarket, parseTaskRef } from "./markets.js";
 
 const RPC_URL = process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+let client;
 
 const TASK_STATE = [
   "NONE",

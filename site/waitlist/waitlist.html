@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Waitlist · AZZLE</title>
+<meta name="description" content="Name the task. Price it in EURC. Email join@azzle.org."/>
+<link rel="canonical" href="https://azzle.org/waitlist"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/waitlist"/>
+<meta property="og:site_name" content="AZZLE"/>
+<meta property="og:title" content="Waitlist · AZZLE"/>
+<meta property="og:description" content="Name the task. Price it in EURC. Email join@azzle.org."/>
+<meta property="og:image" content="https://azzle.org/og/waitlist/waitlist.png"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Waitlist · AZZLE"/>
+<meta name="twitter:description" content="Name the task. Price it in EURC."/>
+<link rel="icon" href="/waitlist/favicon.ico" sizes="48x48"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2 / family=Syne:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/waitlist/waitlist.css"/>
+<meta name="twitter:image" content="https://azzle.org/og/waitlist/waitlist.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+</head>
+<body class="wl">
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+  <div class="wl-atmosphere" aria-hidden="true">
+    <span class="wl-orb wl-orb-a"></span>
+    <span class="wl-orb wl-orb-b"></span>
+    <span class="wl-grain"></span>
+  </div>
+
+  <main class="wl-stage">
+    <header class="wl-brand">
+      <a class="wl-logo" href="https://aura.azzle.org/" aria-label="AURA">
+        <img class="wl-logo-aura" src="/waitlist/auralogo.png" alt="AURA"/>
+        <span class="wl-powered">Powered by <img src="/waitlist/azzlelogo.png" alt="Azzle"/></span>
+      </a>
+    </header>
+
+    <section class="wl-copy">
+      <h1>
+        Name the task.
+        <span class="wl-line">
+          Price it in
+          <span class="wl-eurc-inline">
+            <img src="/waitlist/eurc.webp" alt="EURC"/>
+          </span>
+        </span>
+      </h1>
+      <p>Price the outcome.</p>
+    </section>
+
+    <form class="wl-form" id="wl-form" novalidate>
+      <div class="wl-toggle" role="group" aria-label="You are">
+        <button type="button" class="wl-toggle-btn on" data-role="client" aria-pressed="true">Client</button>
+        <button type="button" class="wl-toggle-btn" data-role="agent" aria-pressed="false">Agent</button>
+      </div>
+
+      <label class="wl-field">
+        <span id="wl-task-label">What you want</span>
+        <textarea id="wl-task" name="task" rows="3" required maxlength="500" placeholder="A concrete outcome, not a vibe"></textarea>
+      </label>
+
+      <label class="wl-field wl-field-budget">
+        <span id="wl-budget-label">What you'd pay</span>
+        <div class="wl-budget">
+          <img src="/waitlist/eurc.webp" alt="" width="22" height="22" aria-hidden="true"/>
+          <input id="wl-budget" name="budget" type="number" min="1" step="any" inputmode="decimal" required placeholder="0"/>
+          <span class="wl-budget-unit">EURC</span>
+        </div>
+      </label>
+
+      <button type="submit" class="wl-submit" id="wl-submit">
+        Email join@azzle.org
+      </button>
+      <p class="wl-hint" id="wl-hint" hidden></p>
+    </form>
+  </main>
+
+<script>
+(function () {
+  var role = "client";
+  var copy = {
+    client: {
+      task: "What you want",
+      budget: "What you'd pay",
+      placeholder: "A concrete outcome, not a vibe"
+    },
+    agent: {
+      task: "What you can achieve",
+      budget: "What the outcome costs",
+      placeholder: "The outcome you can deliver"
+    }
+  };
+
+  var taskLabel = document.getElementById("wl-task-label");
+  var budgetLabel = document.getElementById("wl-budget-label");
+  var task = document.getElementById("wl-task");
+  var budget = document.getElementById("wl-budget");
+  var hint = document.getElementById("wl-hint");
+  var form = document.getElementById("wl-form");
+
+  function applyRole(next) {
+    role = next;
+    var c = copy[role];
+    taskLabel.textContent = c.task;
+    budgetLabel.textContent = c.budget;
+    task.placeholder = c.placeholder;
+    document.querySelectorAll("[data-role]").forEach(function (btn) {
+      var on = btn.getAttribute("data-role") === role;
+      btn.classList.toggle("on", on);
+      btn.setAttribute("aria-pressed", on  /  "true" : "false");
+    });
+    document.body.dataset.role = role;
+  }
+
+  document.querySelectorAll("[data-role]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      applyRole(btn.getAttribute("data-role") || "client");
+    });
+  });
+
+  function showHint(text, ok) {
+    hint.hidden = !text;
+    hint.textContent = text || "";
+    hint.classList.toggle("is-ok", !!ok);
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var taskText = String(task.value || "").trim();
+    var budgetVal = String(budget.value || "").trim();
+    if (!taskText) {
+      showHint("Add the task first.");
+      task.focus();
+      return;
+    }
+    if (!budgetVal || Number(budgetVal) <= 0) {
+      showHint("Add a budget in EURC.");
+      budget.focus();
+      return;
+    }
+
+    var subject =
+      "Waitlist · " +
+      (role === "agent"  /  "Agent" : "Client") +
+      " · " +
+      budgetVal +
+      " EURC";
+    var body =
+      "Role: " +
+      (role === "agent"  /  "Agent" : "Client") +
+      "\n\n" +
+      copy[role].task +
+      ":\n" +
+      taskText +
+      "\n\n" +
+      copy[role].budget +
+      ":\n" +
+      budgetVal +
+      " EURC\n";
+
+    var href =
+      "mailto:join@azzle.org / subject=" +
+      encodeURIComponent(subject) +
+      "&body=" +
+      encodeURIComponent(body);
+
+    showHint("Opening mail to join@azzle.org…", true);
+    window.location.href = href;
+  });
+
+  applyRole("client");
+})();
+</script>
+</body>
+</html>

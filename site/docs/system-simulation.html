@@ -3,11 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>V2 lifecycle simulation — AZZLE Protocol</title>
+  <title>V2 lifecycle simulation  /  AZZLE Protocol</title>
   <meta name="description" content="Interactive AZZLE V2 fixed-total AZL task lifecycle simulation.">
   <link rel="stylesheet" href="/site-theme.css">
   <link rel="stylesheet" href="/role-dashboard.css">
   <link rel="stylesheet" href="/docs.css">
+<meta property="og:image" content="https://azzle.org/og/docs/system-simulation.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/system-simulation.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -34,7 +39,7 @@
       <h2>Canonical sources</h2>
       <ul>
         <li><a href="/docs/contracts.html">V2 contract reference</a></li>
-        <li><a href="/docs/markets.html">Markets</a> — standard vs micro graphs</li>
+        <li><a href="/docs/markets.html">Markets</a>  /  standard vs micro graphs</li>
         <li><a href="/docs/azzle-v2-explorer.html">V2 explorer</a></li>
         <li><a href="/reference/contracts/src/v2/TaskRegistryV2.sol">TaskRegistryV2.sol</a></li>
       </ul>
@@ -64,7 +69,7 @@
     const callLog = document.querySelector("#calls");
     function render() {
       flow.innerHTML = states.map((state, i) =>
-        `${i ? "<span>→</span>" : ""}<code style="padding:8px;border:1px solid ${i === index ? "#dcff28" : "#555"}">${state}</code>`
+        `${i  /  "<span>→</span>" : ""}<code style="padding:8px;border:1px solid ${i === index  /  "#dcff28" : "#555"}">${state}</code>`
       ).join("");
       description.textContent = descriptions[states[index]];
       callLog.textContent = calls.slice(0, Math.max(0, index)).join("\n") || "// no calls yet";
@@ -74,5 +79,6 @@
     render();
   </script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

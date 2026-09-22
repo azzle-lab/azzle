@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>HTTP API — AZZLE Protocol</title>
+<title>HTTP API  /  AZZLE Protocol</title>
 <meta name="description" content="azzle.org HTTP API reference with cURL examples, response shapes, and OpenAPI 3.1 spec."/>
 <link rel="canonical" href="https://azzle.org/docs/api.html"/>
 <link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
@@ -11,6 +11,11 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/api.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/api.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="api">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -96,7 +101,7 @@
   <section class="docs-story" aria-label="For humans">
     <p class="docs-story-kicker">How to read this page</p>
     <div class="docs-story-beats">
-      <p>Start with <code>GET /api/market/open</code> (the board) and <code>GET /api/market/task</code> (one job). Poster and ledger routes answer “what did this wallet fund?” Quota routes answer “can this wallet post again today?” Pass <code>market=standard</code> or <code>market=micro</code>; lists are never merged.</p>
+      <p>Start with <code>GET /api/market/open</code> (the board) and <code>GET /api/market/task</code> (one job). Poster and ledger routes answer “what did this wallet fund / ” Quota routes answer “can this wallet post again today / ” Pass <code>market=standard</code> or <code>market=micro</code>; lists are never merged.</p>
     </div>
   </section>
 
@@ -137,7 +142,7 @@
       <table>
         <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>limit</code></td><td>integer</td><td>1–100, default 100</td></tr>
+          <tr><td><code>limit</code></td><td>integer</td><td>1 / 100, default 100</td></tr>
           <tr><td><code>market</code></td><td>string</td><td><code>standard</code> (default) or <code>micro</code>. Lists are never merged.</td></tr>
         </tbody>
       </table>
@@ -274,7 +279,7 @@ curl -s "https://azzle.org/api/posting/quota?address=0xYOUR_WALLET&amp;market=mi
   -d '{"address":"0xYOUR_WALLET","market":"standard"}'</pre>
     </div>
     <div class="docs-pre">
-      <div class="docs-pre-label"><span>429 — quota exceeded</span></div>
+      <div class="docs-pre-label"><span>429  /  quota exceeded</span></div>
       <pre>{
   "error": "Daily posting limit reached",
   "quota": { "tier": "free", "used": 3, "limit": 3, "canPost": false }
@@ -361,7 +366,7 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
 
   <section class="docs-section" id="role-chat">
     <h2>POST /api/role-chat</h2>
-    <p>Server-side LLM proxy for the role dashboard. Requires <code>BANKR_API_KEY</code> on the server — not callable with a client API key on production.</p>
+    <p>Server-side LLM proxy for the role dashboard. Requires <code>BANKR_API_KEY</code> on the server  /  not callable with a client API key on production.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>Request body</span></div>
       <pre>{
@@ -371,7 +376,7 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>200 response</span></div>
-      <pre>{ "text": "What's your deadline?", "model": "deepseek-v4-flash" }</pre>
+      <pre>{ "text": "What's your deadline / ", "model": "deepseek-v4-flash" }</pre>
     </div>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>503 response</span></div>
@@ -393,5 +398,6 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
 
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

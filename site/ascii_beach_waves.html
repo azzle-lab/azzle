@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASCII Shore — top-down waves</title>
+<title>ASCII Shore  /  top-down waves</title>
 <style>
   html, body {
     margin: 0;
@@ -39,6 +39,10 @@
   .wave-hint.is-gone { opacity: 0; }
   .wave-hint.is-myth { color: rgba(230, 255, 74, 0.72); }
 </style>
+<meta property="og:image" content="https://azzle.org/og/ascii_beach_waves.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/ascii_beach_waves.png"/>
 </head>
 <body>
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -67,7 +71,7 @@ window.addEventListener('resize', resize);
 resize();
 
 // ---- helpers ----
-function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function clamp(v, a, b) { return v < a  /  a : (v > b  /  b : v); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 // cheap deterministic hash noise, stable per cell (no time term)
@@ -180,12 +184,12 @@ function sampleField(xN, yN, charge) {
     const s = imp.strength;
     const decay = Math.exp(-age * 0.22) * (1 - age / IMPULSE_LIFE);
 
-    // Circular splash — energy fans both ways and crosses the incoming set.
+    // Circular splash  /  energy fans both ways and crosses the incoming set.
     const ringR = age * (0.11 + s * 0.045);
     const ring = Math.exp(-((dist - ringR) * (dist - ringR)) / (0.0016 + s * 0.0024));
     const circ = Math.sin(dist * 56 - age * THROW_OMEGA) + 0.42 * Math.sin(dist * 31 - age * THROW_OMEGA * 2);
 
-    // Directed counter-swell: travels seaward (−y), against the beach-bound waves.
+    // Directed counter-swell: travels seaward ( / y), against the beach-bound waves.
     const packetY = yN - (imp.y - age * (0.118 + s * 0.04));
     const packetX = dx / (0.085 + s * 0.09);
     const packet = Math.exp(-(packetY * packetY) / (0.0032 + s * 0.0048) - packetX * packetX);
@@ -326,7 +330,7 @@ function frame() {
         intensity *= 0.62 + 0.38 * Math.sin(xN * 55 + SHORE_OMEGA * t + r * 0.9);
         intensity = clamp(intensity * (0.72 + 0.28 * beat), 0, 1);
 
-        const sparkle = hash(c + Math.floor(t * 6), r) > 0.93 ? 1 : 0;
+        const sparkle = hash(c + Math.floor(t * 6), r) > 0.93  /  1 : 0;
         const idx = clamp(Math.floor(intensity * (foamChars.length - 1)) + sparkle, 0, foamChars.length - 1);
         ch = foamChars[idx];
         color = lerpColor(FOAM_LO, FOAM_HI, intensity);
@@ -343,12 +347,12 @@ function frame() {
         ch = waterChars[idx];
         const colorT = clamp(depth - field * 0.12, 0, 1);
         color = colorT > 0.55
-          ? lerpColor(MID, DEEP, (colorT - 0.55) / 0.45)
+           /  lerpColor(MID, DEEP, (colorT - 0.55) / 0.45)
           : lerpColor(SHALLOW, MID, colorT / 0.55);
       } else {
         const wetness = clamp(d - foamBack, 0, 0.25) / 0.25;
         const n = sandNoise[r * cols + c];
-        const idx = n > 0.93 ? 3 : n > 0.8 ? 4 : n > 0.55 ? 2 : 0;
+        const idx = n > 0.93  /  3 : n > 0.8  /  4 : n > 0.55  /  2 : 0;
         ch = sandChars[idx];
         color = lerpColor(WET, DRY, wetness);
       }
@@ -366,7 +370,7 @@ function frame() {
           const lit = charge > 0.001 && tau <= chargeAngle + 0.06;
           const head = lit && Math.abs(tau - chargeAngle) < 0.18;
           const glow = lit
-            ? 0.62 + charge * 0.38 + (head ? 0.18 : 0)
+             /  0.62 + charge * 0.38 + (head  /  0.18 : 0)
             : 0.22 + charge * 0.08;
           color = `rgba(230, 255, 74, ${glow})`;
         } else if (distB < innerR) {

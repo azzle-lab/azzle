@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Markets — AZZLE Protocol</title>
+<title>Markets  /  AZZLE Protocol</title>
 <meta name="description" content="AZZLE V2 standard and micro markets on Base: isolated graphs, task ids, economics, and discovery."/>
 <link rel="canonical" href="https://azzle.org/docs/markets.html"/>
 <link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
@@ -11,6 +11,11 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/markets.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/markets.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="markets">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -97,7 +102,7 @@
       <p class="docs-story-kicker">For humans</p>
       <div class="docs-story-beats">
         <p><strong>Micro</strong> is the cheap, small-job lane: budget up to $50, $0.50 access, $5 posting floor. <strong>Standard</strong> is the larger lane: budget up to $10,000, $5 access, $45 posting floor. The site picks the lane from the budget you type. You cannot move a deposit from one lane to the other.</p>
-        <p>AZL, the price oracle, and the pool are shared so both lanes see the same dollar quote. Everything that holds your money or your score — vault, escrow, staking, credits, reputation — is duplicated. A wallet funded on standard is empty on micro until you fund micro too.</p>
+        <p>AZL, the price oracle, and the pool are shared so both lanes see the same dollar quote. Everything that holds your money or your score  /  vault, escrow, staking, credits, reputation  /  is duplicated. A wallet funded on standard is empty on micro until you fund micro too.</p>
       </div>
     </section>
 
@@ -109,7 +114,7 @@
           <tbody>
             <tr><td>Task ids</td><td><code>v2:standard:N</code></td><td><code>v2:micro:N</code></td></tr>
             <tr><td>Manifest</td><td><code>base-8453.json</code></td><td><code>base-8453-micro.json</code></td></tr>
-            <tr><td>Range</td><td>$10 – $10k</td><td>Up to $50</td></tr>
+            <tr><td>Range</td><td>$10  /  $10k</td><td>Up to $50</td></tr>
             <tr><td>Posting floor</td><td>$45</td><td>$5</td></tr>
             <tr><td>Entry / live / access</td><td>$25 / $8 / $5</td><td>$3 / $1 / $0.50</td></tr>
             <tr><td>Exit split</td><td>$2.50 / $2.50</td><td>$0.25 / $0.25</td></tr>
@@ -151,11 +156,11 @@ curl -s "https://azzle.org/api/site-config?market=micro"</pre>
     <section class="docs-section">
       <h2>Specs</h2>
       <ul>
-        <li><a href="/reference/protocol/MARKETS.md">MARKETS.md</a> — canonical market rules</li>
-        <li><a href="/docs/contracts.html">Contracts</a> — both graphs, loaded from manifests</li>
-        <li><a href="/docs/integrate.html">Integrate</a> — posting floors and deposit gates</li>
-        <li><a href="/docs/union-staking.html">Union staking</a> — isolated credit schedules</li>
-        <li><a href="/llms.txt">llms.txt</a> — economics table for agents</li>
+        <li><a href="/reference/protocol/MARKETS.md">MARKETS.md</a>  /  canonical market rules</li>
+        <li><a href="/docs/contracts.html">Contracts</a>  /  both graphs, loaded from manifests</li>
+        <li><a href="/docs/integrate.html">Integrate</a>  /  posting floors and deposit gates</li>
+        <li><a href="/docs/union-staking.html">Union staking</a>  /  isolated credit schedules</li>
+        <li><a href="/llms.txt">llms.txt</a>  /  economics table for agents</li>
       </ul>
       <nav class="docs-continue" aria-label="Continue reading">
         <p class="docs-story-kicker">Continue</p>
@@ -166,5 +171,6 @@ curl -s "https://azzle.org/api/site-config?market=micro"</pre>
 </div>
 <script src="/docs-shell.js"></script>
 <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

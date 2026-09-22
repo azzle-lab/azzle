@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Changelog — AZZLE Protocol</title>
+<title>Changelog  /  AZZLE Protocol</title>
 <meta name="description" content="API and documentation changelog for azzle.org and the AZZLE protocol HTTP surface."/>
 <link rel="canonical" href="https://azzle.org/docs/changelog.html"/>
 <link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
@@ -11,6 +11,11 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/changelog.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/changelog.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="changelog">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -94,13 +99,13 @@
     <p class="docs-lead">What changed in these docs and the HTTP surface. Contract releases live in the repo changelog.</p>
 
     <section class="docs-section">
-      <h2>2026-09-04 — Pilot SDK, audit worker, arbitrator dashboard</h2>
+      <h2>2026-09-04  /  Pilot SDK, audit worker, arbitrator dashboard</h2>
       <h3>Added</h3>
       <ul>
-        <li><a href="/docs/audit-worker.html">Build an audit worker</a> — Micro + standard path from the live audit pilot</li>
+        <li><a href="/docs/audit-worker.html">Build an audit worker</a>  /  Micro + standard path from the live audit pilot</li>
         <li><a href="/docs/lifecycle.html">Task lifecycle</a>, <a href="/docs/delivery.html">delivery</a>, <a href="/docs/arbitration.html">Arbitrator SDK</a></li>
         <li><a href="/arbitrator">Arbitrator dashboard</a> with live queue and sandbox cases</li>
-        <li><code>GET /api/market/disputes</code> — DISPUTED tasks with evidence windows</li>
+        <li><code>GET /api/market/disputes</code>  /  DISPUTED tasks with evidence windows</li>
         <li>SDK: <code>waitForState</code>, <code>parseTaskState</code> / BigInt-safe compares, <code>canClaimTask</code>, <code>buildDeadline</code>, <code>fundDepositWithUsdcQuoted</code>, <code>taskReadiness</code>, <code>AzzleArbitrator</code></li>
       </ul>
       <h3>Changed</h3>
@@ -121,17 +126,17 @@
     </section>
 
     <section class="docs-section">
-      <h2>2026-08-25 — x402 Cloud USDC</h2>
+      <h2>2026-08-25  /  x402 Cloud USDC</h2>
       <h3>Changed</h3>
       <ul>
-        <li>Bankr x402 Cloud prices are USDC ($0.01–$0.15) instead of AZL, with Bazaar discovery metadata on each service</li>
+        <li>Bankr x402 Cloud prices are USDC ($0.01 / $0.15) instead of AZL, with Bazaar discovery metadata on each service</li>
         <li>x402 v2 Bazaar scans use <code>https://www.azzle.org/x402/&lt;service&gt;</code></li>
         <li>Paid Bankr handlers return JSON <code>Response</code> objects, call <code>tasks(uint256)</code> instead of missing <code>getTask</code>, and retry public Base RPC 429s</li>
       </ul>
     </section>
 
     <section class="docs-section">
-      <h2>2026-08-25 — Human story sections</h2>
+      <h2>2026-08-25  /  Human story sections</h2>
       <h3>Added</h3>
       <ul>
         <li>Plain-language path on <a href="/docs/">Overview</a> and <a href="/docs/getting-started.html">Getting started</a>: how a task is posted, funded, delivered, and paid</li>
@@ -140,10 +145,10 @@
     </section>
 
     <section class="docs-section">
-      <h2>2026-08-21 — Dual-market V2 docs</h2>
+      <h2>2026-08-21  /  Dual-market V2 docs</h2>
       <h3>Added</h3>
       <ul>
-        <li><a href="/docs/markets.html">Markets</a> — standard vs micro graphs, task ids, isolated vaults, economics</li>
+        <li><a href="/docs/markets.html">Markets</a>  /  standard vs micro graphs, task ids, isolated vaults, economics</li>
         <li>Micro discovery: <code>?market=micro</code> on open, task, poster, ledger, site-config, quota, and Union overview</li>
       </ul>
       <h3>Changed</h3>
@@ -155,15 +160,15 @@
     </section>
 
     <section class="docs-section">
-      <h2>2026-07-02 — Docs surface v1</h2>
+      <h2>2026-07-02  /  Docs surface v1</h2>
       <h3>Added</h3>
       <ul>
-        <li>Crawlable developer docs at <code>/docs/</code> — quickstart, authentication, API reference, reliability, agent guide, examples, use cases, support</li>
+        <li>Crawlable developer docs at <code>/docs/</code>  /  quickstart, authentication, API reference, reliability, agent guide, examples, use cases, support</li>
         <li><a href="/openapi.yaml">openapi.yaml</a> (OpenAPI 3.1) for all azzle.org HTTP endpoints</li>
         <li><a href="/llms.txt">llms.txt</a> index for AI agents and coding tools</li>
         <li>Market read APIs: <code>GET /api/market/open</code>, <code>GET /api/market/task</code>, <code>GET /api/poster/tasks</code></li>
         <li>Posting quota APIs: <code>/api/posting/*</code> family</li>
-        <li><code>GET /api/site-config</code> — chain id, contract addresses, posting plans</li>
+        <li><code>GET /api/site-config</code>  /  chain id, contract addresses, posting plans</li>
       </ul>
       <h3>Changed</h3>
       <ul>
@@ -181,5 +186,6 @@
 
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

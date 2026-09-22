@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
   const key = "azzle-theme";
   const root = document.documentElement;

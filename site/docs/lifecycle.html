@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Task lifecycle — AZZLE Protocol</title>
+<title>Task lifecycle  /  AZZLE Protocol</title>
 <meta name="description" content="AZZLE V2 task ordering: POSTED, claim, CLAIMED, fund, ACTIVE, markDelivered. SDK waitForState and canClaim / canFund / canDeliver."/>
 <link rel="canonical" href="https://azzle.org/docs/lifecycle.html"/>
 <link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
@@ -11,6 +11,11 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/lifecycle.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/lifecycle.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="lifecycle">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -86,11 +91,12 @@
       <div class="docs-pre"><div class="docs-pre-label"><span>TypeScript</span></div>
       <pre>const ready = await client.getReadiness("v2:micro:5", { worker: wallet });
 await client.waitForState("v2:micro:5", "ACTIVE");
-// getTask().state is a number; taskState() is a bigint — compare with isTaskState().</pre></div>
+// getTask().state is a number; taskState() is a bigint  /  compare with isTaskState().</pre></div>
     </section>
   </main>
 </div>
 <script src="/docs-shell.js"></script>
 <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>

@@ -1,16 +1,16 @@
-/* ── Docs layout — matches AZZLE dark theme + pill nav ── */
+/* ── Docs layout  /  matches AZZLE dark theme + pill nav ── */
 body.page-docs{
   padding-top:var(--nav-h);
   min-height:100vh;
   /*
    * Documentation is intentionally a fixed reading surface. It does not
-   * inherit the app's dark/light preference: yellow paper and high-contrast
-   * ink keep long protocol references calm and printable.
+   * inherit the app's dark/light preference: pastel green paper, blue
+   * signals, and high-contrast ink keep long protocol references calm.
    */
-  --bg:#dfff00;
-  --surface:#edff56;
-  --s2:#d4f500;
-  --card:#f5ff84;
+  --bg:#dff6a3;
+  --surface:#eaf9bd;
+  --s2:#d3ef8c;
+  --card:#f4fbdc;
   --b:rgba(20,28,0,.28);
   --b2:rgba(20,28,0,.46);
   --b3:#4b5700;
@@ -18,12 +18,12 @@ body.page-docs{
   --muted:#354000;
   --dim:#586600;
   --heading:#0a0e00;
-  --accent:#263300;
-  --accent-hi:#121900;
-  --accent-lo:#465400;
-  --accent-dim:rgba(38,51,0,.14);
-  --accent-glow:rgba(38,51,0,.22);
-  --on-accent:#eaff00;
+  --accent:#0000ff;
+  --accent-hi:#3333ff;
+  --accent-lo:#0000b8;
+  --accent-dim:rgba(0,0,255,.12);
+  --accent-glow:rgba(0,0,255,.20);
+  --on-accent:#ffffff;
   --purple:#4c4ca5;
   --purple-dim:rgba(76,76,165,.10);
   --warn:#8b4300;
@@ -50,11 +50,11 @@ body.page-docs[data-docs-bg="light"]{
   --muted:#3d4800;
   --dim:#5c6800;
   --heading:#080c00;
-  --accent:#263300;
-  --accent-hi:#121900;
-  --accent-lo:#465400;
-  --accent-dim:rgba(38,51,0,.12);
-  --accent-glow:rgba(38,51,0,.18);
+  --accent:#0000ff;
+  --accent-hi:#3333ff;
+  --accent-lo:#0000b8;
+  --accent-dim:rgba(0,0,255,.10);
+  --accent-glow:rgba(0,0,255,.16);
   --on-accent:#f3ff9b;
   --row-hover:rgba(20,28,0,.07);
   --border-faint:rgba(20,28,0,.18);
@@ -74,11 +74,11 @@ body.page-docs[data-docs-bg="dark"]{
   --muted:#bdc8a5;
   --dim:#899471;
   --heading:#ffffff;
-  --accent:#dfff00;
-  --accent-hi:#efff72;
-  --accent-lo:#aac400;
-  --accent-dim:rgba(223,255,0,.13);
-  --accent-glow:rgba(223,255,0,.2);
+  --accent:#0000ff;
+  --accent-hi:#3333ff;
+  --accent-lo:#0000b8;
+  --accent-dim:rgba(0,0,255,.13);
+  --accent-glow:rgba(0,0,255,.2);
   --on-accent:#111500;
   --row-hover:rgba(235,245,220,.07);
   --border-faint:rgba(235,245,220,.16);
@@ -229,7 +229,7 @@ body.page-docs .docs-topnav-cta{display:none!important}
   text-decoration:none;
   white-space:nowrap;
   transition:filter .15s,box-shadow .15s;
-  box-shadow:0 0 0 1px rgba(220,255,40,.25);
+  box-shadow:0 0 0 1px var(--accent-glow);
 }
 .docs-topnav-cta:hover{filter:brightness(1.06);box-shadow:var(--edge-2-fill)}
 
@@ -433,7 +433,7 @@ body.page-docs .docs-topnav-cta{display:none!important}
 .docs-crumb a{color:var(--muted);text-decoration:none}
 .docs-crumb a:hover{color:var(--accent)}
 
-/* Legacy in-page pill nav — hidden when sidebar present */
+/* Legacy in-page pill nav  /  hidden when sidebar present */
 .docs-nav{display:none}
 
 /* Sections */
@@ -911,7 +911,7 @@ body.page-docs[data-docs-bg="dark"] .docs-contracts-market--micro{
   vertical-align:middle;
 }
 
-/* Docs pages — keep active nav pill readable */
+/* Docs pages  /  keep active nav pill readable */
 .page-docs .azzle-nav-app a.azzle-nav-on{
   color:var(--heading);
   background:var(--accent-dim);

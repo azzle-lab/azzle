@@ -82,3 +82,103 @@ export async function listV2Tasks({
     },
   };
 }
+
+async function summarizeV2Market(market) {
+  const selected = normalizeMarket(market);
+  const m = manifest(selected);
+  const empty = {
+    market: selected,
+    taskCount: 0,
+    open: 0,
+    claimed: 0,
+    active: 0,
+    disputed: 0,
+    completed: 0,
+    cancelled: 0,
+    resolved: 0,
+    fundedAzlWei: "0",
+    lockedAzlWei: "0",
+    releasedAzlWei: "0",
+  };
+  if (!isMarketLive(m)) return empty;
+
+  const client = createPublicClient({
+    chain: base,
+    transport: http(process.env.BASE_RPC_URL ?? "https://mainnet.base.org"),
+  });
+  const count = Number(await client.readContract({
+    address: m.taskRegistry,
+    abi: ABI,
+    functionName: "taskCount",
+  }));
+  let funded = 0n;
+  let locked = 0n;
+  let released = 0n;
+  const summary = { ...empty, taskCount: count };
+
+  for (let start = 1; start <= count; start += BATCH_SIZE) {
+    const end = Math.min(count, start + BATCH_SIZE - 1);
+    const contracts = [];
+    for (let id = start; id <= end; id += 1) {
+      contracts.push({
+        address: m.taskRegistry,
+        abi: ABI,
+        functionName: "tasks",
+        args: [BigInt(id)],
+      });
+    }
+    const rows = await client.multicall({ contracts, allowFailure: true });
+    for (const read of rows) {
+      if (read.status !== "success") continue;
+      const row = read.result;
+      const state = STATES[Number(row[8])] ?? "NONE";
+      if (state === "POSTED") summary.open += 1;
+      else if (state === "CLAIMED") summary.claimed += 1;
+      else if (state === "ACTIVE") summary.active += 1;
+      else if (state === "DISPUTED") summary.disputed += 1;
+      else if (state === "COMPLETED") summary.completed += 1;
+      else if (state === "CANCELLED") summary.cancelled += 1;
+      else if (state === "RESOLVED") summary.resolved += 1;
+      const rowFunded = BigInt(row[3]);
+      const rowReleased = BigInt(row[4]);
+      funded += rowFunded;
+      released += rowReleased;
+      // Registry funded/released values remain historical after terminal refunds
+      // and dispute settlements. Only non-terminal escrow-bearing states are live.
+      if (["CLAIMED", "ACTIVE", "DISPUTED"].includes(state) && rowFunded > rowReleased) {
+        locked += rowFunded - rowReleased;
+      }
+    }
+  }
+
+  summary.fundedAzlWei = funded.toString();
+  summary.lockedAzlWei = locked.toString();
+  summary.releasedAzlWei = released.toString();
+  return summary;
+}
+
+export async function summarizeV2Markets() {
+  const [standard, micro] = await Promise.all([
+    summarizeV2Market("standard"),
+    summarizeV2Market("micro"),
+  ]);
+  const lanes = [standard, micro];
+  const sum = (key) => lanes.reduce((total, lane) => total + Number(lane[key] ?? 0), 0);
+  const sumWei = (key) => lanes.reduce((total, lane) => total + BigInt(lane[key] ?? "0"), 0n).toString();
+  return {
+    protocolVersion: "v2",
+    asset: "AZL",
+    taskCount: sum("taskCount"),
+    open: sum("open"),
+    claimed: sum("claimed"),
+    active: sum("active"),
+    disputed: sum("disputed"),
+    completed: sum("completed"),
+    cancelled: sum("cancelled"),
+    resolved: sum("resolved"),
+    fundedAzlWei: sumWei("fundedAzlWei"),
+    lockedAzlWei: sumWei("lockedAzlWei"),
+    releasedAzlWei: sumWei("releasedAzlWei"),
+    markets: { standard, micro },
+  };
+}

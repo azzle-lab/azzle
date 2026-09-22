@@ -1,10 +1,10 @@
-(function () {
+﻿(function () {
   const $ = (id) => document.getElementById(id);
   const compact = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 2 });
   const numeric = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
   function usd(value) {
-    if (!Number.isFinite(Number(value))) return "—";
+    if (!Number.isFinite(Number(value))) return " / ";
     const n = Number(value);
     return n < 0.01
       ? "$" + n.toLocaleString(undefined, { minimumSignificantDigits: 2, maximumSignificantDigits: 4 })
@@ -13,7 +13,7 @@
 
   function preciseUsd(value) {
     const raw = String(value ?? "").trim();
-    if (!/^\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(raw)) return "—";
+    if (!/^\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(raw)) return " / ";
     if (/e/i.test(raw)) return "$" + Number(raw).toLocaleString(undefined, {
       minimumSignificantDigits: 6,
       maximumSignificantDigits: 8,
@@ -29,7 +29,7 @@
   }
 
   function signedPercent(bps) {
-    if (!Number.isFinite(Number(bps))) return "—";
+    if (!Number.isFinite(Number(bps))) return " / ";
     const percent = Number(bps) / 100;
     return (percent > 0 ? "+" : "") + percent.toFixed(2) + "%";
   }
@@ -50,7 +50,7 @@
   }
 
   function duration(seconds) {
-    if (!Number.isFinite(seconds)) return "—";
+    if (!Number.isFinite(seconds)) return " / ";
     if (seconds < 60) return seconds + "s";
     if (seconds < 3600) return Math.floor(seconds / 60) + "m";
     return (seconds / 3600).toFixed(1) + "h";
@@ -90,7 +90,7 @@
 
   function preciseAzlPerEth(value) {
     const raw = String(value ?? "").trim();
-    if (!/^\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(raw)) return "—";
+    if (!/^\d+(?:\.\d+)?(?:e[+-]?\d+)?$/i.test(raw)) return " / ";
     if (/e/i.test(raw)) return Number(raw).toLocaleString(undefined, {
       minimumSignificantDigits: 6,
       maximumSignificantDigits: 8,

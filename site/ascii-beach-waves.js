@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   if (window.matchMedia("(max-width: 700px), (pointer: coarse)").matches) return;
   if (document.getElementById("ascii-wave-bg")) return;
 

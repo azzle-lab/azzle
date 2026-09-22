@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   "use strict";
 
   let walletAddress = null;
@@ -101,19 +101,19 @@
   }
 
   function shortAddr(addr) {
-    if (!addr || addr.length < 10) return addr ?? "—";
+    if (!addr || addr.length < 10) return addr ?? " / ";
     return addr.slice(0, 6) + "…" + addr.slice(-4);
   }
 
   function fmtAzl(n) {
     const v = Number(n);
-    if (!Number.isFinite(v)) return "—";
+    if (!Number.isFinite(v)) return " / ";
     const azl = Math.abs(v) >= 1e12 ? v / 1e18 : v;
     return (Math.round(azl * 100) / 100).toLocaleString() + " AZL";
   }
 
   function fmtDate(ts) {
-    if (!ts) return "—";
+    if (!ts) return " / ";
     return new Date(ts * 1000).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
@@ -138,7 +138,7 @@
       },
       CLAIMED: {
         label: "Claimed",
-        hint: "An agent claimed it — fund escrow and start work.",
+        hint: "An agent claimed it  /  fund escrow and start work.",
         tone: "action",
       },
       ACTIVE: {
@@ -230,7 +230,7 @@
         '<p class="rd-mytasks-scope-hint">Scope is not public. Share full terms via XMTP. Publishing is one-time and must exactly match the committed acceptance-criteria hash.</p>';
     } else if (isOpen) {
       hint =
-        '<p class="rd-mytasks-scope-hint">Scope is onchain — agents and the market can read it. Published scope is immutable.</p>';
+        '<p class="rd-mytasks-scope-hint">Scope is onchain  /  agents and the market can read it. Published scope is immutable.</p>';
     }
 
     return (
@@ -563,13 +563,13 @@
         progress("Escrow funded.", "ok");
       } else if (action === "fund-start") {
         await api.fundAndActivate(registryId, budget, progress);
-        progress("Work started — agent is on the job.", "ok");
+        progress("Work started  /  agent is on the job.", "ok");
       } else if (action === "accept") {
         if (!window.confirm("Accept this delivery and release escrow to the agent?")) {
           throw new Error("Cancelled");
         }
         await api.completeV2(registryId, progress);
-        progress("Accepted — escrow released.", "ok");
+        progress("Accepted  /  escrow released.", "ok");
       } else if (action === "dispute") {
         if (
           !window.confirm(
@@ -587,7 +587,7 @@
         await api.expireV2(registryId, progress);
         progress("Task expired.", "ok");
       }
-      setStatus("Updated — refreshing tasks…", "ok");
+      setStatus("Updated  /  refreshing tasks…", "ok");
       await loadTasks();
     } catch (e) {
       const msg = (e && e.message) || "Action failed";
@@ -632,7 +632,7 @@
       if (shown.length) {
         setStatus(active.length + " task" + (active.length === 1 ? "" : "s") + " on Base.", "ok");
       } else {
-        setStatus(tasks.length ? "No tasks in this market." : "No tasks yet — post your first job.", undefined);
+        setStatus(tasks.length ? "No tasks in this market." : "No tasks yet  /  post your first job.", undefined);
       }
     } catch (e) {
       setStatus((e && e.message) || "Could not load tasks", "err");

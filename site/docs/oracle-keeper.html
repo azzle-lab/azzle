@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Become an AZL Oracle Keeper — AZZLE Protocol</title>
+<title>Become an AZL Oracle Keeper  /  AZZLE Protocol</title>
 <meta name="description" content="Run a permissionless AZL Oracle Keeper that records Base Uniswap V4 observations for AZZLE's TWAP safety checks."/>
 <link rel="canonical" href="https://azzle.org/docs/oracle-keeper.html"/>
 <link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
@@ -11,6 +11,11 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:image" content="https://azzle.org/og/docs/oracle-keeper.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/docs/oracle-keeper.png"/>
+  <script src="/theme-init.js"></script>
 </head>
 <body class="page-docs" data-docs-page="oracle-keeper">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
@@ -77,7 +82,7 @@
     <section class="docs-story" aria-label="For humans">
       <p class="docs-story-kicker">For humans</p>
       <div class="docs-story-beats">
-        <p>Skip this page unless you want to run a keeper. If posts fail closed with a stale-oracle error, keepers have not recorded recently. Micro reuses the same oracle as standard — one loop is enough.</p>
+        <p>Skip this page unless you want to run a keeper. If posts fail closed with a stale-oracle error, keepers have not recorded recently. Micro reuses the same oracle as standard  /  one loop is enough.</p>
       </div>
     </section>
 
@@ -89,7 +94,7 @@
         <tbody>
           <tr><td>Network</td><td>Base mainnet (<code>8453</code>)</td></tr>
           <tr><td>Observation oracle</td><td><a href="https://basescan.org/address/0x724c5cF1Cd1dc331BD5Bb314224ed38c41607b9B" target="_blank" rel="noopener"><code>0x724c…7b9B</code></a></td></tr>
-          <tr><td>Action</td><td><code>record()</code> — permissionless, no arguments</td></tr>
+          <tr><td>Action</td><td><code>record()</code>  /  permissionless, no arguments</td></tr>
           <tr><td>TWAP window</td><td>2 hours</td></tr>
           <tr><td>Maximum observation gap</td><td>15 minutes</td></tr>
           <tr><td>Suggested cadence</td><td>Every block when practical; always keep gaps below 15 minutes</td></tr>
@@ -105,14 +110,14 @@
 
     <section class="docs-section">
       <h2>Run it</h2>
-      <div class="docs-pre"><div class="docs-pre-label"><span>bash — Foundry</span></div><pre>export OBSERVATION_ORACLE=0x724c5cF1Cd1dc331BD5Bb314224ed38c41607b9B
+      <div class="docs-pre"><div class="docs-pre-label"><span>bash  /  Foundry</span></div><pre>export OBSERVATION_ORACLE=0x724c5cF1Cd1dc331BD5Bb314224ed38c41607b9B
 export BASE_RPC_URL=https://mainnet.base.org
 
 cast send "$OBSERVATION_ORACLE" "record()" \
   --rpc-url "$BASE_RPC_URL" \
   --private-key "$KEEPER_PRIVATE_KEY"</pre></div>
       <p>Use a dedicated keeper wallet with Base ETH for gas. Never put a private key in a browser, repository, or shared shell history.</p>
-      <div class="docs-pre"><div class="docs-pre-label"><span>bash — inspect current checkpoint</span></div><pre>cast call "$OBSERVATION_ORACLE" "latestObservation()(uint64,int24,int56)" \
+      <div class="docs-pre"><div class="docs-pre-label"><span>bash  /  inspect current checkpoint</span></div><pre>cast call "$OBSERVATION_ORACLE" "latestObservation()(uint64,int24,int56)" \
   --rpc-url "$BASE_RPC_URL"
 
 cast call "$OBSERVATION_ORACLE" "observationCount()(uint256)" \
@@ -122,9 +127,9 @@ cast call "$OBSERVATION_ORACLE" "observationCount()(uint256)" \
     <section class="docs-section">
       <h2>Recommended setup: run the observation loop</h2>
       <p>The repository includes <code>contracts/scripts/record-v2-observations-loop.ts</code>, a resilient keeper loop that records immediately, then retries every 14 minutes. This interval stays under the deployed 15-minute maximum gap; use independent monitoring because one failed checkpoint can still begin a new observation epoch.</p>
-      <div class="docs-pre"><div class="docs-pre-label"><span>bash — run from the repository</span></div><pre>cd contracts
+      <div class="docs-pre"><div class="docs-pre-label"><span>bash  /  run from the repository</span></div><pre>cd contracts
 
-# contracts/.env — use a dedicated, funded keeper wallet
+# contracts/.env  /  use a dedicated, funded keeper wallet
 BASE_RPC_URL=https://mainnet.base.org
 KEEPER_PRIVATE_KEY=0x...
 
@@ -153,5 +158,6 @@ npm run deploy:base:v2:record-observations</pre></div>
 </div>
 <script src="/docs-shell.js"></script>
   <script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
 </body>
 </html>
