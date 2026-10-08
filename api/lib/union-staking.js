@@ -37,10 +37,11 @@ const leaderboardCache = new Map();
 const leaderboardRefresh = new Map();
 
 async function discoverUnionActivity(client, latestBlock, manifest) {
-  const explorerUrl = new URL(`/api/v2/addresses/${manifest.stakingVault}/logs`, "https://base.blockscout.com");
+  const accounts = new Map();
+  const claimedByAccount = new Map();
+
   try {
-    const accounts = new Map();
-    const claimedByAccount = new Map();
+    const explorerUrl = new URL(`/api/v2/addresses/${manifest.stakingVault}/logs`, "https://base.blockscout.com");
     let nextPage = null;
     do {
       const pageUrl = new URL(explorerUrl);
@@ -70,22 +71,54 @@ async function discoverUnionActivity(client, latestBlock, manifest) {
       }
       nextPage = data.next_page_params;
     } while (nextPage);
-    if (accounts.size) return { accounts: [...accounts.values()], claimedByAccount };
-  } catch {}
+  } catch {
+    // Keep records collected before a later page was throttled.
+  }
+  if (accounts.size) return { accounts: [...accounts.values()], claimedByAccount };
+
+  const eventTopics = {
+    Staked: "0x9e71bc8eea02a63969f509818f2dafb9254532904319f9dbda79b67bd34a5f3d",
+    RewardClaimed: "0x0aa4d283470c904c551d18bb894d37e17674920f3261a7f854be501e25f421b7",
+  };
+  let legacyExplorerResponded = false;
+  for (const eventName of ["Staked", "RewardClaimed"]) {
+    try {
+      const explorerUrl = new URL("/api", "https://base.blockscout.com");
+      Object.entries({
+        module: "logs", action: "getLogs", address: manifest.stakingVault,
+        topic0: eventTopics[eventName], fromBlock: manifest.deploymentBlock,
+        toBlock: "latest", page: 1, offset: 1000,
+      }).forEach(([key, value]) => explorerUrl.searchParams.set(key, String(value)));
+      const response = await fetch(explorerUrl, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) throw new Error(`Blockscout returned ${response.status}`);
+      const data = await response.json();
+      if (data.status !== "1" && data.message !== "No logs found") throw new Error(data.message || "Blockscout log query failed");
+      legacyExplorerResponded = true;
+      for (const log of Array.isArray(data.result) ? data.result : []) {
+        const accountTopic = log.topics?.[1];
+        if (typeof accountTopic !== "string" || accountTopic.length < 42) continue;
+        const account = `0x${accountTopic.slice(-40)}`;
+        const key = account.toLowerCase();
+        accounts.set(key, account);
+        if (eventName === "RewardClaimed") {
+          claimedByAccount.set(key, (claimedByAccount.get(key) ?? 0n) + BigInt(log.data ?? 0));
+        }
+      }
+    } catch {
+      // Try the other event query, then use RPC only if neither explorer answered.
+    }
+  }
+  if (legacyExplorerResponded) return { accounts: [...accounts.values()], claimedByAccount };
 
   const firstBlock = BigInt(manifest.deploymentBlock);
   const chunkSize = 9_000n;
-  const accounts = new Map();
-  const claimedByAccount = new Map();
   for (let fromBlock = firstBlock; fromBlock <= latestBlock; fromBlock += chunkSize) {
     const toBlock = fromBlock + chunkSize - 1n > latestBlock ? latestBlock : fromBlock + chunkSize - 1n;
     for (const event of [EVENTS[0], EVENTS[2]]) {
-      const logs = await client.getLogs({
-        address: manifest.stakingVault,
-        event,
-        fromBlock,
-        toBlock,
-      });
+      const logs = await client.getLogs({ address: manifest.stakingVault, event, fromBlock, toBlock });
       for (const log of logs) {
         const account = log.args.account;
         if (!account) continue;
