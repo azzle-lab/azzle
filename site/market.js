@@ -1743,8 +1743,6 @@
 
     if (currentView === "legacy") return loadLegacyTasks();
 
-    if (currentView === "collaborative") return window.azzleCrowdfund?.show();
-
     return loadOpenTasks();
 
   }
@@ -1755,7 +1753,7 @@
 
     const url = new URL(window.location.href);
 
-    if (currentView === "history" || currentView === "legacy" || currentView === "collaborative") {
+    if (currentView === "history" || currentView === "legacy") {
 
       url.searchParams.set("view", currentView);
 
@@ -1773,7 +1771,7 @@
 
   function setView(view) {
 
-    const next = view === "history" || view === "legacy" || view === "collaborative" ? view : "open";
+    const next = view === "history" || view === "legacy" ? view : "open";
 
     currentView = next;
 
@@ -1785,15 +1783,11 @@
 
     const legacyTab = $("rd-market-view-legacy");
 
-    const crowdTab = $("rd-market-view-collaborative");
-
     const openPanel = $("rd-market-panel-open");
 
     const historyPanel = $("rd-market-panel-history");
 
     const legacyPanel = $("rd-market-panel-legacy");
-
-    const crowdPanel = $("rd-market-panel-collaborative");
 
     const filters = $("rd-market-filters");
 
@@ -1827,23 +1821,13 @@
 
     }
 
-    if (crowdTab) {
-
-      crowdTab.classList.toggle("on", next === "collaborative");
-
-      crowdTab.setAttribute("aria-selected", next === "collaborative" ? "true" : "false");
-
-    }
-
     if (openPanel) openPanel.hidden = next !== "open";
 
     if (historyPanel) historyPanel.hidden = next !== "history";
 
     if (legacyPanel) legacyPanel.hidden = next !== "legacy";
 
-    if (crowdPanel) crowdPanel.hidden = next !== "collaborative";
-
-    if (filters) filters.hidden = next === "collaborative";
+    if (filters) filters.hidden = false;
 
 
 
@@ -1857,11 +1841,7 @@
 
           ? "V1 archive"
 
-          : next === "collaborative"
-
-            ? "Collaborative tasks"
-
-            : "Open market";
+          : "Open market";
 
     }
 
@@ -1877,17 +1857,11 @@
 
             ? "Archived V1 tasks  /  read-only historical reference, not part of the actively maintained protocol."
 
-          : next === "collaborative"
-
-            ? ""
-
           : "All POSTED v2 tasks on Base  /  access is oracle-priced in AZL; Action Credits cover eligible claims.";
 
     }
 
 
-
-    if (next === "collaborative") setStatus("", undefined);
 
     syncViewUrl();
 
@@ -1924,8 +1898,6 @@
 
     $("rd-market-view-legacy")?.addEventListener("click", () => setView("legacy"));
 
-    $("rd-market-view-collaborative")?.addEventListener("click", () => setView("collaborative"));
-
     $("rd-claim-confirm-cancel")?.addEventListener("click", closeClaimConfirmation);
     $("rd-claim-confirm-backdrop")?.addEventListener("click", closeClaimConfirmation);
     $("rd-claim-confirm-submit")?.addEventListener("click", confirmPendingClaim);
@@ -1953,7 +1925,13 @@
 
     const view = params.get("view");
 
-    if (view === "history" || view === "legacy" || view === "collaborative") currentView = view;
+    if (view === "collaborative") {
+      const crowd = params.get("crowd");
+      window.location.replace(crowd ? "/crowdfund?crowd=" + encodeURIComponent(crowd) : "/crowdfund");
+      return;
+    }
+
+    if (view === "history" || view === "legacy") currentView = view;
 
 
 

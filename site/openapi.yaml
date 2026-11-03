@@ -75,10 +75,11 @@ paths:
     get:
       operationId: listCrowdfundCampaigns
       tags: [market]
-      summary: List collaborative bounty rosters
+      summary: List crowdfund bounties
       description: |
-        Roster only. Pledges are recorded amounts. CrowdfundFactory is not
-        deployed, so this does not move AZL and is not a POSTED task list.
+        Names and invite metadata after the wallet tx. Join and contribute
+        pull AZL into the Safe. Leave sends that wallet AZL back. This is
+        not a POSTED task list.
       parameters:
         - name: id
           in: query
@@ -88,13 +89,13 @@ paths:
           description: Return one bounty when set
       responses:
         "200":
-          description: Roster list, or one campaign when id is set
+          description: Bounty list, or one campaign when id is set
         "404":
           description: That bounty does not exist
     post:
       operationId: mutateCrowdfundCampaign
       tags: [market]
-      summary: Create, join, or leave a bounty roster
+      summary: Create, join, or leave a crowdfund bounty
       requestBody:
         required: true
         content:
@@ -105,7 +106,7 @@ paths:
               properties:
                 action:
                   type: string
-                  enum: [create, join, leave]
+                  enum: [create, join, leave, contribute]
       responses:
         "200":
           description: Updated campaign

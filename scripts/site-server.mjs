@@ -7,7 +7,7 @@
  * Production: deploy to Vercel (see vercel.json). APIs live in api/*.js.
  */
 import { createServer } from "node:http";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, join, normalize, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,11 +40,28 @@ async function readBody(req) {
   return JSON.parse(raw);
 }
 
+async function serveRepoFile(filePath, res) {
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) return false;
+  const ext = filePath.includes(".") ? filePath.slice(filePath.lastIndexOf(".")) : "";
+  const body = await readFile(filePath);
+  res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
+  res.end(body);
+  return true;
+}
+
 async function serveStatic(pathname, res) {
   let rel = pathname === "/" ? "/index.html" : pathname;
+  if (rel.startsWith("/reference/contracts/deployments/")) {
+    const name = rel.slice("/reference/contracts/deployments/".length);
+    if (/^[A-Za-z0-9._-]+$/.test(name)
+      && await serveRepoFile(join(REPO_ROOT, "contracts", "deployments", name), res)) {
+      return true;
+    }
+  }
   if (rel === "/post" || rel === "/post/") rel = "/post.html";
   if (rel === "/crowdfund" || rel === "/crowdfund/") rel = "/crowdfund.html";
   if (rel === "/pricing" || rel === "/pricing/") rel = "/pricing.html";
+  if (rel === "/terms" || rel === "/terms/") rel = "/terms.html";
   if (rel === "/market" || rel === "/market/") rel = "/market.html";
   if (rel === "/union" || rel === "/union/") rel = "/union.html";
   if (rel === "/azl" || rel === "/azl/") rel = "/azl.html";
@@ -77,11 +94,16 @@ async function serveStatic(pathname, res) {
   if (rel === "/docs/use-cases/integrate-agent-workflows") rel = "/docs/use-cases/integrate-agent-workflows.html";
   if (rel === "/docs/use-cases/handle-task-failures") rel = "/docs/use-cases/handle-task-failures.html";
   if (rel === "/docs/api/openapi-intro") rel = "/docs/api/openapi-intro.html";
+  if (rel === "/herd" || rel === "/herd/" || rel === "/thronglets" || rel === "/thronglets/") rel = "/thronglets.html";
+  if (rel === "/ads-film" || rel === "/ads-film/" || rel === "/brand-the-herd") rel = "/ads-film.html";
+  if (rel === "/waitlist" || rel === "/waitlist/") rel = "/waitlist/waitlist.html";
   const filePath = normalize(join(ROOT, rel.replace(/^\//, "")));
-  if (!filePath.startsWith(ROOT) || !existsSync(filePath)) return false;
+  if (!filePath.startsWith(ROOT) || !existsSync(filePath) || !statSync(filePath).isFile()) return false;
   const ext = filePath.includes(".") ? filePath.slice(filePath.lastIndexOf(".")) : "";
   const body = await readFile(filePath);
-  res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
+  const headers = { "Content-Type": MIME[ext] ?? "application/octet-stream" };
+  if (/herd|thronglets/i.test(rel)) headers["Cache-Control"] = "no-store";
+  res.writeHead(200, headers);
   res.end(body);
   return true;
 }
@@ -152,6 +174,9 @@ server.listen(PORT, () => {
   console.log(`[azzle-site] http://localhost:${PORT}`);
   console.log(`[azzle-site] LLM     POST /api/role-chat`);
   console.log(`[azzle-site] MCP     POST /mcp`);
-  if (!process.env.BANKR_API_KEY) console.warn("[azzle-site] WARN: BANKR_API_KEY unset — chat will return 503");
-  if (!process.env.PRIVY_APP_ID) console.warn("[azzle-site] WARN: PRIVY_APP_ID unset — wallet connect disabled");
+  if (!process.env.BANKR_API_KEY) console.warn("[azzle-site] WARN: BANKR_API_KEY unset  /  chat will return 503");
+  if (!process.env.PRIVY_APP_ID) console.warn("[azzle-site] WARN: PRIVY_APP_ID unset  /  wallet connect disabled");
+  if (!process.env.PINATA_JWT && !process.env.PINATA_API_JWT) {
+    console.warn("[azzle-site] WARN: PINATA_JWT unset  /  thronglets ad images stay local-only");
+  }
 });

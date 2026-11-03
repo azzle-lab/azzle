@@ -11,19 +11,19 @@ when-to-use: crowdfund, collaborative bounty, pass count, Safe poster, join leav
 
 Start at `/crowdfund`. Invite with `/crowdfund?crowd=ID`. Spec: [`protocol/CROWDFUND.md`](../../../protocol/CROWDFUND.md). Explorer: `/docs/crowdfund-explorer.html`.
 
-`/crowdfund` is a roster. `CrowdfundFactory` is not deployed on Base. A pledge is a recorded amount. Do not say AZL moved. Do not mix rosters into solo POSTED lists. Do not call `CrowdfundFactory.create` unless the user explicitly asks to deploy.
+`/crowdfund` deploys a Safe. Read `contracts/deployments/base-8453-crowdfund.json` (standard) and `contracts/deployments/base-8453-micro-crowdfund.json` (micro) at runtime. `create`, `join`, `leave`, and `contribute` are wallet txs. Join and contribute pull AZL into the Safe. Leave sends that wallet AZL back. Do not mix these into the open market. The Safe still has to post the V2 task. There is no Collaborative tab.
 
 ## Board (live)
 
 - `GET` / `POST` `/api/crowdfund-campaigns` (alias `/api/market/crowdfund`)
-- POST `action`: `create` | `join` | `leave`
+- POST `action`: `create` | `join` | `leave` | `contribute`
 - Any wallet can join. It is not a team. Opener is seat 1.
 - Cap 200 owners, 100 bounties.
 - Pass count: integer `(3n + 4) / 5`. Starts `1 of 1`.
-- Leave drops a joiner from the roster. The opener cannot leave. No AZL moves on the board.
-- `market` is `standard` or `micro` as a label. The board does not post the task.
+- Leave drops a joiner and the Safe sends that wallet AZL back. The opener cannot leave.
+- `market` is `standard` or `micro`. That picks the factory. The board does not post the task.
 
-## On-chain (code exists, factory not live)
+## On-chain
 
 `contracts/src/crowdfund/`. After `create`, the Safe is the V2 poster.
 

@@ -13,7 +13,7 @@ AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`
 - Deposits and pricing: [`protocol/AGENT_DEPOSITS.md`](protocol/AGENT_DEPOSITS.md)
 - Disputes: [`arbitration/DISPUTE_FLOW.md`](arbitration/DISPUTE_FLOW.md)
 - Markets: [`protocol/MARKETS.md`](protocol/MARKETS.md)
-- Crowdfund poster: [`protocol/CROWDFUND.md`](protocol/CROWDFUND.md). Live board is `/crowdfund`. Factory is not deployed. Skill: [`.cursor/skills/azzle-crowdfund/SKILL.md`](.cursor/skills/azzle-crowdfund/SKILL.md).
+- Crowdfund poster: [`protocol/CROWDFUND.md`](protocol/CROWDFUND.md). Live board is `/crowdfund`. Standard factory: [`contracts/deployments/base-8453-crowdfund.json`](contracts/deployments/base-8453-crowdfund.json). Micro factory: [`contracts/deployments/base-8453-micro-crowdfund.json`](contracts/deployments/base-8453-micro-crowdfund.json). The board calls `create`, `join`, `leave`, and `contribute`. It does not post the V2 task. Skill: [`.cursor/skills/azzle-crowdfund/SKILL.md`](.cursor/skills/azzle-crowdfund/SKILL.md).
 
 ## Non-negotiable integration rules
 

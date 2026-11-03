@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  contributeCampaign,
   createCampaign,
   formatAzl,
   joinCampaign,
@@ -8,6 +9,13 @@ import {
   parseAzl,
   quorum,
 } from "./lib/crowdfund-board.js";
+
+const live = {
+  safe: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  module: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  guard: "0xcccccccccccccccccccccccccccccccccccccccc",
+  createTx: `0x${"ab".repeat(32)}`,
+};
 
 test("pass count matches ceil(3n/5) through 200 wallets", () => {
   const first = [1, 2, 2, 3, 3, 4, 5, 5, 6, 6];
@@ -34,7 +42,9 @@ test("a team starts at 1 of 1 and steps through the schedule", () => {
     openerName: "Opener",
     openerWallet: "0x1111111111111111111111111111111111111111",
     openerAmountAzl: "0",
+    ...live,
   });
+  assert.equal(created.live, true);
   assert.equal(created.signaturesLabel, "1 of 1");
   assert.equal(created.blockers, 1);
   assert.equal(created.nextJoin.signaturesLabel, "2 of 2");
@@ -68,6 +78,8 @@ test("join rejects a short pledge, a duplicate wallet, and a pledge past the goa
     totalAzl: "10",
     minJoinAzl: "4",
     openerName: "Opener",
+    openerWallet: "0x1111111111111111111111111111111111111111",
+    ...live,
   });
   assert.throws(
     () => joinCampaign(state, {
@@ -113,6 +125,8 @@ test("leave returns the roster to the previous pass count", () => {
     totalAzl: "20",
     minJoinAzl: "1",
     openerName: "Opener",
+    openerWallet: "0x1111111111111111111111111111111111111111",
+    ...live,
   });
   const wallet = "0xcccccccccccccccccccccccccccccccccccccccc";
   joinCampaign(state, { id: created.id, name: "Guest", wallet, amountAzl: "2" });
@@ -125,4 +139,41 @@ test("leave returns the roster to the previous pass count", () => {
 test("AZL amounts keep six decimals", () => {
   assert.equal(formatAzl(parseAzl("1.5", "Goal")), "1.5");
   assert.equal(formatAzl(parseAzl("0.000001", "Goal")), "0.000001");
+});
+
+test("create requires a live Safe", () => {
+  assert.throws(
+    () => createCampaign({ campaigns: [] }, {
+      title: "No chain",
+      brief: "Roster only.",
+      market: "standard",
+      totalAzl: "10",
+      minJoinAzl: "1",
+      openerName: "Opener",
+      openerWallet: "0x1111111111111111111111111111111111111111",
+    }),
+    /Safe is missing/,
+  );
+});
+
+test("opener contribute adds to the opening pledge", () => {
+  const state = { campaigns: [] };
+  const created = createCampaign(state, {
+    title: "Seed later",
+    brief: "Opener adds AZL after create.",
+    market: "standard",
+    totalAzl: "20",
+    minJoinAzl: "1",
+    openerName: "Opener",
+    openerWallet: "0x1111111111111111111111111111111111111111",
+    openerAmountAzl: "0",
+    ...live,
+  });
+  const next = contributeCampaign(state, {
+    id: created.id,
+    wallet: "0x1111111111111111111111111111111111111111",
+    amountAzl: "4",
+  });
+  assert.equal(next.pledgedAzl, "4");
+  assert.equal(next.opener.amountAzl, "4");
 });

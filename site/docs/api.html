@@ -121,7 +121,7 @@
         <tbody>
           <tr><td>GET</td><td><a href="#market-open">/api/market/open</a></td><td>None</td><td>List claimable tasks</td></tr>
           <tr><td>GET</td><td><a href="#market-task">/api/market/task</a></td><td>None</td><td>Task detail</td></tr>
-          <tr><td>GET / POST</td><td><a href="#crowdfund">/api/crowdfund-campaigns</a></td><td>None</td><td>Collaborative bounty roster. Does not move AZL</td></tr>
+          <tr><td>GET / POST</td><td><a href="#crowdfund">/api/crowdfund-campaigns</a></td><td>None</td><td>Crowdfund titles after the Safe tx. Not a POSTED task</td></tr>
           <tr><td>GET</td><td><a href="#poster-tasks">/api/poster/tasks</a></td><td>None</td><td>Tasks posted by wallet</td></tr>
           <tr><td>GET</td><td><a href="#market-ledger">/api/get-market-ledger</a></td><td>Address</td><td>V2 funded, locked, released, and disputed ledger</td></tr>
           <tr><td>GET</td><td><a href="#union-overview">/api/union/overview</a></td><td>None</td><td>Union vault snapshot (per market)</td></tr>
@@ -212,8 +212,8 @@ curl -s "https://azzle.org/api/market/task?id=v2:micro:7"</pre>
 
   <section class="docs-section" id="crowdfund">
     <h2>GET / POST /api/crowdfund-campaigns</h2>
-    <p>Collaborative bounty roster. Alias: <code>/api/market/crowdfund</code>. This is not a POSTED task list. Pledges are recorded amounts. <code>CrowdfundFactory</code> is not deployed, so nothing here moves AZL.</p>
-    <p>GET lists bounties, or one bounty with <code>?id=</code>. POST JSON <code>action</code> is <code>create</code>, <code>join</code>, or <code>leave</code>. Pass count is integer <code>(3n + 4) / 5</code>. Cap 200 owners, 100 bounties. Board: <a href="/crowdfund">/crowdfund</a>. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>.</p>
+    <p>Crowdfund titles. Alias: <code>/api/market/crowdfund</code>. This is not a POSTED task list. The wallet calls <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code> on the factory or module first. The board then stores title, brief, and names. Join and contribute pull AZL into the Safe. Leave sends that wallet AZL back.</p>
+    <p>GET lists bounties, or one bounty with <code>?id=</code>. POST JSON <code>action</code> is <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code>. Pass count is integer <code>(3n + 4) / 5</code>. Cap 200 owners, 100 bounties. Board: <a href="/crowdfund">/crowdfund</a>. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s "https://azzle.org/api/crowdfund-campaigns"

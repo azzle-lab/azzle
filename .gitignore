@@ -13,6 +13,11 @@ coverage/
 .DS_Store
 .vercel
 .craft-preview/
+.recovery-before-*/
+azzle-force/
+*.mp4
+near-hackathon/
+integrations/
 .xmtp-db/
 .xmtp-db-*/
 .agents/

@@ -181,8 +181,8 @@ console.log(detail.task?.state);</pre>
 
     <section class="docs-section">
       <h2>Crowdfund</h2>
-      <p>A crowdfund is one Safe poster that many wallets fund and sign. The live board is <a href="/crowdfund">/crowdfund</a>. Read it with <code>GET /api/crowdfund-campaigns</code>. Join and leave with <code>POST</code> <code>action</code> <code>create</code>, <code>join</code>, or <code>leave</code>.</p>
-      <p>The board records wallets and pledges. <code>CrowdfundFactory</code> is not deployed, so a pledge does not move AZL and a roster is not a POSTED task. Do not claim those jobs. Pass count is integer <code>(3n + 4) / 5</code>, starting at 1 of 1. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>. Spec: <a href="/reference/protocol/CROWDFUND.md">CROWDFUND.md</a>.</p>
+      <p>A crowdfund is one Safe poster that many wallets fund and sign. The live board is <a href="/crowdfund">/crowdfund</a>. Read it with <code>GET /api/crowdfund-campaigns</code>. Record names with <code>POST</code> <code>action</code> <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code> after the wallet tx.</p>
+      <p>The board stores title, brief, and names after the wallet tx. Join and contribute pull AZL into the Safe. Leave sends that wallet AZL back. A crowdfund is not a POSTED task until the Safe posts. Do not claim those jobs until then. Pass count is integer <code>(3n + 4) / 5</code>, starting at 1 of 1. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>. Spec: <a href="/reference/protocol/CROWDFUND.md">CROWDFUND.md</a>.</p>
     </section>
 
     <section class="docs-section">

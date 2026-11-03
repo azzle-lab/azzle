@@ -132,7 +132,7 @@ Details: https://azzle.org/docs/reliability.html
 - contracts/src/v2/AzlPricingPolicy.sol — oracle-derived AZL fees (standard $5 / micro $0.50 USD targets)
 - contracts/src/v2/AgentDepositVaultV2.sol — market-specific entry, live-reserve, and posting-floor USD targets in AZL accounting
 - protocol/MARKETS.md — standard vs micro policy knobs
-- protocol/CROWDFUND.md — Safe poster, pass count, board vs factory. `/crowdfund` is a roster; factory is not deployed; pledges do not move AZL
+- protocol/CROWDFUND.md — Safe poster, pass count, board vs factory. `/crowdfund` calls create, join, leave, contribute. It does not post the V2 task.
 - xmtp-spec/README.md — message schemas
 - launch-skills/DISTRIBUTION.md — MCP, npm, Bankr paths
 - docs/X402_CLOUD.md — Bankr x402 Cloud deployment and paid USDC discovery

@@ -1,12 +1,13 @@
 /**
- * Collaborative task rosters for the marketplace.
+ * Crowdfund bounty titles for /crowdfund.
  * The pass count is the crowdfund schedule `(3n + 4) / 5`.
- * This board records wallets and pledges. It does not post a task and it does not move AZL.
+ * Create, join, and leave run on-chain first. This store keeps title, brief, and names.
+ * It does not post a V2 task.
  */
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const MAX_OWNERS = 200;
 const MAX_CAMPAIGNS = 100;
@@ -60,11 +61,28 @@ function cleanText(value, label, max) {
 function cleanWallet(value, required) {
   const text = String(value ?? "").trim();
   if (!text) {
-    if (required) throw boardError("Enter the wallet that will sign.");
+    if (required) throw boardError("Connect the wallet that will sign.");
     return null;
   }
   if (!/^0x[a-fA-F0-9]{40}$/.test(text)) throw boardError("Wallet must be a 20-byte hex address.");
   return text.toLowerCase();
+}
+
+function cleanAddress(value, label) {
+  const text = String(value ?? "").trim();
+  if (!/^0x[a-fA-F0-9]{40}$/.test(text)) throw boardError(`${label} is missing.`);
+  return text.toLowerCase();
+}
+
+function cleanTx(value) {
+  const text = String(value ?? "").trim();
+  if (!/^0x[a-fA-F0-9]{64}$/.test(text)) throw boardError("Create transaction is missing.");
+  return text.toLowerCase();
+}
+
+function isLive(campaign) {
+  return /^0x[a-fA-F0-9]{40}$/.test(String(campaign?.safe ?? ""))
+    && /^0x[a-fA-F0-9]{40}$/.test(String(campaign?.module ?? ""));
 }
 
 function unitsOf(text) {
@@ -116,13 +134,18 @@ function viewOf(campaign) {
         }
       : null,
     createdAt: campaign.createdAt,
+    live: true,
+    safe: campaign.safe,
+    module: campaign.module,
+    guard: campaign.guard || null,
+    createTx: campaign.createTx,
   };
 }
 
 function find(state, id) {
   const key = String(id ?? "").trim();
   const campaign = state.campaigns.find((item) => item.id === key);
-  if (!campaign) {
+  if (!campaign || !isLive(campaign)) {
     const error = new Error("That bounty does not exist.");
     error.status = 404;
     throw error;
@@ -150,7 +173,11 @@ export function createCampaign(state, input) {
   }
   if (openerAmount > total) throw boardError("The opening pledge cannot pass the goal.");
   const openerName = cleanText(input.openerName, "your name", 40);
-  const openerWallet = cleanWallet(input.openerWallet, false);
+  const openerWallet = cleanWallet(input.openerWallet, true);
+  const safe = cleanAddress(input.safe, "Safe");
+  const module = cleanAddress(input.module, "Module");
+  const guard = input.guard ? cleanAddress(input.guard, "Guard") : null;
+  const createTx = cleanTx(input.createTx);
   const campaign = {
     id: randomBytes(9).toString("base64url"),
     title,
@@ -162,6 +189,10 @@ export function createCampaign(state, input) {
     openerWallet,
     openerAmountAzl: formatAzl(openerAmount),
     members: [],
+    safe,
+    module,
+    guard,
+    createTx,
     createdAt: new Date().toISOString(),
   };
   state.campaigns.unshift(campaign);
@@ -197,6 +228,22 @@ export function leaveCampaign(state, input) {
   const index = campaign.members.findIndex((member) => member.wallet === wallet);
   if (index < 0) throw boardError("That wallet is not a contributor on this bounty.");
   campaign.members.splice(index, 1);
+  return viewOf(campaign);
+}
+
+export function contributeCampaign(state, input) {
+  const campaign = find(state, input.id);
+  const wallet = cleanWallet(input.wallet, true);
+  const amount = parseAzl(input.amountAzl, "Pledge");
+  const nextTotal = pledgedUnits(campaign) + amount;
+  if (nextTotal > unitsOf(campaign.totalAzl)) throw boardError("That pledge would pass the goal.");
+  if (wallet === campaign.openerWallet) {
+    campaign.openerAmountAzl = formatAzl(unitsOf(campaign.openerAmountAzl) + amount);
+    return viewOf(campaign);
+  }
+  const member = campaign.members.find((item) => item.wallet === wallet);
+  if (!member) throw boardError("That wallet is not a contributor on this bounty.");
+  member.amountAzl = formatAzl(unitsOf(member.amountAzl) + amount);
   return viewOf(campaign);
 }
 
@@ -256,9 +303,18 @@ export async function handleCrowdfundRequest({ method, searchParams, body = {} }
     if (method === "OPTIONS") return { status: 204, json: null };
     if (method === "GET") {
       const state = await readState();
+      const live = state.campaigns.filter(isLive);
       const id = searchParams.get("id");
-      if (id) return { status: 200, json: { campaign: viewOf(find(state, id)) } };
-      return { status: 200, json: { campaigns: state.campaigns.map(viewOf) } };
+      if (id) {
+        const campaign = live.find((item) => item.id === String(id).trim());
+        if (!campaign) {
+          const error = new Error("That bounty does not exist.");
+          error.status = 404;
+          throw error;
+        }
+        return { status: 200, json: { campaign: viewOf(campaign) } };
+      }
+      return { status: 200, json: { campaigns: live.map(viewOf) } };
     }
     if (method !== "POST") return { status: 405, json: { error: "method_not_allowed" } };
     const action = body.action;
@@ -266,6 +322,7 @@ export async function handleCrowdfundRequest({ method, searchParams, body = {} }
       if (action === "create") return createCampaign(state, body);
       if (action === "join") return joinCampaign(state, body);
       if (action === "leave") return leaveCampaign(state, body);
+      if (action === "contribute") return contributeCampaign(state, body);
       throw boardError("Unknown action.");
     });
     return { status: 200, json: { campaign } };

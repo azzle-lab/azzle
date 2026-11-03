@@ -29,6 +29,8 @@ At 2 owners the schedule is 2 of 2. One lost key freezes owner transactions unti
 
 `CrowdfundFactory.create` deploys one module, one module guard, and one Safe proxy. The Safe starts as the opener alone, threshold 1. Setup enables the module and the guard in that same transaction.
 
+Both market factories are on Base. Read [`contracts/deployments/base-8453-crowdfund.json`](../contracts/deployments/base-8453-crowdfund.json) for standard and [`contracts/deployments/base-8453-micro-crowdfund.json`](../contracts/deployments/base-8453-micro-crowdfund.json) for micro at runtime. Do not copy the address into prose. `/crowdfund` calls `create`, `join`, `leave`, and `contribute`. It does not post the V2 task.
+
 The factory is constructed with addresses read for the target chain:
 
 - Safe's proxy factory
@@ -79,15 +81,15 @@ A completed task pays the worker. `claim` then pays nothing.
 
 ## Agents
 
-Board HTTP: `GET` / `POST` `/api/crowdfund-campaigns` (alias `/api/market/crowdfund`). POST `action` is `create`, `join`, or `leave`. A pledge is a recorded amount. Do not treat a roster as a POSTED task and do not say AZL moved. Skill: [`.cursor/skills/azzle-crowdfund/SKILL.md`](../.cursor/skills/azzle-crowdfund/SKILL.md).
+Board HTTP: `GET` / `POST` `/api/crowdfund-campaigns` (alias `/api/market/crowdfund`). POST `action` is `create`, `join`, `leave`, or `contribute`. The board stores title, brief, and names after the wallet tx lands. `join` and `contribute` pull AZL into the Safe. `leave` sends that wallet AZL back. A crowdfund is not a POSTED task until the Safe posts. Skill: [`.cursor/skills/azzle-crowdfund/SKILL.md`](../.cursor/skills/azzle-crowdfund/SKILL.md).
 
 ## Marketplace
 
 Start a bounty at `/crowdfund`. The opener names the outcome, the goal in AZL, and the minimum join, then copies an invite link. Any wallet can take a seat. It does not have to be a team. The pass count on the card is `(3n + 4) / 5`, starting at 1 of 1. The interactive map is [`site/docs/crowdfund-explorer.html`](../site/docs/crowdfund-explorer.html).
 
-The open market keeps solo tasks on their own tabs. The Collaborative tab is the same board, kept off the solo list. Invite links use `/crowdfund?crowd=`.
+Invite links use `/crowdfund?crowd=`. The open market is solo POSTED tasks only.
 
-A pledge on this board is the amount that wallet has agreed to put in. It is not task escrow. The Safe still has to post and fund the task before a worker can claim it. Solo open jobs never include these rosters.
+A pledge is AZL already in the Safe, or the opener's recorded share after `contribute`. It is not task escrow. The Safe still has to post and fund the task before a worker can claim it.
 
 ## Tests
 

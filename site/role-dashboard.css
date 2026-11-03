@@ -2996,6 +2996,8 @@ html[data-theme="light"] .rd-crowd-bar{background:rgba(0,0,0,.08)}
 .rd-crowd-detail h2{margin:0 0 8px;color:var(--heading);font-size:28px;font-weight:600;letter-spacing:-.03em}
 .rd-crowd-detail .rd-crowd-brief{margin:0 0 18px;color:var(--muted);font-size:15px;line-height:1.5}
 .rd-crowd-figures{display:flex;gap:18px;align-items:baseline;margin:0 0 8px;color:var(--dim);font-family:var(--mono);font-size:12px}
+.rd-crowd-safe{margin:0 0 16px;font-size:12px}
+.rd-crowd-safe a{color:var(--muted)}
 .rd-crowd-figures strong{color:var(--heading);font-family:var(--sans);font-size:22px;font-weight:600;letter-spacing:-.03em}
 .rd-crowd-page .rd-crowd-members{margin:8px 0 20px}
 .rd-crowd-page .rd-crowd-members li{grid-template-columns:1fr auto;padding:12px 0}

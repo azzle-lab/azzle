@@ -216,7 +216,7 @@
 
     const pages = {
       graph: page('graph', 'One poster', 'The factory deploys a module, a guard, and a Safe proxy. The Safe is the poster AZZLE already understands. Addresses are read at deploy time. This page does not copy them.', `
-        <div class="callout warning"><b>Not live on Base yet.</b> <code>/crowdfund</code> is a roster. A pledge is a recorded amount. AZL moves after <code>CrowdfundFactory.create</code> deploys the Safe.</div>
+        <div class="callout"><b>Live on Base.</b> Post bounty calls <code>CrowdfundFactory.create</code>. Join pulls AZL into the Safe. Leave sends that wallet AZL back. The Safe is not a POSTED task until it posts.</div>
         <div class="diagram svg-diagram" id="crowd-graph" aria-label="Crowdfund contract graph"></div>
         <div class="diagram-detail" id="graph-detail"><b>Click a box.</b> The arrows through that piece stay lit.</div>
         <div class="grid three" style="margin-top:14px">
@@ -263,16 +263,16 @@
         <div class="stack">
           <div class="step"><i>1</i><div><b>Post</b><p>Opener seeds the poster deposit through paymentGateway, then a 1-of-1 Safe tx posts the task. Starts at 1 of 1.</p></div></div>
           <div class="step"><i>2</i><div><b>Approve Worker Claim</b><p>A worker claims. The poster signs to keep that worker on the task path.</p></div></div>
-          <div class="step"><i>3</i><div><b>Start Work &amp; Fund Escrow</b><p>One Safe tx: approve escrowVault, taskRegistry.fund, approve 0. Escrow pulls AZL from the Safe. Then syncFunded locks the roster.</p></div></div>
+          <div class="step"><i>3</i><div><b>Start Work &amp; Fund Escrow</b><p>One Safe tx: approve escrowVault, taskRegistry.fund, approve 0. Escrow pulls AZL from the Safe. Then syncFunded locks membership.</p></div></div>
           <div class="step"><i>4</i><div><b>Accept Result / Dispute</b><p>release or complete pays the worker. openDispute freezes remaining escrow.</p></div></div>
         </div>
       `),
-      custody: page('custody', 'When AZL moves', 'The board does not move AZL. After the Safe exists, AZL only leaves a wallet, the Safe, or escrow on these calls.', `
+      custody: page('custody', 'When AZL moves', 'Join and contribute pull AZL into the Safe. Leave sends it back until lock. fund sends Safe AZL to escrow.', `
         <div class="diagram svg-diagram compact" id="money-graph"></div>
         <div class="diagram-detail" id="money-detail"><b>Click a box.</b></div>
         <div class="grid two" style="margin-top:14px">
-          ${card('Does not move', 'board pledge', 'Your pledge on /crowdfund is a recorded amount. Posting or joining the roster does not transfer AZL.')}
-          ${card('Does move', 'join / fund / claim', 'join and contribute pull into the Safe. fund sends Safe AZL to escrow. release pays the worker. leave or claim returns a recorded share.')}
+          ${card('Board names', 'title / invite', 'The board stores the title, brief, and display names after the wallet tx lands. Membership and AZL follow the Safe.')}
+          ${card('Does move', 'join / leave / fund', 'join and contribute pull into the Safe. leave returns that wallet AZL. fund sends Safe AZL to escrow.')}
         </div>
       `),
       guard: page('guard', 'Guard', 'The module guard is ERC-165 IModuleGuard. It only allows recorded add, remove, or AZL transfer. Owners who meet the pass count can still sign any Safe tx, including disabling the guard. That is owner authority.', `

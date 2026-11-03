@@ -56,6 +56,37 @@
     return data;
   }
 
+  function posterApi() {
+    return window.azzlePoster ?? null;
+  }
+
+  function requirePoster() {
+    const api = posterApi();
+    if (!api?.ready || !api.address || typeof api.createCrowdfund !== "function") {
+      throw new Error("Connect your wallet.");
+    }
+    return api;
+  }
+
+  async function recordBoard(body) {
+    let last;
+    for (let i = 0; i < 3; i += 1) {
+      try {
+        return await api("/api/market/crowdfund", { method: "POST", body: JSON.stringify(body) });
+      } catch (err) {
+        last = err;
+        await new Promise((resolve) => setTimeout(resolve, 400 * (i + 1)));
+      }
+    }
+    throw last;
+  }
+
+  function setBusy(form, busy) {
+    form?.querySelectorAll("button[type='submit']").forEach((button) => {
+      button.disabled = Boolean(busy);
+    });
+  }
+
   async function load() {
     const data = await api("/api/market/crowdfund");
     campaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
@@ -149,13 +180,25 @@
     let action = "";
     if (yours) {
       action = `
+        <form id="rd-crowd-contribute" class="rd-crowd-form">
+          <label class="rd-field"><span>Add AZL</span><input name="amountAzl" required inputmode="decimal"/></label>
+          <button type="submit" class="rd-action">Add AZL</button>
+          <p class="rd-crowd-form-error" id="rd-crowd-contribute-error"></p>
+        </form>
         <form id="rd-crowd-leave" class="rd-crowd-form">
           <input type="hidden" name="wallet" value="${esc(wallet)}"/>
-          <p class="rd-crowd-leave-note">Removes you from this bounty. The Safe is not live yet, so no AZL moves.</p>
+          <p class="rd-crowd-leave-note">Removes you from this bounty. The Safe sends your AZL back.</p>
           <button type="submit" class="rd-action">Leave</button>
           <p class="rd-crowd-form-error" id="rd-crowd-leave-error"></p>
         </form>`;
-    } else if (!isOpener) {
+    } else if (isOpener) {
+      action = `
+        <form id="rd-crowd-contribute" class="rd-crowd-form">
+          <label class="rd-field"><span>Add AZL</span><input name="amountAzl" required inputmode="decimal"/></label>
+          <button type="submit" class="rd-action">Add AZL</button>
+          <p class="rd-crowd-form-error" id="rd-crowd-contribute-error"></p>
+        </form>`;
+    } else {
       action = `
         <form id="rd-crowd-join" class="rd-crowd-form">
           <label class="rd-field"><span>Name</span><input name="name" required maxlength="40"/></label>
@@ -172,6 +215,7 @@
       <h2>${esc(campaign.title)}</h2>
       <p class="rd-crowd-brief">${esc(campaign.brief)}</p>
       <p class="rd-crowd-figures"><strong>${esc(campaign.pledgedAzl)}</strong> / ${esc(campaign.totalAzl)} AZL<span>${esc(campaign.signaturesLabel)}</span></p>
+      ${campaign.safe ? `<p class="rd-crowd-safe"><a href="https://basescan.org/address/${esc(campaign.safe)}" target="_blank" rel="noopener noreferrer">Poster Safe</a></p>` : ""}
       <ol class="rd-crowd-members">${members}</ol>
       <div class="rd-crowd-actions">
         <button type="button" class="rd-action" id="rd-crowd-invite">Copy link</button>
@@ -197,8 +241,9 @@
         $("rd-crowd-invite-note").textContent = url.toString();
       }
     });
-    $("rd-crowd-join")?.addEventListener("submit", (event) => submitJoin(event, campaign.id));
-    $("rd-crowd-leave")?.addEventListener("submit", (event) => submitLeave(event, campaign.id));
+    $("rd-crowd-join")?.addEventListener("submit", (event) => submitJoin(event, campaign));
+    $("rd-crowd-leave")?.addEventListener("submit", (event) => submitLeave(event, campaign));
+    $("rd-crowd-contribute")?.addEventListener("submit", (event) => submitContribute(event, campaign));
   }
 
   async function show(id) {
@@ -309,15 +354,40 @@
       error.textContent = "AZL quote is not ready.";
       return;
     }
-    if (!form.elements.openerWallet?.value) {
-      error.textContent = "Connect your wallet.";
+    let poster;
+    try {
+      poster = requirePoster();
+    } catch (err) {
+      error.textContent = err.message;
       return;
     }
     const body = Object.fromEntries(new FormData(form).entries());
-    body.action = "create";
-    if (wallet && !body.openerWallet) body.openerWallet = wallet;
+    body.openerWallet = poster.address;
+    setBusy(form, true);
+    error.textContent = "Confirm in wallet.";
     try {
-      const data = await api("/api/market/crowdfund", { method: "POST", body: JSON.stringify(body) });
+      const live = await poster.createCrowdfund({
+        market: body.market,
+        totalAzl: body.totalAzl,
+        minJoinAzl: body.minJoinAzl,
+        openerAmountAzl: body.openerAmountAzl,
+        onProgress: (text) => {
+          error.textContent = text;
+        },
+      });
+      body.action = "create";
+      body.safe = live.safe;
+      body.module = live.module;
+      body.guard = live.guard;
+      body.createTx = live.createTx;
+      body.openerAmountAzl = live.openerAmountAzl;
+      let data;
+      try {
+        data = await recordBoard(body);
+      } catch (err) {
+        error.textContent = "Safe is live. Recording the bounty failed. " + err.message;
+        return;
+      }
       form.reset();
       paintBudget(form);
       fillWallet(form.elements.openerWallet);
@@ -327,48 +397,143 @@
         history.replaceState(null, "", url.pathname + url.search);
         closeCreate();
         await show(openId);
+        if (live.pledgeError) setStatus(live.pledgeError, "err");
       } else {
         window.location.assign(inviteUrl(openId).toString());
       }
     } catch (err) {
       error.textContent = err.message;
+    } finally {
+      setBusy(form, false);
     }
   }
 
-  async function submitJoin(event, id) {
+  async function submitJoin(event, campaign) {
     event.preventDefault();
-    const body = Object.fromEntries(new FormData(event.currentTarget).entries());
-    body.action = "join";
-    body.id = id;
+    const form = event.currentTarget;
+    const body = Object.fromEntries(new FormData(form).entries());
     const error = $("rd-crowd-join-error");
-    if (!body.wallet) {
-      error.textContent = "Connect your wallet.";
+    error.textContent = "";
+    let poster;
+    try {
+      poster = requirePoster();
+    } catch (err) {
+      error.textContent = err.message;
       return;
     }
+    if (!campaign.module) {
+      error.textContent = "This bounty is not on-chain.";
+      return;
+    }
+    setBusy(form, true);
+    error.textContent = "Confirm in wallet.";
     try {
-      const data = await api("/api/market/crowdfund", { method: "POST", body: JSON.stringify(body) });
-      wallet = String(body.wallet || wallet).toLowerCase();
+      await poster.joinCrowdfund({
+        module: campaign.module,
+        amountAzl: body.amountAzl,
+        onProgress: (text) => {
+          error.textContent = text;
+        },
+      });
+      let data;
+      try {
+        data = await recordBoard({
+          action: "join",
+          id: campaign.id,
+          name: body.name,
+          wallet: poster.address,
+          amountAzl: body.amountAzl,
+        });
+      } catch (err) {
+        if (!/already on this bounty/.test(err.message)) throw err;
+        data = { campaign };
+      }
+      wallet = String(poster.address).toLowerCase();
       openId = data.campaign.id;
       await show(openId);
     } catch (err) {
       error.textContent = err.message;
+    } finally {
+      setBusy(form, false);
     }
   }
 
-  async function submitLeave(event, id) {
+  async function submitLeave(event, campaign) {
     event.preventDefault();
+    const form = event.currentTarget;
     const error = $("rd-crowd-leave-error");
-    const formWallet = new FormData(event.currentTarget).get("wallet") || wallet;
+    error.textContent = "";
+    let poster;
     try {
-      const data = await api("/api/market/crowdfund", {
-        method: "POST",
-        body: JSON.stringify({ action: "leave", id, wallet: formWallet }),
+      poster = requirePoster();
+    } catch (err) {
+      error.textContent = err.message;
+      return;
+    }
+    setBusy(form, true);
+    error.textContent = "Confirm in wallet.";
+    try {
+      await poster.leaveCrowdfund({
+        module: campaign.module,
+        onProgress: (text) => {
+          error.textContent = text;
+        },
       });
-      if (String(formWallet).toLowerCase() === wallet) wallet = "";
+      let data;
+      try {
+        data = await recordBoard({
+          action: "leave",
+          id: campaign.id,
+          wallet: poster.address,
+        });
+      } catch (err) {
+        if (!/not a contributor/.test(err.message)) throw err;
+        data = { campaign };
+      }
       openId = data.campaign.id;
       await show(openId);
     } catch (err) {
       error.textContent = err.message;
+    } finally {
+      setBusy(form, false);
+    }
+  }
+
+  async function submitContribute(event, campaign) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const body = Object.fromEntries(new FormData(form).entries());
+    const error = $("rd-crowd-contribute-error");
+    error.textContent = "";
+    let poster;
+    try {
+      poster = requirePoster();
+    } catch (err) {
+      error.textContent = err.message;
+      return;
+    }
+    setBusy(form, true);
+    error.textContent = "Confirm in wallet.";
+    try {
+      await poster.contributeCrowdfund({
+        module: campaign.module,
+        amountAzl: body.amountAzl,
+        onProgress: (text) => {
+          error.textContent = text;
+        },
+      });
+      const data = await recordBoard({
+        action: "contribute",
+        id: campaign.id,
+        wallet: poster.address,
+        amountAzl: body.amountAzl,
+      });
+      openId = data.campaign.id;
+      await show(openId);
+    } catch (err) {
+      error.textContent = err.message;
+    } finally {
+      setBusy(form, false);
     }
   }
 

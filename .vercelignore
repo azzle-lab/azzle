@@ -4,3 +4,9 @@ azzle-arbitrator/
 site/blast.html
 site/logo-voxels.json
 azzle-force/
+.craft-preview/
+.recovery-before-*/
+*.mp4
+near-hackathon/
+integrations/
+azzle-service-template/
