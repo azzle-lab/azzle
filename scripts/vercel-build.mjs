@@ -38,6 +38,7 @@ const STATIC = [
   "social-card.js",
   "waitbar.js",
   "pricing.html",
+  "terms.html",
   "market.html",
   "union.html",
   "azl.html",
@@ -75,7 +76,6 @@ const STATIC = [
   "icon.svg",
   "wordmark.svg",
   "wordmark.png",
-  "smolthrong.png",
   "docs.css",
   "brand-guidelines.html",
   "brand-guidelines.css",
@@ -98,6 +98,14 @@ const STATIC = [
   "arbitrator.html",
   "arbitrator.css",
   "arbitrator.js",
+  "thronglets.html",
+  "thronglets.css",
+  "thronglets.js",
+  "thronglets-model.js",
+  "ads-film.html",
+  "smolthrong.png",
+  "smolthrongscreams.png",
+  "noggles.png",
 ];
 
 async function copyDirRecursive(srcDir, destDir) {
@@ -191,6 +199,15 @@ try {
   console.log("[vercel-build] docs/ copied");
 } catch {
   console.warn("[vercel-build] WARN: site/docs/ missing  /  developer docs not staged");
+}
+
+const waitlistDir = join(site, "waitlist");
+try {
+  await access(waitlistDir, constants.R_OK);
+  await copyDirRecursive(waitlistDir, join(stage, "waitlist"));
+  console.log("[vercel-build] waitlist/ copied");
+} catch {
+  console.warn("[vercel-build] WARN: site/waitlist/ missing  /  waitlist page not staged");
 }
 
 const ogDir = join(site, "og");

@@ -35,12 +35,18 @@
     { "source": "/crowdfund/", "destination": "/crowdfund.html" },
     { "source": "/pricing", "destination": "/pricing.html" },
     { "source": "/pricing/", "destination": "/pricing.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/terms/", "destination": "/terms.html" },
     { "source": "/market", "destination": "/market.html" },
     { "source": "/market/", "destination": "/market.html" },
     { "source": "/union", "destination": "/union.html" },
     { "source": "/union/", "destination": "/union.html" },
     { "source": "/azl", "destination": "/azl.html" },
     { "source": "/azl/", "destination": "/azl.html" },
+    { "source": "/herd", "destination": "/thronglets.html" },
+    { "source": "/herd/", "destination": "/thronglets.html" },
+    { "source": "/ads-film", "destination": "/ads-film.html" },
+    { "source": "/ads-film/", "destination": "/ads-film.html" },
     { "source": "/my-tasks", "destination": "/my-tasks.html" },
     { "source": "/my-tasks/", "destination": "/my-tasks.html" },
     { "source": "/my-work", "destination": "/my-work.html" },
@@ -49,6 +55,8 @@
     { "source": "/arbitrator/", "destination": "/arbitrator.html" },
     { "source": "/wallet", "destination": "/wallet.html" },
     { "source": "/wallet/", "destination": "/wallet.html" },
+    { "source": "/waitlist", "destination": "/waitlist/waitlist.html" },
+    { "source": "/waitlist/", "destination": "/waitlist/waitlist.html" },
     { "source": "/docs", "destination": "/docs/index.html" },
     { "source": "/docs/", "destination": "/docs/index.html" },
     { "source": "/getting-started", "destination": "/docs/getting-started.html" },
@@ -87,6 +95,16 @@
     { "source": "/docs/xmtp", "destination": "/docs/xmtp.html" }
   ],
   "redirects": [
+    {
+      "source": "/thronglets",
+      "destination": "/herd",
+      "permanent": true
+    },
+    {
+      "source": "/thronglets/",
+      "destination": "/herd",
+      "permanent": true
+    },
     {
       "source": "/",
       "has": [{ "type": "host", "value": "azzle.org" }],
