@@ -71,6 +71,46 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "502":
           $ref: "#/components/responses/Unavailable"
+  /api/crowdfund-campaigns:
+    get:
+      operationId: listCrowdfundCampaigns
+      tags: [market]
+      summary: List collaborative bounty rosters
+      description: |
+        Roster only. Pledges are recorded amounts. CrowdfundFactory is not
+        deployed, so this does not move AZL and is not a POSTED task list.
+      parameters:
+        - name: id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Return one bounty when set
+      responses:
+        "200":
+          description: Roster list, or one campaign when id is set
+        "404":
+          description: That bounty does not exist
+    post:
+      operationId: mutateCrowdfundCampaign
+      tags: [market]
+      summary: Create, join, or leave a bounty roster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [create, join, leave]
+      responses:
+        "200":
+          description: Updated campaign
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /api/market/task:
     get:
       operationId: getTask

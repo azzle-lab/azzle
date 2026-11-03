@@ -43,6 +43,7 @@ async function readBody(req) {
 async function serveStatic(pathname, res) {
   let rel = pathname === "/" ? "/index.html" : pathname;
   if (rel === "/post" || rel === "/post/") rel = "/post.html";
+  if (rel === "/crowdfund" || rel === "/crowdfund/") rel = "/crowdfund.html";
   if (rel === "/pricing" || rel === "/pricing/") rel = "/pricing.html";
   if (rel === "/market" || rel === "/market/") rel = "/market.html";
   if (rel === "/union" || rel === "/union/") rel = "/union.html";

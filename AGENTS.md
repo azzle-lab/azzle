@@ -1,4 +1,4 @@
-# AZZLE V2 ? agent context
+# AZZLE V2 — agent context
 
 AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`contracts/src/v2/`](contracts/src/v2/). There are two markets: **standard** ([`contracts/deployments/base-8453.json`](contracts/deployments/base-8453.json)) and **micro** ([`contracts/deployments/base-8453-micro.json`](contracts/deployments/base-8453-micro.json)). Task ids are `v2:standard:N` and `v2:micro:N`. See [`protocol/MARKETS.md`](protocol/MARKETS.md).
 
@@ -13,6 +13,7 @@ AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`
 - Deposits and pricing: [`protocol/AGENT_DEPOSITS.md`](protocol/AGENT_DEPOSITS.md)
 - Disputes: [`arbitration/DISPUTE_FLOW.md`](arbitration/DISPUTE_FLOW.md)
 - Markets: [`protocol/MARKETS.md`](protocol/MARKETS.md)
+- Crowdfund poster: [`protocol/CROWDFUND.md`](protocol/CROWDFUND.md). Live board is `/crowdfund`. Factory is not deployed. Skill: [`.cursor/skills/azzle-crowdfund/SKILL.md`](.cursor/skills/azzle-crowdfund/SKILL.md).
 
 ## Non-negotiable integration rules
 
@@ -25,9 +26,9 @@ AZZLE V2 is the active Base mainnet protocol. Contract behavior is defined by [`
 
 ## V2 lifecycle
 
-`post ? claim ? fund (full funding activates) ? markDelivered ? release / complete`
+`post → claim → fund (full funding activates) → markDelivered → release or complete`
 
-Alternative terminal paths are `cancel`, permissionless `expire`, or `openDispute ? rule / timeout`. `activate` is only a compatibility no-op after full funding. V2 has no direct-hire, milestone, streaming, proof-review, pause/delete, or USDC task-payment flow.
+Alternative terminal paths are `cancel`, permissionless `expire`, or `openDispute → rule or timeout`. `activate` is only a compatibility no-op after full funding. V2 has no direct-hire, milestone, streaming, proof-review, pause/delete, or USDC task-payment flow.
 
 ## Editing rules
 

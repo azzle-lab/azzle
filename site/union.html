@@ -6,6 +6,14 @@
 <title>Union staking  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/union"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Union staking  /  AZZLE"/>
+<meta property="og:description" content="Stake AZL on Base to mine Action Credits."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Union staking  /  AZZLE"/>
+<meta name="twitter:description" content="Stake AZL on Base to mine Action Credits."/>
 <meta property="og:image" content="https://azzle.org/og/union.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -16,10 +24,10 @@
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
-    <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
+    <a href="/" class="azzle-nav-logo"><img src="azzlewordmark.png" alt="AZZLE" height="24"/></a>
     <div class="azzle-nav-center">
       <ul class="azzle-nav-app">
-        <li><a href="/">Chat</a></li><li><a href="/post">Post</a></li><li><a href="/market">Market</a></li>
+        <li><a href="/">Home</a></li><li><a href="/post">Post</a></li><li><a href="/crowdfund">Crowdfund</a></li><li><a href="/market">Market</a></li>
         <li><a href="/union" class="azzle-nav-on">Union</a></li><li><a href="/my-tasks">Tasks</a></li><li><a href="/my-work">Work</a></li><li><a href="/wallet">Wallet</a></li>
       </ul>
       <ul class="azzle-nav-docs"><li><a href="/docs/union-staking.html">Union guide</a></li><li><a href="/docs/">Docs</a></li></ul>
@@ -41,7 +49,7 @@
         </div>
       </header>
 
-      <p class="rd-checkout-status" id="union-status">Loading Union status…</p>
+      <p class="rd-checkout-status busy" id="union-status">Loading Union status…</p>
 
       <div class="rd-union-stats" style="margin-right: 9px; border-top-left-radius: 20%; border-bottom-left-radius: 20%">
         <article class="rd-union-stat"><span>Wallet AZL</span><strong id="union-wallet-azl"> / </strong><small>Available to stake</small></article>
@@ -139,7 +147,8 @@
   </main>
 </div>
 <script type="module" src="role-wallet.bundle.js"></script>
-<script src="union.js?v=20260825-withdrawable-stake"></script>
+<script src="waitbar.js?v=20261030-wait"></script>
+<script src="union.js?v=20261026-staking-active"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

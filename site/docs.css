@@ -167,9 +167,17 @@ body.page-docs .rd-subnav{
   border-color:var(--b);
 }
 body.page-docs .azzle-nav-logo img,
-body.page-docs .rd-subnav-logo img{filter:invert(1)}
+body.page-docs .rd-subnav-logo img{
+  height:var(--azzle-mark-h);
+  width:auto;
+  max-height:var(--azzle-mark-h);
+  object-fit:contain;
+  filter:invert(1);
+}
 body.page-docs[data-docs-bg="#101217"] .azzle-nav-logo img,
-body.page-docs[data-docs-bg="#101217"] .rd-subnav-logo img,
+body.page-docs[data-docs-bg="#101217"] .rd-subnav-logo img{
+  filter:none;
+}
 body.page-docs[data-docs-bg="#101217"] .azzle-nav-gh-icon{
   filter:none !important;
 }

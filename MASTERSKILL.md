@@ -16,6 +16,7 @@ This is the concise agent playbook. Solidity and the deployment manifest remain 
 - Disputes: [`arbitration/DISPUTE_FLOW.md`](arbitration/DISPUTE_FLOW.md)
 - Arbitrator SDK: [`arbitration/ARBITRATOR_SDK.md`](arbitration/ARBITRATOR_SDK.md)
 - Indexing: [`docs/indexer-schema.md`](docs/indexer-schema.md)
+- Crowdfund poster: [`protocol/CROWDFUND.md`](protocol/CROWDFUND.md). Board `/crowdfund` is a roster only until `CrowdfundFactory` is deployed.
 
 ## System model
 

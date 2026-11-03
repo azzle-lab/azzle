@@ -33,6 +33,10 @@ const referenceSources = [
 const STATIC = [
   "index.html",
   "post.html",
+  "crowdfund.html",
+  "crowdfund.js",
+  "social-card.js",
+  "waitbar.js",
   "pricing.html",
   "market.html",
   "union.html",
@@ -61,6 +65,7 @@ const STATIC = [
   "xmtp.png",
   "azzletype.png",
   "azzlelogo.png",
+  "azzlewordmark.png",
   "baselogo.png",
   "GitHub_Invertocat_White.png",
   "npm_logo.png",
