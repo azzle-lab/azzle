@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { normalizeMarket } from "./markets.js";
 
 const MAX_OWNERS = 200;
 const MAX_CAMPAIGNS = 100;
@@ -303,10 +304,16 @@ export async function handleCrowdfundRequest({ method, searchParams, body = {} }
     if (method === "OPTIONS") return { status: 204, json: null };
     if (method === "GET") {
       const state = await readState();
-      const live = state.campaigns.filter(isLive);
-      const id = searchParams.get("id");
+      let market;
+      try {
+        market = normalizeMarket(searchParams.get("market"));
+      } catch {
+        throw boardError("Pick Standard or Micro.");
+      }
+      const live = state.campaigns.filter((item) => isLive(item) && item.market === market);
+      const id = String(searchParams.get("campaignId") || searchParams.get("id") || "").trim();
       if (id) {
-        const campaign = live.find((item) => item.id === String(id).trim());
+        const campaign = live.find((item) => item.id === id);
         if (!campaign) {
           const error = new Error("That bounty does not exist.");
           error.status = 404;
@@ -314,7 +321,7 @@ export async function handleCrowdfundRequest({ method, searchParams, body = {} }
         }
         return { status: 200, json: { campaign: viewOf(campaign) } };
       }
-      return { status: 200, json: { campaigns: live.map(viewOf) } };
+      return { status: 200, json: { campaigns: live.map(viewOf), market } };
     }
     if (method !== "POST") return { status: 405, json: { error: "method_not_allowed" } };
     const action = body.action;

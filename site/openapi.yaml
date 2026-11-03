@@ -79,17 +79,18 @@ paths:
       description: |
         Names and invite metadata after the wallet tx. Join and contribute
         pull AZL into the Safe. Leave sends that wallet AZL back. This is
-        not a POSTED task list.
+        not a POSTED task list. Lists are never merged across markets.
       parameters:
-        - name: id
+        - $ref: "#/components/parameters/Market"
+        - name: campaignId
           in: query
           required: false
           schema:
             type: string
-          description: Return one bounty when set
+          description: Return one bounty when set. This is not a TaskId.
       responses:
         "200":
-          description: Bounty list, or one campaign when id is set
+          description: Bounty list, or one campaign when campaignId is set
         "404":
           description: That bounty does not exist
     post:
@@ -107,6 +108,8 @@ paths:
                 action:
                   type: string
                   enum: [create, join, leave, contribute]
+                market:
+                  $ref: "#/components/schemas/Market"
       responses:
         "200":
           description: Updated campaign

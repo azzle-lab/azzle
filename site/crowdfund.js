@@ -88,8 +88,14 @@
   }
 
   async function load() {
-    const data = await api("/api/market/crowdfund");
-    campaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
+    const [standard, micro] = await Promise.all([
+      api("/api/market/crowdfund?market=standard"),
+      api("/api/market/crowdfund?market=micro"),
+    ]);
+    campaigns = [
+      ...(Array.isArray(standard.campaigns) ? standard.campaigns : []),
+      ...(Array.isArray(micro.campaigns) ? micro.campaigns : []),
+    ];
   }
 
   function sessionWallet() {

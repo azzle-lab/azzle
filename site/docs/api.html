@@ -213,11 +213,11 @@ curl -s "https://azzle.org/api/market/task?id=v2:micro:7"</pre>
   <section class="docs-section" id="crowdfund">
     <h2>GET / POST /api/crowdfund-campaigns</h2>
     <p>Crowdfund titles. Alias: <code>/api/market/crowdfund</code>. This is not a POSTED task list. The wallet calls <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code> on the factory or module first. The board then stores title, brief, and names. Join and contribute pull AZL into the Safe. Leave sends that wallet AZL back.</p>
-    <p>GET lists bounties, or one bounty with <code>?id=</code>. POST JSON <code>action</code> is <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code>. Pass count is integer <code>(3n + 4) / 5</code>. Cap 200 owners, 100 bounties. Board: <a href="/crowdfund">/crowdfund</a>. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>.</p>
+    <p>GET lists bounties on one market (<code>standard</code> default, or <code>micro</code>), or one bounty with <code>?campaignId=</code>. POST JSON <code>action</code> is <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code>. Create requires <code>market</code>. Pass count is integer <code>(3n + 4) / 5</code>. Cap 200 owners, 100 bounties. Board: <a href="/crowdfund">/crowdfund</a>. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
-      <pre>curl -s "https://azzle.org/api/crowdfund-campaigns"
-curl -s "https://azzle.org/api/crowdfund-campaigns?id=ID"</pre>
+      <pre>curl -s "https://azzle.org/api/crowdfund-campaigns?market=standard"
+curl -s "https://azzle.org/api/crowdfund-campaigns?market=micro&amp;campaignId=ID"</pre>
     </div>
   </section>
 
