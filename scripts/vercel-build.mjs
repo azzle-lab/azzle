@@ -74,6 +74,8 @@ const STATIC = [
   "og.png",
   "icon.svg",
   "wordmark.svg",
+  "wordmark.png",
+  "smolthrong.png",
   "docs.css",
   "brand-guidelines.html",
   "brand-guidelines.css",
