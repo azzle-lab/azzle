@@ -6,18 +6,16 @@
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 const MAX_OWNERS = 200;
 const MAX_CAMPAIGNS = 100;
 const KV_KEY = "crowdfund:campaigns:v1";
 const SCALE = 1_000_000n;
 
-const here = dirname(fileURLToPath(import.meta.url));
 const storePath = process.env.VERCEL
   ? join(tmpdir(), "azzle-crowdfund-campaigns.json")
-  : join(here, "..", "data", "crowdfund-campaigns.json");
+  : join(process.cwd(), "api", "data", "crowdfund-campaigns.json");
 
 let memory = { campaigns: [] };
 let chain = Promise.resolve();
