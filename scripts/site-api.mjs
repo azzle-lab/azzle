@@ -321,6 +321,13 @@ export async function handleSiteApi({ method, pathname, searchParams, body = {},
       }
     }
 
+    if (pathname === "/api/market/crowdfund" || pathname === "/api/crowdfund-campaigns") {
+      const { handleCrowdfundRequest } = await import("../api/lib/crowdfund-board.js");
+      const result = await handleCrowdfundRequest({ method, searchParams, body });
+      if (result.status === 204) return { status: 204, headers: CORS, json: null };
+      return apiJson(result.status, result.json, { "Cache-Control": "no-store" });
+    }
+
     if (method === "GET" && (pathname === "/api/get-open-tasks" || pathname === "/api/market/open")) {
       try {
         const { listV2Tasks } = await import("../api/lib/tasks-rpc-v2.js");

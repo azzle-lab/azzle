@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Crowdfund  /  AZZLE</title>
+<link rel="stylesheet" href="site-theme.css"/>
+<link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/crowdfund"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Crowdfund  /  AZZLE"/>
+<meta property="og:description" content="Name an outcome and pool a large AZL budget. Contributors become one poster and sign together."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Crowdfund  /  AZZLE"/>
+<meta name="twitter:description" content="Name an outcome and pool a large AZL budget. Contributors become one poster and sign together."/>
+<meta property="og:image" content="https://azzle.org/og/market.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:image" content="https://azzle.org/og/market.png"/>
+  <script src="/theme-init.js"></script>
+</head>
+<body data-page="crowdfund">
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+<div class="rd-subpage">
+  <nav class="azzle-nav" aria-label="Site">
+    <a href="/" class="azzle-nav-logo"><img src="azzlewordmark.png" alt="AZZLE" height="24"/></a>
+    <div class="azzle-nav-center">
+      <ul class="azzle-nav-app">
+        <li><a href="/">Home</a></li>
+        <li><a href="/post">Post</a></li>
+        <li><a href="/crowdfund" class="azzle-nav-on">Crowdfund</a></li>
+        <li><a href="/market"><span class="azzle-nav-label-long">Open market</span><span class="azzle-nav-label-short">Market</span></a></li>
+        <li><a href="/union">Union</a></li>
+        <li><a href="/my-tasks"><span class="azzle-nav-label-long">My tasks</span><span class="azzle-nav-label-short">Tasks</span></a></li>
+        <li><a href="/my-work"><span class="azzle-nav-label-long">My work</span><span class="azzle-nav-label-short">Work</span></a></li>
+        <li><a href="/wallet">Wallet</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+      </ul>
+      <ul class="azzle-nav-docs">
+        <li><a href="/docs/getting-started.html">Getting started</a></li>
+        <li><a href="/docs/api.html">API</a></li>
+        <li><a href="/docs/">Docs</a></li>
+      </ul>
+    </div>
+    <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="https://www.npmjs.com/package/@azzle/agents" class="azzle-nav-npm" target="_blank" rel="noopener noreferrer" aria-label="@azzle/agents on npm"><img src="/npm_logo.png" alt="npm" class="azzle-nav-npm-icon" width="24" height="24"/></a>
+      <a class="azzle-nav-azl-ticker" data-azl-nav-ticker href="/azl" aria-label="Open AZL market page"><span class="azzle-nav-azl-dot" aria-hidden="true"></span><span class="azzle-nav-azl-symbol">AZL</span><strong data-azl-nav-price>Loading</strong></a>
+      <div data-rd-wallet-mount></div>
+      <button type="button" class="azzle-theme-toggle" data-theme-toggle aria-pressed="false">☼<span>Light</span></button>
+    </div>
+  </nav>
+  <div class="rd-subpage-inner">
+    <section class="rd-crowd-page" id="rd-market-panel-collaborative">
+      <div class="rd-crowd-top">
+        <div>
+          <h4>Crowdfund</h4>
+          <p class="rd-crowd-pitch">Name an outcome. Pool a large budget. Contributors become one poster.</p>
+        </div>
+        <div class="rd-crowd-start">
+          <button type="button" class="rd-crowd-new" id="rd-crowd-new" aria-expanded="false" aria-controls="rd-crowd-modal"><span aria-hidden="true">+</span>New bounty</button>
+          <p class="rd-crowd-point">Start here</p>
+        </div>
+      </div>
+      <figure class="rd-crowd-teach">
+        <figcaption>How it works</figcaption>
+        <label class="rd-crowd-slide">
+          <span><b id="rd-crowd-slide-n">69</b> <span id="rd-crowd-slide-word">people contributing</span></span>
+          <input id="rd-crowd-slide" type="range" min="1" max="200" value="69" aria-label="People contributing"/>
+        </label>
+        <div class="rd-crowd-plate">
+          <div class="rd-crowd-swarm" id="rd-crowd-swarm" aria-hidden="true"><i class="on"></i></div>
+          <div class="rd-crowd-plate-foot">
+            <strong data-pass>42 of 69</strong>
+            <span>One poster</span>
+          </div>
+        </div>
+        <div class="rd-crowd-drop" aria-hidden="true"></div>
+        <ol class="rd-crowd-rail">
+          <li>
+            <div class="rd-crowd-scene" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><circle class="on" cx="16" cy="10" r="4"/><path d="M7 25c1.6-5 4.4-7 9-7s7.4 2 9 7"/></svg>
+            </div>
+            <div class="rd-crowd-step">
+              <b>Post</b>
+              <p>One person opens the bounty. They are the only signer.</p>
+              <small>1 of 1</small>
+            </div>
+          </li>
+          <li>
+            <div class="rd-crowd-scene" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><circle cx="8" cy="14" r="3.2"/><circle cx="16" cy="14" r="3.2"/><circle class="on" cx="26" cy="10" r="3"/><path class="on" d="M22 18h7M26 15l3 3-3 3"/></svg>
+            </div>
+            <div class="rd-crowd-step">
+              <b>Leave</b>
+              <p>Walk away before escrow. The Safe sends their AZL back.</p>
+              <small>Open until fund</small>
+            </div>
+          </li>
+          <li>
+            <div class="rd-crowd-scene" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><circle cx="8" cy="12" r="3.2"/><circle class="on" cx="24" cy="12" r="3.2"/><path d="M13 12h6"/><path class="on" d="M13 21.5l2.4 2.4 5-5.2"/></svg>
+            </div>
+            <div class="rd-crowd-step">
+              <b>Approve Worker Claim</b>
+              <p>A worker claims the task. The poster signs to approve that worker.</p>
+              <small data-pass>42 of 69</small>
+            </div>
+          </li>
+          <li>
+            <div class="rd-crowd-scene" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><circle class="on" cx="7" cy="16" r="3.4"/><path d="M12 16h7"/><path d="M16 12.5L20 16l-4 3.5"/><rect x="21" y="8" width="7" height="16" rx="1.5"/></svg>
+            </div>
+            <div class="rd-crowd-step">
+              <b>Start Work &amp; Fund Escrow</b>
+              <p>The poster signs to put the AZL in escrow. The work starts after that.</p>
+              <small data-pass>42 of 69</small>
+            </div>
+          </li>
+          <li>
+            <div class="rd-crowd-scene" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M16 5v7"/><path d="M16 12L7 24"/><path d="M16 12l9 12"/><path class="on" d="M4.5 25.5l2.2 2.2 4.4-4.6"/><path d="M23 22l5.5 6M28.5 22L23 28"/></svg>
+            </div>
+            <div class="rd-crowd-step">
+              <b>Accept Result / Dispute</b>
+              <p>The poster signs to accept the result and pay the worker, or to dispute it.</p>
+              <small data-pass>42 of 69</small>
+            </div>
+          </li>
+        </ol>
+        <p class="rd-crowd-lead">Filled seats sign together. <a href="/docs/crowdfund-explorer.html">Explorer</a>.</p>
+      </figure>
+      <p class="rd-crowd-status" id="rd-crowd-status"></p>
+      <div id="rd-crowd-list"></div>
+      <article id="rd-crowd-detail" hidden></article>
+    </section>
+  </div>
+</div>
+<dialog class="rd-crowd-modal" id="rd-crowd-modal" aria-labelledby="rd-crowd-modal-title">
+  <form class="rd-crowd-create" id="rd-crowd-create">
+    <div class="rd-crowd-modal-head">
+      <h3 id="rd-crowd-modal-title">New bounty</h3>
+      <button type="button" class="rd-crowd-modal-close" id="rd-crowd-modal-close" aria-label="Close">×</button>
+    </div>
+    <label class="rd-field"><span>Title</span><input name="title" required maxlength="80"/></label>
+    <label class="rd-field"><span>What you want done</span><textarea name="brief" required maxlength="600" rows="3"></textarea></label>
+    <div class="rd-crowd-budget">
+      <div class="rd-crowd-budget-top">
+        <span>Budget</span>
+        <strong data-crowd-market-label>Standard</strong>
+      </div>
+      <strong class="rd-crowd-budget-usd" data-crowd-usd>$100</strong>
+      <input class="rd-crowd-budget-range" type="range" min="0" max="1000" value="526" step="1" aria-label="Budget in dollars"/>
+      <p class="rd-crowd-budget-azl" data-crowd-azl>AZL quote loading</p>
+      <input type="hidden" name="market" value="standard"/>
+      <input type="hidden" name="totalAzl" value=""/>
+    </div>
+    <label class="rd-field"><span>Minimum AZL</span><input name="minJoinAzl" required inputmode="decimal"/></label>
+    <label class="rd-field"><span>Your pledge</span><input name="openerAmountAzl" inputmode="decimal"/></label>
+    <label class="rd-field"><span>Name</span><input name="openerName" required maxlength="40"/></label>
+    <button type="button" class="rd-crowd-connect" data-crowd-connect>Connect your wallet</button>
+    <p class="rd-crowd-wallet-known" data-crowd-wallet-known hidden></p>
+    <input type="hidden" name="openerWallet" value=""/>
+    <button type="submit" class="rd-action rd-action--primary">Post bounty</button>
+    <p class="rd-crowd-form-error" id="rd-crowd-create-error"></p>
+  </form>
+</dialog>
+<script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
+<script src="inbox-dock.js?v=20260826-inbox14"></script>
+<script src="social-card.js?v=20261030-social"></script>
+<script src="waitbar.js?v=20261030-wait"></script>
+<script src="markets.js"></script>
+<script src="crowdfund.js?v=20261103-market"></script>
+<script src="azl-nav-ticker.js"></script>
+<script src="theme-toggle.js"></script>
+<script src="/ascii-beach-waves.js"></script>
+</body>
+</html>

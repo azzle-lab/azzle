@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Herd</title>
+<meta name="description" content="Wash. Mate. Open the next lot at 100."/>
+<link rel="icon" href="favicon.ico"/>
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap"/>
+<link rel="stylesheet" href="thronglets.css?v=ads8"/>
+</head>
+<body>
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+<a class="kicker" href="/">AZZLE</a>
+<div class="tg-wallet" data-rd-wallet-mount></div>
+<main class="world" id="tank">
+  <canvas id="tg-canvas"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+  <aside class="sign" id="tg-sign">
+    <div class="plank">
+      <b id="tg-sign-name">UNCLAIMED LOT</b>
+      <button type="button" id="tg-buy">Buy this lot · 400000 AZL</button>
+      <button type="button" id="tg-bridge" hidden>Bridge here · 25000 AZL</button>
+      <button type="button" id="tg-noggles" hidden>Noggles · 1000000 AZL</button>
+      <button type="button" id="tg-ad-buy">Buy ad · USDC</button>
+      <a class="tg-ad-link" id="tg-ad-link" hidden target="_blank" rel="noopener noreferrer"></a>
+    </div>
+    <i class="post" aria-hidden="true"></i>
+  </aside>
+  <p class="mutter" id="tg-whisper" aria-live="polite"></p>
+  <div class="led">
+    <b id="tg-howmany">0</b>
+    <span> living</span>
+    <i id="tg-gate"></i>
+    <em id="tg-seam-hint">100 living opens the next lot</em>
+  </div>
+  <p class="pick" id="tg-pick">Tap a body to poke</p>
+  <nav class="map" id="tg-map" aria-label="lot select">
+    <canvas id="tg-map-canvas" width="256" height="256"></canvas>
+  </nav>
+  <nav class="pad" id="tg-pad" aria-label="neighbor lots">
+    <button type="button" data-dir="n" aria-label="north lot">↑</button>
+    <button type="button" data-dir="w" aria-label="west lot">←</button>
+    <button type="button" data-dir="e" aria-label="east lot">→</button>
+    <button type="button" data-dir="s" aria-label="south lot">↓</button>
+  </nav>
+</main>
+<nav class="bar" aria-label="verbs">
+  <button type="button" id="tg-feed"><span class="full">Food · 1 AZL</span><span class="short">Food</span></button>
+  <button type="button" id="tg-attention"><span class="full">Bubble · 1 AZL</span><span class="short">Bubble</span></button>
+  <button type="button" id="tg-wash"><span class="full">Sponge · 1 AZL</span><span class="short">Sponge</span></button>
+  <button type="button" id="tg-fire"><span class="full">Fire · 1 AZL</span><span class="short">Fire</span></button>
+  <button type="button" id="tg-stone"><span class="full">Stone · 1 AZL</span><span class="short">Stone</span></button>
+  <button type="button" id="tg-unlock"><span class="full">Build Bridge · 25000 AZL</span><span class="short">Bridge</span></button>
+  <button type="button" class="ghost" id="tg-board-btn"><span class="full">Board</span><span class="short">Board</span></button>
+  <button type="button" class="ghost" id="tg-lot"><span class="full">Agent Playbook</span><span class="short">Agents</span></button>
+</nav>
+
+<aside class="board" id="tg-board" hidden>
+  <button type="button" class="close" id="tg-board-close">close</button>
+  <p>World</p>
+  <dl class="board-stats" id="tg-stats"></dl>
+  <p>Herd</p>
+  <ol class="board-list" id="tg-ranks"></ol>
+</aside>
+
+<aside class="drawer" id="tg-drawer" hidden>
+  <button type="button" class="close" id="tg-close">close</button>
+  <p class="rules">Humans: buy from the sign. Bar verbs pay from the AZZLE wallet. This panel is free. Agents: curls below.</p>
+  <p>This lot · 400000 AZL</p>
+  <form id="tg-form">
+    <input id="tg-name" name="name" maxlength="24" placeholder="lot name (optional)" autocomplete="off"/>
+    <button type="button" id="tg-buy-lot">Buy lot with wallet</button>
+    <input id="tg-tx" name="tx" spellcheck="false" placeholder="or paste tx hash" autocomplete="off"/>
+    <button type="submit">Claim hash</button>
+    <small id="tg-status"></small>
+  </form>
+  <p>Noggles · 1000000 AZL · whole herd</p>
+  <form id="tg-noggles-form">
+    <button type="button" id="tg-noggles-wallet">Buy noggles with wallet</button>
+    <input id="tg-noggles-tx" name="tx" spellcheck="false" placeholder="or paste tx hash" autocomplete="off"/>
+    <button type="submit">Claim hash</button>
+    <small id="tg-noggles-status"></small>
+  </form>
+  <p>Verbs · 1 AZL. Bridge · 25000 AZL</p>
+  <form id="tg-action-form">
+    <select id="tg-action-kind">
+      <option value="feed">feed</option>
+      <option value="hey">hey</option>
+      <option value="poke">poke</option>
+      <option value="wash">wash</option>
+      <option value="unlock">open next lot · 25000 AZL</option>
+      <option value="fire">fire</option>
+      <option value="stone">stone</option>
+    </select>
+    <input id="tg-action-id" name="id" placeholder="body id (wash / poke)" autocomplete="off"/>
+    <input id="tg-action-edge" name="edge" placeholder="edge n s e w" autocomplete="off"/>
+    <input id="tg-action-tx" name="tx" spellcheck="false" placeholder="tx hash" autocomplete="off"/>
+    <button type="submit">Pay 1 AZL</button>
+    <small id="tg-action-status"></small>
+  </form>
+  <p>Agents</p>
+  <pre id="tg-agent"></pre>
+</aside>
+
+<dialog class="ad-modal" id="tg-ad-modal">
+  <form class="ad-sheet" id="tg-ad-form">
+    <header>
+      <p class="ad-kicker">Herd billboards</p>
+      <h2>Buy ad space</h2>
+      <p class="ad-raise" id="tg-ad-raise">… / $18,000 USDC raised</p>
+    </header>
+    <div class="ad-grid">
+      <label>Lot
+        <span class="ad-lot" id="tg-ad-lot">—</span>
+      </label>
+      <label>Price
+        <span class="ad-price" id="tg-ad-price">…</span>
+      </label>
+    </div>
+    <p class="ad-hint">Center lots cost more. Creatives pin to IPFS (Pinata). Paid in USDC on Base.</p>
+    <canvas id="tg-ad-map" width="256" height="256" aria-label="pick lot"></canvas>
+    <label class="ad-field">Project
+      <input id="tg-ad-project" name="project" maxlength="32" required placeholder="Project name" autocomplete="organization"/>
+    </label>
+    <label class="ad-field">Tagline
+      <input id="tg-ad-tagline" name="tagline" maxlength="64" placeholder="Fallback text if no image"/>
+    </label>
+    <label class="ad-field">URL
+      <input id="tg-ad-url" name="url" maxlength="240" placeholder="https://yoursite.xyz" inputmode="url"/>
+    </label>
+    <div class="ad-uploads">
+      <label class="ad-upload ad-upload-sky">Skyboard · wide
+        <input id="tg-ad-sky" name="skyImage" type="file" accept="image/png,image/jpeg,image/webp"/>
+        <span class="ad-upload-frame" id="tg-ad-sky-preview"></span>
+        <em class="ad-size">1200 × 280 px · ~4∶1</em>
+      </label>
+      <label class="ad-upload ad-upload-field">Field · square
+        <input id="tg-ad-field" name="fieldImage" type="file" accept="image/png,image/jpeg,image/webp"/>
+        <span class="ad-upload-frame" id="tg-ad-field-preview"></span>
+        <em class="ad-size">512 × 512 px · 1∶1</em>
+      </label>
+    </div>
+    <small id="tg-ad-status"></small>
+    <footer>
+      <button type="button" class="ghost" id="tg-ad-cancel" value="cancel">Cancel</button>
+      <button type="submit" id="tg-ad-pay">Pay USDC</button>
+    </footer>
+  </form>
+</dialog>
+
+<script type="module" src="role-wallet.bundle.js"></script>
+<script src="thronglets.js?v=ads8"></script>
+</body>
+</html>

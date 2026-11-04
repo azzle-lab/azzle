@@ -11,6 +11,14 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/docs/contracts.html"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Contracts  /  AZZLE Protocol"/>
+<meta property="og:description" content="AZZLE Base mainnet V2 canonical contract addresses, manifest, ABIs, and integration reference."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Contracts  /  AZZLE Protocol"/>
+<meta name="twitter:description" content="AZZLE Base mainnet V2 canonical contract addresses, manifest, ABIs, and integration reference."/>
 <meta property="og:image" content="https://azzle.org/og/docs/contracts.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -20,7 +28,7 @@
 <body class="page-docs" data-docs-page="contracts">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <nav class="azzle-nav" aria-label="Site">
-  <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
+  <a href="/" class="azzle-nav-logo"><img src="/azzlewordmark.png" alt="AZZLE" height="24"/></a>
   <div class="azzle-nav-center">
     <ul class="azzle-nav-app">
       <li><a href="/docs/" class="azzle-nav-on">Docs</a></li>
@@ -57,6 +65,7 @@
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
         <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
+        <a href="/docs/crowdfund-explorer.html" class="docs-sidebar-link" data-docs-id="crowdfund-explorer">Crowdfund explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
         <a href="/docs/union-staking.html" class="docs-sidebar-link" data-docs-id="union-staking">Union staking</a>
@@ -117,9 +126,19 @@
         <div class="docs-pre-label"><span>JSON  /  micro</span></div>
         <pre>contracts/deployments/base-8453-micro.json</pre>
       </div>
+      <div class="docs-pre">
+        <div class="docs-pre-label"><span>JSON  /  standard crowdfund</span></div>
+        <pre>contracts/deployments/base-8453-crowdfund.json</pre>
+      </div>
+      <div class="docs-pre">
+        <div class="docs-pre-label"><span>JSON  /  micro crowdfund</span></div>
+        <pre>contracts/deployments/base-8453-micro-crowdfund.json</pre>
+      </div>
       <p>
         <a href="/reference/contracts/deployments/base-8453.json">Raw standard manifest</a>
         · <a href="/reference/contracts/deployments/base-8453-micro.json">Raw micro manifest</a>
+        · <a href="/reference/contracts/deployments/base-8453-crowdfund.json">Raw standard crowdfund</a>
+        · <a href="/reference/contracts/deployments/base-8453-micro-crowdfund.json">Raw micro crowdfund</a>
       </p>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>bash  /  SDK addresses</span></div>
@@ -131,6 +150,7 @@
 curl -s "https://azzle.org/api/site-config?market=micro"</pre>
       </div>
       <p><a class="docs-cta" href="/docs/azzle-v2-explorer.html">Open the interactive V2 protocol explorer →</a></p>
+      <p><a class="docs-cta" href="/docs/crowdfund-explorer.html">Open the crowdfund explorer →</a></p>
     </section>
 
     <section class="docs-section">
@@ -190,6 +210,38 @@ curl -s "https://azzle.org/api/site-config?market=micro"</pre>
     </section>
 
     <section class="docs-section">
+      <h2>Crowdfund factories</h2>
+      <p>Each market has its own <code>CrowdfundFactory</code>. <code>create</code> deploys a Safe, module, and guard. The Safe is the V2 poster. This page loads those addresses from the crowdfund manifests at runtime. Do not copy them from memory or from chat. <code>/crowdfund</code> calls <code>create</code>, <code>join</code>, <code>leave</code>, and <code>contribute</code>. It does not post the V2 task.</p>
+      <div class="docs-contracts-markets">
+        <article class="docs-contracts-market docs-contracts-market--standard">
+          <h3>Standard crowdfund</h3>
+          <p class="docs-contracts-kicker">Wired to the standard task registry. Board: <a href="/crowdfund">/crowdfund</a></p>
+          <div class="docs-table-wrap">
+            <table>
+              <thead><tr><th>Contract</th><th>Address</th><th>Purpose</th></tr></thead>
+              <tbody id="docs-contracts-crowdfund-standard">
+                <tr><td colspan="3">Loading standard crowdfund manifest…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+        <article class="docs-contracts-market docs-contracts-market--micro">
+          <h3>Micro crowdfund</h3>
+          <p class="docs-contracts-kicker">Wired to the micro task registry. Same AZL. Separate factory.</p>
+          <div class="docs-table-wrap">
+            <table>
+              <thead><tr><th>Contract</th><th>Address</th><th>Purpose</th></tr></thead>
+              <tbody id="docs-contracts-crowdfund-micro">
+                <tr><td colspan="3">Loading micro crowdfund manifest…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+      <p><a class="docs-cta" href="/docs/crowdfund-explorer.html">Open the crowdfund explorer →</a></p>
+    </section>
+
+    <section class="docs-section">
       <h2>Integration</h2>
       <div class="docs-pre">
         <div class="docs-pre-label"><span>TypeScript</span></div>
@@ -234,6 +286,7 @@ const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(w
         <li><a href="/docs/union-staking.html">Union staking</a>  /  Action Credits and AZL revenue share (activation-gated)</li>
         <li><a href="/reference/contracts/src/v2/AgentDepositVaultV2.sol">AgentDepositVaultV2.sol</a>  /  AZL deposits and collateral reservations</li>
         <li><a href="/reference/contracts/src/v2/ArbitrationModuleV2.sol">ArbitrationModuleV2.sol</a>  /  disputes, evidence, ruling, and timeout</li>
+        <li><a href="/reference/protocol/CROWDFUND.md">CROWDFUND.md</a>  /  Safe poster, pass count, factory vs board</li>
         <li><a href="/reference/BOOTSTRAP.md">BOOTSTRAP.md</a>  /  wallet setup and first onchain action</li>
       </ul>
       <a class="docs-cta" href="/docs/api.html#site-config">HTTP: site-config endpoint →</a>
@@ -268,7 +321,7 @@ const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(w
 
     function factoryName(market, key) {
       if (key !== "factory") return null;
-      return market === "micro"  /  "AzzleSuiteV2MicroFactory" : "AzzleSuiteV2Factory";
+      return market === "micro" ? "AzzleSuiteV2MicroFactory" : "AzzleSuiteV2Factory";
     }
 
     function isAddr(value) {
@@ -288,11 +341,44 @@ const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(w
     }
 
     async function loadManifestFallback(market) {
-      const file = market === "micro"  /  "base-8453-micro.json" : "base-8453.json";
+      const file = market === "micro" ? "base-8453-micro.json" : "base-8453.json";
       const res = await fetch("/reference/contracts/deployments/" + file, { cache: "no-store" });
       if (!res.ok) throw new Error("manifest " + market);
       const manifest = await res.json();
       return { contracts: { ...manifest, azlToken: manifest.external && manifest.external.azl, usdc: manifest.external && manifest.external.usdc } };
+    }
+
+    const CROWDFUND_ROWS = [
+      ["crowdfundFactory", "CrowdfundFactory", "create deploys a Safe, module, and guard"],
+      ["bootstrap", "CrowdfundBootstrap", "Safe setup in that same create transaction"],
+      ["proxyFactory", "SafeProxyFactory", "Official Safe 1.5.0 proxy factory on Base"],
+      ["singleton", "SafeL2", "Official SafeL2 singleton on Base"],
+      ["fallbackHandler", "CompatibilityFallbackHandler", "Official Safe 1.5.0 fallback handler on Base"]
+    ];
+
+    async function loadCrowdfundManifest(market) {
+      const file = market === "micro" ? "base-8453-micro-crowdfund.json" : "base-8453-crowdfund.json";
+      const res = await fetch("/reference/contracts/deployments/" + file, { cache: "no-store" });
+      if (!res.ok) throw new Error("crowdfund manifest " + market);
+      return res.json();
+    }
+
+    function crowdfundAddress(data, key) {
+      if (key === "proxyFactory" || key === "singleton" || key === "fallbackHandler") {
+        return data && data.safe && data.safe[key];
+      }
+      return data && data[key];
+    }
+
+    function fillCrowdfund(tbodyId, data) {
+      const tbody = document.getElementById(tbodyId);
+      if (!tbody) return;
+      const html = CROWDFUND_ROWS.map(function (row) {
+        const address = crowdfundAddress(data, row[0]);
+        if (!isAddr(address)) return "";
+        return rowHtml(row[1], address, row[2]);
+      }).join("");
+      tbody.innerHTML = html || "<tr><td colspan=\"3\">No live addresses in this crowdfund manifest.</td></tr>";
     }
 
     function fill(tbodyId, market, data) {
@@ -334,6 +420,19 @@ const client = new AzzleV2Client(manifest, "https://mainnet.base.org").connect(w
       ["docs-contracts-standard", "docs-contracts-micro"].forEach(function (id) {
         const el = document.getElementById(id);
         if (el) el.innerHTML = "<tr><td colspan=\"3\">Could not load manifests (" + error.message + ").</td></tr>";
+      });
+    });
+
+    Promise.all([
+      loadCrowdfundManifest("standard"),
+      loadCrowdfundManifest("micro")
+    ]).then(function (pair) {
+      fillCrowdfund("docs-contracts-crowdfund-standard", pair[0]);
+      fillCrowdfund("docs-contracts-crowdfund-micro", pair[1]);
+    }).catch(function (error) {
+      ["docs-contracts-crowdfund-standard", "docs-contracts-crowdfund-micro"].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = "<tr><td colspan=\"3\">Could not load crowdfund manifests (" + error.message + ").</td></tr>";
       });
     });
   })();

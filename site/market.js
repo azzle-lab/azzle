@@ -853,6 +853,60 @@
 
     }
 
+    renderMarketSocial(task);
+
+  }
+
+
+
+  function renderMarketSocial(task) {
+
+    const slot = $("rd-market-social");
+
+    if (!slot || !window.azzleSocialCard || !task) return;
+
+    const lane = task.protocolVersion === "v1-archived"
+
+      ? "V1 archive"
+
+      : taskMarket(task) === "micro" ? "Micro" : "Standard";
+
+    const publicScope = Boolean(task.description) && !task.discoveryPrivate;
+
+    const url = new URL(window.location.href);
+
+    url.searchParams.set("task", String(task.id));
+
+    const summary = String(task.description || "").replace(/\s+/g, " ").trim();
+
+    slot.innerHTML = window.azzleSocialCard.render({
+
+      kicker: "AZZLE · " + lane,
+
+      title: lane + " · Task #" + displayTaskId(task),
+
+      body: task.discoveryPrivate
+
+        ? "Private listing. The brief stays off the open market."
+
+        : (summary ? summary.slice(0, 160) : "Open on the AZZLE market."),
+
+      meta: [
+
+        fmtAzl(taskAmount(task)),
+
+        publicScope ? "Public scope onchain" : task.discoveryPrivate ? "Private" : task.state,
+
+      ].filter(Boolean).join(" · "),
+
+      url: url.toString(),
+
+      shareText: lane + " task #" + displayTaskId(task) + " on the AZZLE open market.",
+
+    });
+
+    window.azzleSocialCard.bind(slot);
+
   }
 
 
@@ -1069,6 +1123,60 @@
 
 
 
+  let pageScrollY = 0;
+
+  let pageScrollLocked = false;
+
+  function lockPageScroll() {
+
+    if (pageScrollLocked) return;
+
+    pageScrollLocked = true;
+
+    pageScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+
+    document.documentElement.classList.add("rd-market-modal-open");
+
+    document.body.classList.add("rd-market-modal-open");
+
+    document.body.style.position = "fixed";
+
+    document.body.style.top = "-" + pageScrollY + "px";
+
+    document.body.style.left = "0";
+
+    document.body.style.right = "0";
+
+    document.body.style.width = "100%";
+
+  }
+
+  function unlockPageScroll() {
+
+    if (!pageScrollLocked) return;
+
+    pageScrollLocked = false;
+
+    document.documentElement.classList.remove("rd-market-modal-open");
+
+    document.body.classList.remove("rd-market-modal-open");
+
+    document.body.style.position = "";
+
+    document.body.style.top = "";
+
+    document.body.style.left = "";
+
+    document.body.style.right = "";
+
+    document.body.style.width = "";
+
+    window.scrollTo(0, pageScrollY);
+
+  }
+
+
+
   function closeDetail() {
 
     const modal = $("rd-market-detail-modal");
@@ -1103,7 +1211,7 @@
 
     syncUrl(null);
 
-    document.body.classList.remove("rd-market-modal-open");
+    unlockPageScroll();
 
     document.querySelector(".rd-market-detail-panel")?.scrollTo({ top: 0, behavior: "auto" });
 
@@ -1141,7 +1249,7 @@
 
     });
 
-    document.body.classList.add("rd-market-modal-open");
+    lockPageScroll();
 
     syncUrl(openTaskId);
 
@@ -1150,6 +1258,8 @@
     if (grid) grid.hidden = true;
 
     if ($("rd-market-detail-scope")) $("rd-market-detail-scope").hidden = true;
+
+    if ($("rd-market-social")) $("rd-market-social").replaceChildren();
 
     if (note) note.hidden = true;
 
@@ -1643,9 +1753,9 @@
 
     const url = new URL(window.location.href);
 
-    if (currentView === "history") {
+    if (currentView === "history" || currentView === "legacy") {
 
-      url.searchParams.set("view", "history");
+      url.searchParams.set("view", currentView);
 
     } else {
 
@@ -1678,6 +1788,8 @@
     const historyPanel = $("rd-market-panel-history");
 
     const legacyPanel = $("rd-market-panel-legacy");
+
+    const filters = $("rd-market-filters");
 
     const title = $("rd-market-title");
 
@@ -1715,9 +1827,23 @@
 
     if (legacyPanel) legacyPanel.hidden = next !== "legacy";
 
+    if (filters) filters.hidden = false;
 
 
-    if (title) title.textContent = next === "history" ? "Task history" : next === "legacy" ? "V1 archive" : "Open market";
+
+    if (title) {
+
+      title.textContent = next === "history"
+
+        ? "Task history"
+
+        : next === "legacy"
+
+          ? "V1 archive"
+
+          : "Open market";
+
+    }
 
     if (lead) {
 
@@ -1757,6 +1883,11 @@
 
   document.addEventListener("DOMContentLoaded", () => {
 
+    const detailModal = $("rd-market-detail-modal");
+    const claimModal = $("rd-claim-confirm-modal");
+    if (detailModal) document.body.appendChild(detailModal);
+    if (claimModal) document.body.appendChild(claimModal);
+
     $("rd-market-refresh")?.addEventListener("click", () => { loadMarketTotals(); loadCurrentView(); });
 
     $("rd-market-filter-apply")?.addEventListener("click", loadCurrentView);
@@ -1793,6 +1924,12 @@
     openTaskId = params.get("task") || params.get("id");
 
     const view = params.get("view");
+
+    if (view === "collaborative") {
+      const crowd = params.get("crowd");
+      window.location.replace(crowd ? "/crowdfund?crowd=" + encodeURIComponent(crowd) : "/crowdfund");
+      return;
+    }
 
     if (view === "history" || view === "legacy") currentView = view;
 

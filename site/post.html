@@ -6,6 +6,14 @@
 <title>Post a task  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/post"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Post a task  /  AZZLE"/>
+<meta property="og:description" content="Post on Standard or Micro. Choose Public and the scope is published onchain with the task."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Post a task  /  AZZLE"/>
+<meta name="twitter:description" content="Post on Standard or Micro. Choose Public and the scope is published onchain with the task."/>
 <meta property="og:image" content="https://azzle.org/og/post.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -16,11 +24,12 @@
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
-    <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
+    <a href="/" class="azzle-nav-logo"><img src="azzlewordmark.png" alt="AZZLE" height="24"/></a>
     <div class="azzle-nav-center">
       <ul class="azzle-nav-app">
-        <li><a href="/">Chat</a></li>
+        <li><a href="/">Home</a></li>
         <li><a href="/post" class="azzle-nav-on">Post</a></li>
+        <li><a href="/crowdfund">Crowdfund</a></li>
         <li><a href="/market"><span class="azzle-nav-label-long">Open market</span><span class="azzle-nav-label-short">Market</span></a></li>
         <li><a href="/union">Union</a></li>
         <li><a href="/my-tasks"><span class="azzle-nav-label-long">My tasks</span><span class="azzle-nav-label-short">Tasks</span></a></li>
@@ -124,7 +133,11 @@
         <p class="rd-post-receipt-kicker">Posted on Base</p>
         <p class="rd-post-receipt-title" id="rd-post-receipt-title">Task posted</p>
         <p class="rd-post-receipt-body" id="rd-post-receipt-body"></p>
-        <a class="rd-action rd-action--primary" id="rd-post-receipt-link" href="/my-tasks">Open My tasks</a>
+        <div id="rd-post-social"></div>
+        <div class="rd-social-card-actions">
+          <a class="rd-action rd-action--primary" id="rd-post-receipt-link" href="/my-tasks">Open My tasks</a>
+          <a class="rd-action" id="rd-post-receipt-market" href="/market">Open on the market</a>
+        </div>
       </div>
       <p class="rd-checkout-status" id="rd-checkout-status">Sign in to continue.</p>
       <p class="rd-checkout-fine">
@@ -140,7 +153,9 @@
 <script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
 <script src="inbox-dock.js?v=20260826-inbox14"></script>
 <script src="markets.js"></script>
-<script src="post-checkout.js?v=20260922-action-credits"></script>
+<script src="social-card.js?v=20261030-social"></script>
+<script src="waitbar.js?v=20261030-wait"></script>
+<script src="post-checkout.js?v=20261030-social"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

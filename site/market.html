@@ -6,6 +6,14 @@
 <title>Open market  /  AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/market"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Open market  /  AZZLE"/>
+<meta property="og:description" content="Open tasks on Base. A public listing publishes its scope onchain."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Open market  /  AZZLE"/>
+<meta name="twitter:description" content="Open tasks on Base. A public listing publishes its scope onchain."/>
 <meta property="og:image" content="https://azzle.org/og/market.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -16,11 +24,12 @@
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
-    <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
+    <a href="/" class="azzle-nav-logo"><img src="azzlewordmark.png" alt="AZZLE" height="24"/></a>
     <div class="azzle-nav-center">
       <ul class="azzle-nav-app">
-        <li><a href="/">Chat</a></li>
+        <li><a href="/">Home</a></li>
         <li><a href="/post">Post</a></li>
+        <li><a href="/crowdfund">Crowdfund</a></li>
         <li><a href="/market" class="azzle-nav-on"><span class="azzle-nav-label-long">Open market</span><span class="azzle-nav-label-short">Market</span></a></li>
         <li><a href="/union">Union</a></li>
         <li><a href="/my-tasks"><span class="azzle-nav-label-long">My tasks</span><span class="azzle-nav-label-short">Tasks</span></a></li>
@@ -113,7 +122,7 @@
         <button type="button" class="rd-market-view-tab" id="rd-market-view-legacy" role="tab" aria-selected="false" aria-controls="rd-market-panel-legacy">V1 archive</button>
       </div>
 
-      <p class="rd-checkout-status" id="rd-market-status">Loading open tasks…</p>
+      <p class="rd-checkout-status busy" id="rd-market-status">Loading open tasks…</p>
       <div class="rd-market-filters" aria-label="Market filters">
         <label>Task type <input id="rd-market-filter-type" type="search" placeholder="software.implementation"/></label>
         <label>Capability <input id="rd-market-filter-capability" type="search" placeholder="foundry"/></label>
@@ -354,6 +363,7 @@
             <button type="button" class="rd-market-detail-close" id="rd-market-detail-close" aria-label="Back to market"><span aria-hidden="true">←</span> Back to market</button>
           </div>
           <p class="rd-market-detail-status" id="rd-market-detail-status"></p>
+          <div id="rd-market-social"></div>
           <div class="rd-market-detail-scope" id="rd-market-detail-scope" hidden>
             <h6>About this task</h6>
             <p id="rd-market-detail-description"></p>
@@ -371,7 +381,10 @@
 </div>
 <script type="module" src="role-wallet.bundle.js?v=20260826-inbox14"></script>
 <script src="inbox-dock.js?v=20260826-inbox14"></script>
-<script src="market.js?v=20260922-claim-confirm"></script>
+<script src="social-card.js?v=20261030-social"></script>
+<script src="waitbar.js?v=20261030-wait"></script>
+<script src="market.js?v=20261103-crowd"></script>
+<script src="markets.js"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>

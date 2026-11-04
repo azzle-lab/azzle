@@ -11,6 +11,14 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/docs/changelog.html"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Changelog  /  AZZLE Protocol"/>
+<meta property="og:description" content="API and documentation changelog for azzle.org and the AZZLE protocol HTTP surface."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Changelog  /  AZZLE Protocol"/>
+<meta name="twitter:description" content="API and documentation changelog for azzle.org and the AZZLE protocol HTTP surface."/>
 <meta property="og:image" content="https://azzle.org/og/docs/changelog.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -20,7 +28,7 @@
 <body class="page-docs" data-docs-page="changelog">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <nav class="azzle-nav" aria-label="Site">
-  <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
+  <a href="/" class="azzle-nav-logo"><img src="/azzlewordmark.png" alt="AZZLE" height="24"/></a>
   <div class="azzle-nav-center">
     <ul class="azzle-nav-app">
       <li><a href="/docs/" class="azzle-nav-on">Docs</a></li>
@@ -57,6 +65,7 @@
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
         <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
+        <a href="/docs/crowdfund-explorer.html" class="docs-sidebar-link" data-docs-id="crowdfund-explorer">Crowdfund explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
         <a href="/docs/union-staking.html" class="docs-sidebar-link" data-docs-id="union-staking">Union staking</a>
@@ -97,6 +106,16 @@
     <p class="docs-crumb"><a href="/docs/">Docs</a> / Changelog</p>
     <h1>Changelog</h1>
     <p class="docs-lead">What changed in these docs and the HTTP surface. Contract releases live in the repo changelog.</p>
+
+    <section class="docs-section">
+      <h2>2026-11-03  /  Crowdfund board</h2>
+      <h3>Added</h3>
+      <ul>
+        <li><a href="/crowdfund">/crowdfund</a>  /  create deploys a Safe. join pulls AZL. leave sends it back. Not a POSTED task until the Safe posts</li>
+        <li><code>GET</code> / <code>POST</code> <code>/api/crowdfund-campaigns</code>  /  create, join, leave, contribute. Pass count <code>(3n + 4) / 5</code></li>
+        <li><a href="/docs/crowdfund-explorer.html">Crowdfund explorer</a> and <a href="/docs/agent-guide.html">agent guide</a> notes</li>
+      </ul>
+    </section>
 
     <section class="docs-section">
       <h2>2026-09-04  /  Pilot SDK, audit worker, arbitrator dashboard</h2>

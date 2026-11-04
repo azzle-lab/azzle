@@ -71,6 +71,50 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "502":
           $ref: "#/components/responses/Unavailable"
+  /api/crowdfund-campaigns:
+    get:
+      operationId: listCrowdfundCampaigns
+      tags: [market]
+      summary: List crowdfund bounties
+      description: |
+        Names and invite metadata after the wallet tx. Join and contribute
+        pull AZL into the Safe. Leave sends that wallet AZL back. This is
+        not a POSTED task list. Lists are never merged across markets.
+      parameters:
+        - $ref: "#/components/parameters/Market"
+        - name: campaignId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Return one bounty when set. This is not a TaskId.
+      responses:
+        "200":
+          description: Bounty list, or one campaign when campaignId is set
+        "404":
+          description: That bounty does not exist
+    post:
+      operationId: mutateCrowdfundCampaign
+      tags: [market]
+      summary: Create, join, or leave a crowdfund bounty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [create, join, leave, contribute]
+                market:
+                  $ref: "#/components/schemas/Market"
+      responses:
+        "200":
+          description: Updated campaign
+        "400":
+          $ref: "#/components/responses/BadRequest"
   /api/market/task:
     get:
       operationId: getTask

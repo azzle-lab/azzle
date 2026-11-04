@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Crowdfund Explorer  /  AZZLE Protocol Docs</title>
+  <meta name="description" content="Interactive map of an AZZLE crowdfund: one Safe poster, the pass count, when AZL moves, and the V2 task path."/>
+  <link rel="canonical" href="https://azzle.org/docs/crowdfund-explorer.html"/>
+  <link rel="stylesheet" href="/site-theme.css"/>
+  <link rel="stylesheet" href="/role-dashboard.css"/>
+  <link rel="icon" href="/favicon.ico"/>
+  <style>
+    :root {
+      --surface-raised:var(--s2);
+      --disp:var(--sans);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-width:320px;background:var(--bg);color:var(--text);font:14px/1.62 Inter,system-ui,sans-serif}
+    header{border-bottom:1px solid var(--b);padding:48px max(24px,calc((100vw - 1200px)/2));position:relative;overflow:hidden}
+    .hero{position:relative;z-index:1;max-width:920px}
+    .eyebrow{color:var(--dim);font:700 11px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase}
+    h1{margin:13px 0 10px;font:800 clamp(32px,5vw,52px)/1.03 var(--disp);letter-spacing:-.02em}
+    h1 span{color:var(--accent)}
+    .intro{max-width:780px;color:var(--muted);font-size:14.5px}
+    .badge-row,.fact-row{display:flex;flex-wrap:wrap;gap:9px}
+    .badge-row{margin-top:20px}
+    .badge{border:1px solid var(--b2);border-radius:8px;padding:5px 10px;color:var(--muted);font:11px var(--mono)}
+    .badge.v2{color:var(--accent);border-color:rgba(200,241,105,.35);background:var(--accent-dim)}
+    .badge.warn{color:var(--warn)}
+    .fact-row{margin-top:28px;gap:28px}
+    .fact b{display:block;color:var(--heading);font:700 21px var(--sans)}
+    .fact small{color:var(--muted);font:11px var(--mono)}
+    .topbar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--b)}
+    nav.crowd-nav{display:flex;flex-wrap:wrap;gap:2px;overflow-x:auto;padding:8px 48px 6px;scrollbar-width:none}
+    nav.crowd-nav button{border:1px solid transparent;border-radius:var(--radius-sm);background:transparent;color:var(--muted);cursor:pointer;font:600 11px var(--disp);padding:6px 9px;white-space:nowrap}
+    nav.crowd-nav button:hover{color:var(--text);background:var(--accent-dim)}
+    nav.crowd-nav button.active{color:var(--on-accent);background:var(--accent)}
+    .tour-bar{display:flex;align-items:center;gap:10px;padding:8px 48px 10px;border-top:1px dashed var(--b)}
+    .tour-btn{border:1px solid var(--b2);border-radius:var(--radius-sm);background:var(--s2);color:var(--accent);cursor:pointer;font:700 11px var(--disp);padding:7px 12px}
+    .tour-btn.stop{color:var(--red);display:none}
+    .tour-bar.active .tour-btn.stop{display:inline-block}
+    .tour-readout{flex:1;min-width:160px;color:var(--muted);font:12px var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tour-progress{width:130px;height:4px;border:1px solid var(--b2);background:var(--s2);overflow:hidden}
+    .tour-progress-fill{height:100%;width:0;background:var(--accent);transition:width .25s linear}
+    main{max-width:none;margin:0;padding:38px 48px 96px}
+    section{display:none}
+    section.active{display:block}
+    h2{margin:0;font:700 24px/1.2 var(--disp)}
+    h2 span{color:var(--accent);font:700 12px var(--disp);margin-right:9px}
+    .lead{max-width:800px;margin:6px 0 24px;color:var(--muted)}
+    .grid{display:grid;gap:14px}
+    .two{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .three{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .card,.diagram,.callout{border:1px solid var(--b);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+    .card{padding:16px}
+    .card h3{margin:0 0 7px;color:var(--heading);font-size:15px}
+    .card p{color:var(--muted);margin:0;font-size:13px}
+    .card .code{color:var(--accent);font:600 11px var(--mono)}
+    .callout{margin:16px 0;padding:13px 15px;border-left:3px solid var(--accent);color:var(--muted);border-radius:0 4px 4px 0}
+    .callout b{color:var(--heading)}
+    .callout.warning{border-left-color:var(--warn)}
+    .diagram{padding:24px;overflow:auto}
+    .svg-diagram{position:relative;height:360px;min-height:360px;padding:0;overflow:hidden}
+    .svg-diagram.compact{height:220px;min-height:220px}
+    .svg-diagram svg.links{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:1}
+    .svg-diagram .svg-node{position:absolute;z-index:2;width:150px;min-height:58px;padding:9px 10px;border:1px solid var(--b2);border-radius:8px;background:var(--s2);color:var(--heading);cursor:pointer}
+    .svg-diagram .svg-node b{display:block;color:var(--heading);font-size:12px}
+    .svg-diagram .svg-node small{display:block;color:var(--muted);font:9px var(--mono);margin-top:2px}
+    .svg-diagram .svg-node.selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+    .svg-diagram .svg-node.muted{opacity:.18}
+    .svg-diagram .svg-node.connected{border-color:var(--accent)}
+    .svg-edge-label{fill:var(--text);font:9px var(--mono);paint-order:stroke;stroke:var(--surface);stroke-width:5px}
+    .diagram-detail{margin:12px 0 0;padding:11px 13px;border:1px solid var(--b);border-radius:8px;color:var(--muted);background:var(--s2);font-size:13px}
+    .diagram-detail b{color:var(--heading)}
+    .legend{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 13px;color:var(--muted);font-size:11px}
+    .legend i{display:inline-block;width:12px;height:3px;margin-right:5px;vertical-align:middle;background:var(--accent)}
+    .stack{display:grid;gap:0}
+    .step{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid var(--b)}
+    .step:last-child{border:0}
+    .step i{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--b2);border-radius:3px;color:var(--accent);font:700 11px var(--mono);font-style:normal}
+    .step b{display:block;font-size:13px}
+    .step p{margin:2px 0 0;color:var(--muted);font-size:12px}
+    .pass-box{padding:18px;border:1px solid var(--b);border-radius:var(--radius);background:var(--surface)}
+    .pass-box label{display:grid;gap:8px;color:var(--muted);font-size:13px}
+    .pass-box input{width:100%;accent-color:var(--accent)}
+    .pass-count{margin:14px 0 8px;color:var(--heading);font:700 36px/1 var(--disp);letter-spacing:-.04em}
+    .pass-swarm{display:flex;flex-wrap:wrap;gap:5px;min-height:14px}
+    .pass-swarm i{width:8px;height:8px;border:1.5px solid var(--dim);border-radius:50%}
+    .pass-swarm i.on{background:var(--accent);border-color:var(--accent)}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    .table-wrap{overflow:auto;border:1px solid var(--b);border-radius:8px}
+    th{background:var(--s2);color:var(--dim);font:10px var(--mono);letter-spacing:.08em;text-align:left;text-transform:uppercase}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--b);vertical-align:top}
+    td code{color:var(--accent);font:600 11px var(--mono)}
+    footer{border-top:1px solid var(--b);padding:28px 20px;color:var(--muted);text-align:center;font:11px var(--mono)}
+    footer a{color:var(--accent)}
+    body.page-v2-explorer{padding-top:82px}
+    .page-v2-explorer > .azzle-nav{position:fixed;z-index:20;top:26px;left:0;right:0;display:flex;align-items:center;justify-content:space-between;height:56px;margin:0;padding:0 20px;background:var(--bg);border-bottom:1px solid var(--b)}
+    .page-v2-explorer > .azzle-nav .azzle-nav-logo img{height:22px;width:auto;max-height:22px;object-fit:contain}
+    .page-v2-explorer > .azzle-nav .azzle-nav-center{flex:1;justify-content:center}
+    .page-v2-explorer > .azzle-nav .azzle-nav-app{display:flex;gap:4px;margin:0;padding:0;list-style:none}
+    .page-v2-explorer > .azzle-nav .azzle-nav-app a{display:inline-flex;padding:8px 11px;color:var(--muted);font:500 13px/1 Inter,system-ui,sans-serif;text-decoration:none}
+    .page-v2-explorer > .azzle-nav .azzle-nav-app a.azzle-nav-on{color:var(--text)}
+    .page-v2-explorer > .azzle-nav .docs-topnav-cta{display:inline-flex;padding:8px 12px;border-radius:6px;color:var(--on-accent);background:var(--accent);font:600 12px/1 Inter,system-ui,sans-serif;text-decoration:none}
+    .v2-docs-sidebar{position:fixed;z-index:6;top:82px;left:0;width:260px;height:calc(100vh - 82px);padding:28px 20px 32px 24px;border-right:1px solid var(--b);background:var(--surface);overflow-y:auto}
+    .v2-docs-sidebar-head{padding:0 10px 20px;border-bottom:1px solid var(--b)}
+    .v2-docs-sidebar-head span,.v2-docs-sidebar-group small{display:block;color:var(--accent);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+    .v2-docs-sidebar-head a{display:block;margin-top:6px;color:var(--heading);font-size:15px;font-weight:600;text-decoration:none}
+    .v2-docs-sidebar-group{padding:18px 0 4px}
+    .v2-docs-sidebar-group small{padding:0 10px 8px;color:var(--dim)}
+    .v2-docs-sidebar-group a{display:block;padding:9px 12px;border-radius:8px;color:var(--muted);font-size:13px;text-decoration:none}
+    .v2-docs-sidebar-group a:hover,.v2-docs-sidebar-group a.on{color:var(--heading);background:var(--accent-dim)}
+    .v2-docs-sidebar-foot{margin-top:24px;padding-top:20px;border-top:1px solid var(--b)}
+    .v2-docs-sidebar-foot a{display:block;padding:11px 14px;border-radius:8px;color:var(--on-accent);background:var(--accent);font:600 13px Inter,system-ui,sans-serif;text-align:center;text-decoration:none}
+    .page-v2-explorer header,.page-v2-explorer .topbar,.page-v2-explorer main,.page-v2-explorer footer{margin-left:260px}
+    .page-v2-explorer header{padding-left:48px;padding-right:48px}
+    @media (max-width:900px){
+      .v2-docs-sidebar{position:static;width:auto;height:auto;border-right:0;border-bottom:1px solid var(--b)}
+      .page-v2-explorer header,.page-v2-explorer .topbar,.page-v2-explorer main,.page-v2-explorer footer{margin-left:0}
+      nav.crowd-nav,.tour-bar,.page-v2-explorer main{padding-left:24px;padding-right:24px}
+      .two,.three{grid-template-columns:1fr}
+    }
+    @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important}}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  </style>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://azzle.org/docs/crowdfund-explorer.html"/>
+  <meta property="og:site_name" content="AZZLE Protocol"/>
+  <meta property="og:title" content="Crowdfund Explorer  /  AZZLE Protocol Docs"/>
+  <meta property="og:description" content="Interactive map of an AZZLE crowdfund: one Safe poster, the pass count, when AZL moves, and the V2 task path."/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Crowdfund Explorer  /  AZZLE Protocol Docs"/>
+  <meta name="twitter:description" content="Interactive map of an AZZLE crowdfund: one Safe poster, the pass count, when AZL moves, and the V2 task path."/>
+  <meta property="og:image" content="https://azzle.org/og/docs/azzle-v2-explorer.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:image" content="https://azzle.org/og/docs/azzle-v2-explorer.png"/>
+  <script src="/theme-init.js"></script>
+</head>
+<body class="page-v2-explorer" data-page="crowdfund-explorer">
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+  <nav class="azzle-nav" aria-label="Site">
+    <a href="/" class="azzle-nav-logo"><img src="/azzlewordmark.png" alt="AZZLE" height="24"/></a>
+    <div class="azzle-nav-center">
+      <ul class="azzle-nav-app">
+        <li><a href="/docs/" class="azzle-nav-on">Docs</a></li>
+        <li><a href="/crowdfund">Crowdfund</a></li>
+        <li><a href="/market">Market</a></li>
+        <li><a href="/post">Post</a></li>
+      </ul>
+    </div>
+    <div class="azzle-nav-actions">
+      <a href="/crowdfund" class="docs-topnav-cta">Open board</a>
+    </div>
+  </nav>
+  <div class="v2-docs-sidebar" aria-label="Documentation">
+    <div class="v2-docs-sidebar-head"><span>Developer</span><a href="/docs/">Documentation</a></div>
+    <div class="v2-docs-sidebar-group">
+      <small>Start</small>
+      <a href="/docs/">Overview</a>
+      <a href="/docs/quickstart.html">Quickstart</a>
+    </div>
+    <div class="v2-docs-sidebar-group">
+      <small>Reference</small>
+      <a href="/docs/contracts.html">Contracts</a>
+      <a href="/docs/azzle-v2-explorer.html">V2 explorer</a>
+      <a class="on" aria-current="page" href="/docs/crowdfund-explorer.html">Crowdfund explorer</a>
+    </div>
+    <div class="v2-docs-sidebar-foot"><a href="/crowdfund">Open board →</a></div>
+  </div>
+  <header>
+    <div class="hero">
+      <div class="eyebrow">Base · Crowdfund schematic · read-only</div>
+      <h1>Crowdfund <span>explorer</span></h1>
+      <p class="intro">Someone names an outcome and a large budget. People who want that outcome put AZL in. They become one Safe, one V2 poster, and they sign together. Leave lets a person walk away before escrow is funded. The Safe sends their AZL to their wallet. The pass count is <code>(3n + 4) / 5</code>.</p>
+      <div class="badge-row">
+        <span class="badge v2">SAFE 1.5.0</span>
+        <span class="badge">AZL · WEI</span>
+        <span class="badge">BASE · CHAIN 8453</span>
+        <span class="badge warn">FACTORY NOT DEPLOYED</span>
+      </div>
+      <div class="fact-row">
+        <div class="fact"><b>1 / 1</b><small>opener starts alone</small></div>
+        <div class="fact"><b>200</b><small>owner cap</small></div>
+        <div class="fact"><b>120</b><small>signatures at 200</small></div>
+        <div class="fact"><b>0</b><small>AZL moved on the board</small></div>
+      </div>
+    </div>
+  </header>
+  <div class="topbar">
+    <nav class="crowd-nav" id="nav" aria-label="Explorer sections"></nav>
+    <div class="tour-bar" id="tourBar">
+      <button class="tour-btn" id="tourToggle" type="button">Run walkthrough</button>
+      <button class="tour-btn" id="tourPrev" type="button">‹</button>
+      <button class="tour-btn" id="tourNext" type="button">›</button>
+      <button class="tour-btn stop" id="tourStop" type="button">Stop</button>
+      <div class="tour-readout" id="tourReadout">idle</div>
+      <div class="tour-progress"><div class="tour-progress-fill" id="tourProgressFill"></div></div>
+    </div>
+  </div>
+  <main id="app"></main>
+  <footer>Derived from <code>contracts/src/crowdfund/</code> · Safe 1.5.0 · <a href="/crowdfund">board</a> · <a href="/docs/azzle-v2-explorer.html">V2 explorer</a></footer>
+  <script>
+    const sections = [
+      ['graph', '01 · Graph'],
+      ['pass', '02 · Pass count'],
+      ['membership', '03 · Membership'],
+      ['task', '04 · Task path'],
+      ['custody', '05 · When AZL moves'],
+      ['guard', '06 · Guard']
+    ];
+    const app = document.querySelector('#app');
+    const nav = document.querySelector('#nav');
+    const card = (title, code, copy) => `<article class="card"><div class="code">${code}</div><h3>${title}</h3><p>${copy}</p></article>`;
+    const page = (id, title, lead, body) => `<section id="${id}"><h2><span>${String(sections.findIndex((x) => x[0] === id) + 1).padStart(2, '0')}</span>${title}</h2><p class="lead">${lead}</p>${body}</section>`;
+
+    const pages = {
+      graph: page('graph', 'One poster', 'The factory deploys a module, a guard, and a Safe proxy. The Safe is the poster AZZLE already understands. Addresses are read at deploy time. This page does not copy them.', `
+        <div class="callout"><b>Live on Base.</b> Post bounty calls <code>CrowdfundFactory.create</code>. Join pulls AZL into the Safe. Leave sends that wallet AZL back. The Safe is not a POSTED task until it posts.</div>
+        <div class="diagram svg-diagram" id="crowd-graph" aria-label="Crowdfund contract graph"></div>
+        <div class="diagram-detail" id="graph-detail"><b>Click a box.</b> The arrows through that piece stay lit.</div>
+        <div class="grid three" style="margin-top:14px">
+          ${card('Factory', 'CrowdfundFactory.create', 'Deploys module, guard, and Safe. Opener starts as the only owner at 1 of 1.')}
+          ${card('Module', 'CrowdfundModule', 'Join, leave, contribute, lock after fund, then pay recorded refunds.')}
+          ${card('Guard', 'CrowdfundGuard', 'The module may only add an owner, remove an owner, or transfer a recorded AZL amount.')}
+        </div>
+      `),
+      pass: page('pass', 'Pass count', 'For n owners the count is integer (3n + 4) / 5. A join raises it by 1 unless the new total ends in 0, 3, 5, or 8. Post always starts at 1 of 1.', `
+        <div class="pass-box">
+          <label>
+            <span><b id="pass-n">69</b> people contributing</span>
+            <input id="pass-slide" type="range" min="1" max="200" value="69" aria-label="People contributing"/>
+          </label>
+          <div class="pass-count" id="pass-label">42 of 69</div>
+          <div class="pass-swarm" id="pass-swarm" aria-hidden="true"></div>
+        </div>
+        <div class="table-wrap" style="margin-top:18px">
+          <table>
+            <thead><tr><th>Owners</th><th>Signatures</th><th>Note</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>1</td><td>Opener alone</td></tr>
+              <tr><td>2</td><td>2</td><td>One lost key freezes owner txs until a third join</td></tr>
+              <tr><td>3</td><td>2</td><td>First size where one wallet cannot freeze</td></tr>
+              <tr><td>5</td><td>3</td><td>Exact 60%</td></tr>
+              <tr><td>200</td><td>120</td><td>Cap</td></tr>
+            </tbody>
+          </table>
+        </div>
+      `),
+      membership: page('membership', 'Membership', 'The opener is owner 1. Join pulls AZL into the Safe and adds that wallet. Leave returns that wallet AZL until the campaign locks. Contribute adds AZL from an existing owner.', `
+        <div class="diagram svg-diagram compact" id="member-graph"></div>
+        <div class="diagram-detail" id="member-detail"><b>Click a step.</b></div>
+        <div class="stack">
+          <div class="step"><i>1</i><div><b>join</b><p>Pulls AZL from the new wallet into the Safe, then addOwnerWithThreshold at quorum(n+1). First payment from a wallet must meet minJoin.</p></div></div>
+          <div class="step"><i>2</i><div><b>contribute</b><p>An existing owner adds AZL. Stops at totalAmount.</p></div></div>
+          <div class="step"><i>3</i><div><b>leave</b><p>Open until lock. Removes the owner, sets the lower pass count, returns that wallet AZL. The last owner cannot leave.</p></div></div>
+          <div class="step"><i>4</i><div><b>syncFunded</b><p>After the Safe funds the task, membership freezes.</p></div></div>
+        </div>
+      `),
+      task: page('task', 'Task path', 'Task actions are ordinary Safe transactions. AZZLE still sees one poster. People sign together until the live pass count is met.', `
+        <div class="diagram svg-diagram compact" id="task-graph"></div>
+        <div class="diagram-detail" id="task-detail"><b>Click a step.</b></div>
+        <div class="stack">
+          <div class="step"><i>1</i><div><b>Post</b><p>Opener seeds the poster deposit through paymentGateway, then a 1-of-1 Safe tx posts the task. Starts at 1 of 1.</p></div></div>
+          <div class="step"><i>2</i><div><b>Approve Worker Claim</b><p>A worker claims. The poster signs to keep that worker on the task path.</p></div></div>
+          <div class="step"><i>3</i><div><b>Start Work &amp; Fund Escrow</b><p>One Safe tx: approve escrowVault, taskRegistry.fund, approve 0. Escrow pulls AZL from the Safe. Then syncFunded locks membership.</p></div></div>
+          <div class="step"><i>4</i><div><b>Accept Result / Dispute</b><p>release or complete pays the worker. openDispute freezes remaining escrow.</p></div></div>
+        </div>
+      `),
+      custody: page('custody', 'When AZL moves', 'Join and contribute pull AZL into the Safe. Leave sends it back until lock. fund sends Safe AZL to escrow.', `
+        <div class="diagram svg-diagram compact" id="money-graph"></div>
+        <div class="diagram-detail" id="money-detail"><b>Click a box.</b></div>
+        <div class="grid two" style="margin-top:14px">
+          ${card('Board names', 'title / invite', 'The board stores the title, brief, and display names after the wallet tx lands. Membership and AZL follow the Safe.')}
+          ${card('Does move', 'join / leave / fund', 'join and contribute pull into the Safe. leave returns that wallet AZL. fund sends Safe AZL to escrow.')}
+        </div>
+      `),
+      guard: page('guard', 'Guard', 'The module guard is ERC-165 IModuleGuard. It only allows recorded add, remove, or AZL transfer. Owners who meet the pass count can still sign any Safe tx, including disabling the guard. That is owner authority.', `
+        <div class="grid two">
+          ${card('Allowed module calls', 'add / remove / transfer', 'addOwnerWithThreshold with quorum(n+1). removeOwner with quorum(n-1). transfer of a pendingPay amount to the recorded payee.')}
+          ${card('Blocked', 'CrowdfundGuard.Blocked', 'Any other module call reverts. Value must be 0. Caller must be the bound module.')}
+        </div>
+        <div class="callout" style="margin-top:16px"><b>Owner path is separate.</b> A set of current owners that meets the live threshold can post, fund, release, or change the Safe. Collected signatures stay valid after a join. If the join raises the count, execution waits.</div>
+      `)
+    };
+
+    sections.forEach(([id, label]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.addEventListener('click', () => show(id));
+      nav.appendChild(button);
+    });
+    app.innerHTML = Object.values(pages).join('');
+
+    function show(id) {
+      document.querySelectorAll('section').forEach((el) => el.classList.toggle('active', el.id === id));
+      document.querySelectorAll('.crowd-nav button').forEach((button, index) => button.classList.toggle('active', sections[index][0] === id));
+      history.replaceState(null, '', '#' + id);
+      allGraphs.forEach((graph) => graph.redraw());
+    }
+
+    function quorum(n) { return Math.floor((3 * n + 4) / 5); }
+
+    function paintPass(n) {
+      const count = Math.max(1, Math.min(200, Number(n) || 1));
+      const need = quorum(count);
+      document.getElementById('pass-n').textContent = String(count);
+      document.getElementById('pass-label').textContent = need + ' of ' + count;
+      const swarm = document.getElementById('pass-swarm');
+      swarm.replaceChildren(...Array.from({ length: count }, (_, i) => {
+        const dot = document.createElement('i');
+        if (i < need) dot.className = 'on';
+        return dot;
+      }));
+    }
+
+    function buildSvgDiagram(container, config, detailId, copy) {
+      const ns = 'http://www.w3.org/2000/svg';
+      container.innerHTML = '<svg class="links" aria-hidden="true"><defs><marker id="arrow-' + container.id + '" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c8f169"/></marker></defs></svg>';
+      const svg = container.querySelector('svg');
+      const nodes = {};
+      const edges = [];
+      config.nodes.forEach((item) => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'svg-node';
+        el.style.left = item.x + '%';
+        el.style.top = item.y + 'px';
+        el.innerHTML = '<b>' + item.label + '</b><small>' + item.sub + '</small>';
+        el.addEventListener('click', () => setFocus(item.id));
+        container.appendChild(el);
+        nodes[item.id] = el;
+      });
+      function draw() {
+        svg.querySelectorAll('path,text').forEach((el) => { if (el.closest('defs')) return; el.remove(); });
+        edges.length = 0;
+        const box = container.getBoundingClientRect();
+        if (!box.width) return;
+        const rects = Object.fromEntries(Object.entries(nodes).map(([id, el]) => {
+          const r = el.getBoundingClientRect();
+          return [id, { x: r.left - box.left, y: r.top - box.top, w: r.width, h: r.height, cx: r.left - box.left + r.width / 2, cy: r.top - box.top + r.height / 2 }];
+        }));
+        config.edges.forEach((edge) => {
+          const from = rects[edge.from], to = rects[edge.to];
+          if (!from || !to) return;
+          const down = to.cy >= from.cy;
+          const sx = from.cx, sy = down ? from.y + from.h : from.y, tx = to.cx, ty = down ? to.y : to.y + to.h;
+          const mid = (sy + ty) / 2;
+          const p = document.createElementNS(ns, 'path');
+          p.setAttribute('d', 'M ' + sx + ' ' + sy + ' L ' + sx + ' ' + mid + ' L ' + tx + ' ' + mid + ' L ' + tx + ' ' + ty);
+          p.setAttribute('fill', 'none');
+          p.setAttribute('stroke', '#c8f169');
+          p.setAttribute('stroke-width', '1.6');
+          p.setAttribute('marker-end', 'url(#arrow-' + container.id + ')');
+          p.dataset.from = edge.from;
+          p.dataset.to = edge.to;
+          svg.appendChild(p);
+          edges.push(p);
+          if (edge.label) {
+            const text = document.createElementNS(ns, 'text');
+            text.textContent = edge.label;
+            text.setAttribute('x', (sx + tx) / 2);
+            text.setAttribute('y', mid - 5);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('class', 'svg-edge-label');
+            text.dataset.from = edge.from;
+            text.dataset.to = edge.to;
+            svg.appendChild(text);
+            edges.push(text);
+          }
+        });
+      }
+      function setFocus(selected) {
+        const visible = new Set();
+        config.edges.forEach((edge) => {
+          if (!selected || edge.from === selected || edge.to === selected) {
+            visible.add(edge.from);
+            visible.add(edge.to);
+          }
+        });
+        Object.entries(nodes).forEach(([id, node]) => {
+          node.classList.toggle('selected', selected === id);
+          node.classList.toggle('connected', !!selected && visible.has(id) && id !== selected);
+          node.classList.toggle('muted', !!selected && !visible.has(id));
+        });
+        edges.forEach((edge) => {
+          const on = !selected || edge.dataset.from === selected || edge.dataset.to === selected;
+          edge.style.opacity = on ? '1' : '.08';
+        });
+        const detail = document.getElementById(detailId);
+        if (detail) detail.innerHTML = selected ? '<b>' + config.nodes.find((n) => n.id === selected).label + '</b><br>' + (copy[selected] || '') : '<b>Full path.</b> Click a box.';
+      }
+      window.addEventListener('resize', draw);
+      requestAnimationFrame(() => { draw(); setTimeout(draw, 80); });
+      return { redraw: draw, setFocus, container };
+    }
+
+    const allGraphs = [
+      buildSvgDiagram(document.getElementById('crowd-graph'), {
+        nodes: [
+          { id: 'factory', label: 'Factory', sub: 'create', x: 4, y: 24 },
+          { id: 'module', label: 'Module', sub: 'join / leave / claim', x: 28, y: 24 },
+          { id: 'guard', label: 'Guard', sub: 'module only', x: 52, y: 24 },
+          { id: 'safe', label: 'Safe', sub: 'the poster', x: 76, y: 24 },
+          { id: 'azl', label: 'AZL', sub: 'task token', x: 4, y: 180 },
+          { id: 'gateway', label: 'Payment gateway', sub: 'poster deposit', x: 28, y: 180 },
+          { id: 'registry', label: 'Task registry', sub: 'V2 FSM', x: 52, y: 180 },
+          { id: 'escrow', label: 'Escrow vault', sub: 'funded AZL', x: 76, y: 180 }
+        ],
+        edges: [
+          { from: 'factory', to: 'module', label: 'deploy' },
+          { from: 'factory', to: 'guard', label: 'deploy' },
+          { from: 'factory', to: 'safe', label: 'proxy' },
+          { from: 'module', to: 'safe', label: 'add / remove / pay' },
+          { from: 'guard', to: 'module', label: 'allow list' },
+          { from: 'azl', to: 'safe', label: 'join' },
+          { from: 'gateway', to: 'safe', label: 'deposit seed' },
+          { from: 'safe', to: 'registry', label: 'post / fund' },
+          { from: 'registry', to: 'escrow', label: 'pull' }
+        ]
+      }, 'graph-detail', {
+        factory: 'Reads Safe and AZZLE addresses at deploy. Creates module, guard, then the Safe with the opener at threshold 1.',
+        module: 'Only path that changes owners or pays AZL from the module. Join pulls AZL, then addOwnerWithThreshold.',
+        guard: 'Reverts every module call that is not a recorded add, remove, or transfer.',
+        safe: 'The V2 poster. Owners who meet the live pass count sign post, fund, release, or dispute.',
+        azl: 'Task money is AZL wei. A pledge on the board is not this transfer.',
+        gateway: 'Opener seeds the poster deposit here before a second wallet joins, if intake is open.',
+        registry: 'Unchanged V2 machine. The Safe is poster. Worker claims. Full fund activates.',
+        escrow: 'Pulls AZL from the Safe on fund. Pays the worker on release. Refunds the Safe on cancel or expire.'
+      }),
+      buildSvgDiagram(document.getElementById('member-graph'), {
+        nodes: [
+          { id: 'wallet', label: 'Wallet', sub: 'contributor', x: 6, y: 72 },
+          { id: 'join', label: 'join', sub: 'pull + add owner', x: 30, y: 72 },
+          { id: 'safe', label: 'Safe', sub: 'owners + AZL', x: 54, y: 72 },
+          { id: 'leave', label: 'leave', sub: 'remove + return', x: 78, y: 72 }
+        ],
+        edges: [
+          { from: 'wallet', to: 'join', label: 'AZL' },
+          { from: 'join', to: 'safe', label: 'owner' },
+          { from: 'safe', to: 'leave', label: 'until lock' }
+        ]
+      }, 'member-detail', {
+        wallet: 'Any wallet can take a seat. It does not have to be a team.',
+        join: 'Transfers that wallet AZL to the Safe, then raises owners and the pass count.',
+        safe: 'Holds task AZL until fund. Deposit AZL stays in the deposit vault.',
+        leave: 'Returns that wallet AZL and lowers the pass count. Blocked after syncFunded.'
+      }),
+      buildSvgDiagram(document.getElementById('task-graph'), {
+        nodes: [
+          { id: 'post', label: 'Post', sub: '1 of 1', x: 4, y: 72 },
+          { id: 'claim', label: 'Approve claim', sub: 'worker on task', x: 28, y: 72 },
+          { id: 'fund', label: 'Fund escrow', sub: 'work starts', x: 52, y: 72 },
+          { id: 'end', label: 'Accept / dispute', sub: 'pay or freeze', x: 76, y: 72 }
+        ],
+        edges: [
+          { from: 'post', to: 'claim', label: 'claim' },
+          { from: 'claim', to: 'fund', label: 'fund' },
+          { from: 'fund', to: 'end', label: 'release' }
+        ]
+      }, 'task-detail', {
+        post: 'The Safe posts the task. Until a second wallet joins, one signature is enough.',
+        claim: 'A different wallet claims. The poster later signs the funded work path.',
+        fund: 'Safe MultiSend: approve, fund, approve 0. Escrow pulls from the Safe. syncFunded locks joins.',
+        end: 'release or complete pays the worker. openDispute freezes remaining value.'
+      }),
+      buildSvgDiagram(document.getElementById('money-graph'), {
+        nodes: [
+          { id: 'people', label: 'People', sub: 'join AZL', x: 6, y: 72 },
+          { id: 'safe', label: 'Safe', sub: 'task pot', x: 30, y: 72 },
+          { id: 'escrow', label: 'Escrow', sub: 'funded job', x: 54, y: 72 },
+          { id: 'payee', label: 'Worker / claim', sub: 'payout or refund', x: 78, y: 72 }
+        ],
+        edges: [
+          { from: 'people', to: 'safe', label: 'join' },
+          { from: 'safe', to: 'escrow', label: 'fund' },
+          { from: 'escrow', to: 'payee', label: 'release / refund' }
+        ]
+      }, 'money-detail', {
+        people: 'AZL leaves a wallet on join or contribute. Leave or a refund claim sends that recorded AZL to the wallet.',
+        safe: 'Holds joined AZL. fund sends it to escrow. A completed task leaves claim with nothing.',
+        escrow: 'Isolated job pot. Only registry and arbitration move it.',
+        payee: 'Worker is paid on accept. On cancel or resolve, wallets claim contribution * refund / shares.'
+      })
+    ];
+
+    const slide = document.getElementById('pass-slide');
+    slide.addEventListener('input', () => paintPass(slide.value));
+    paintPass(slide.value);
+
+    let tour = null;
+    function stopTour() {
+      if (tour) clearInterval(tour);
+      tour = null;
+      document.getElementById('tourBar').classList.remove('active');
+      document.getElementById('tourReadout').textContent = 'idle';
+      document.getElementById('tourProgressFill').style.width = '0%';
+    }
+    function startTour() {
+      stopTour();
+      document.getElementById('tourBar').classList.add('active');
+      let i = 0;
+      const tick = () => {
+        show(sections[i][0]);
+        document.getElementById('tourReadout').textContent = sections[i][1];
+        document.getElementById('tourProgressFill').style.width = ((i + 1) / sections.length * 100) + '%';
+        i += 1;
+        if (i >= sections.length) stopTour();
+      };
+      tick();
+      tour = setInterval(tick, 4000);
+    }
+    document.getElementById('tourToggle').addEventListener('click', startTour);
+    document.getElementById('tourStop').addEventListener('click', stopTour);
+    document.getElementById('tourPrev').addEventListener('click', () => {
+      const id = location.hash.slice(1) || 'graph';
+      const i = Math.max(0, sections.findIndex((s) => s[0] === id) - 1);
+      show(sections[i][0]);
+    });
+    document.getElementById('tourNext').addEventListener('click', () => {
+      const id = location.hash.slice(1) || 'graph';
+      const i = Math.min(sections.length - 1, sections.findIndex((s) => s[0] === id) + 1);
+      show(sections[i][0]);
+    });
+
+    const start = sections.some((s) => s[0] === location.hash.slice(1)) ? location.hash.slice(1) : 'graph';
+    show(start);
+  </script>
+</body>
+</html>

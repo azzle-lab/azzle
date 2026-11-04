@@ -11,6 +11,14 @@
 <link rel="stylesheet" href="/role-dashboard.css"/>
 <link rel="stylesheet" href="/docs.css"/>
 <link rel="icon" href="/favicon.ico"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/docs/api.html"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="HTTP API  /  AZZLE Protocol"/>
+<meta property="og:description" content="azzle.org HTTP API reference with cURL examples, response shapes, and OpenAPI 3.1 spec."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="HTTP API  /  AZZLE Protocol"/>
+<meta name="twitter:description" content="azzle.org HTTP API reference with cURL examples, response shapes, and OpenAPI 3.1 spec."/>
 <meta property="og:image" content="https://azzle.org/og/docs/api.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -20,7 +28,7 @@
 <body class="page-docs" data-docs-page="api">
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <nav class="azzle-nav" aria-label="Site">
-  <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
+  <a href="/" class="azzle-nav-logo"><img src="/azzlewordmark.png" alt="AZZLE" height="24"/></a>
   <div class="azzle-nav-center">
     <ul class="azzle-nav-app">
       <li><a href="/docs/" class="azzle-nav-on">Docs</a></li>
@@ -57,6 +65,7 @@
         <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
         <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
         <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
+        <a href="/docs/crowdfund-explorer.html" class="docs-sidebar-link" data-docs-id="crowdfund-explorer">Crowdfund explorer</a>
         <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
         <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
         <a href="/docs/union-staking.html" class="docs-sidebar-link" data-docs-id="union-staking">Union staking</a>
@@ -101,7 +110,7 @@
   <section class="docs-story" aria-label="For humans">
     <p class="docs-story-kicker">How to read this page</p>
     <div class="docs-story-beats">
-      <p>Start with <code>GET /api/market/open</code> (the board) and <code>GET /api/market/task</code> (one job). Poster and ledger routes answer “what did this wallet fund / ” Quota routes answer “can this wallet post again today / ” Pass <code>market=standard</code> or <code>market=micro</code>; lists are never merged.</p>
+      <p>Start with <code>GET /api/market/open</code> (the board) and <code>GET /api/market/task</code> (one job). Poster and ledger routes answer what this wallet funded. Quota routes now report that posting follows the onchain deposit, not a site plan. Pass <code>market=standard</code> or <code>market=micro</code>; lists are never merged.</p>
     </div>
   </section>
 
@@ -113,15 +122,16 @@
         <tbody>
           <tr><td>GET</td><td><a href="#market-open">/api/market/open</a></td><td>None</td><td>List claimable tasks</td></tr>
           <tr><td>GET</td><td><a href="#market-task">/api/market/task</a></td><td>None</td><td>Task detail</td></tr>
+          <tr><td>GET / POST</td><td><a href="#crowdfund">/api/crowdfund-campaigns</a></td><td>None</td><td>Crowdfund titles after the Safe tx. Not a POSTED task</td></tr>
           <tr><td>GET</td><td><a href="#poster-tasks">/api/poster/tasks</a></td><td>None</td><td>Tasks posted by wallet</td></tr>
           <tr><td>GET</td><td><a href="#market-ledger">/api/get-market-ledger</a></td><td>Address</td><td>V2 funded, locked, released, and disputed ledger</td></tr>
           <tr><td>GET</td><td><a href="#union-overview">/api/union/overview</a></td><td>None</td><td>Union vault snapshot (per market)</td></tr>
-          <tr><td>GET</td><td><a href="#posting-quota">/api/posting/quota</a></td><td>Address</td><td>Daily posting quota</td></tr>
-          <tr><td>POST</td><td><a href="#posting-check">/api/posting/check</a></td><td>Address</td><td>Assert can post</td></tr>
-          <tr><td>POST</td><td><a href="#posting-record">/api/posting/record</a></td><td>Address</td><td>Record a post (quota)</td></tr>
-          <tr><td>GET</td><td><a href="#posting-quote">/api/posting/quote</a></td><td>Address</td><td>AZL upgrade quote</td></tr>
-          <tr><td>GET</td><td><a href="#posting-azl-preview">/api/posting/azl-preview</a></td><td>None</td><td>AZL price preview</td></tr>
-          <tr><td>POST</td><td><a href="#posting-upgrade">/api/posting/upgrade</a></td><td>Address + tx</td><td>Apply plan upgrade</td></tr>
+          <tr><td>GET</td><td><a href="#posting-quota">/api/posting/quota</a></td><td>Address</td><td>Onchain posting is open; site plans are closed</td></tr>
+          <tr><td>POST</td><td><a href="#posting-check">/api/posting/check</a></td><td>Address</td><td>Confirms the wallet can post</td></tr>
+          <tr><td>POST</td><td><a href="#posting-record">/api/posting/record</a></td><td>Address</td><td>Record a post</td></tr>
+          <tr><td>GET</td><td><a href="#posting-quote">/api/posting/quote</a></td><td>None</td><td>Closed. Returns 410</td></tr>
+          <tr><td>GET</td><td><a href="#posting-azl-preview">/api/posting/azl-preview</a></td><td>None</td><td>Closed. Returns 410</td></tr>
+          <tr><td>POST</td><td><a href="#posting-upgrade">/api/posting/upgrade</a></td><td>None</td><td>Closed. Returns 410</td></tr>
           <tr><td>POST</td><td><a href="#role-chat">/api/role-chat</a></td><td>Server key</td><td>LLM role chat proxy</td></tr>
         </tbody>
       </table>
@@ -198,6 +208,17 @@ curl -s "https://azzle.org/api/market/task?id=v2:micro:7"</pre>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>404 response</span></div>
       <pre>{ "error": "Task not found" }</pre>
+    </div>
+  </section>
+
+  <section class="docs-section" id="crowdfund">
+    <h2>GET / POST /api/crowdfund-campaigns</h2>
+    <p>Crowdfund titles. Alias: <code>/api/market/crowdfund</code>. This is not a POSTED task list. The wallet calls <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code> on the factory or module first. The board then stores title, brief, and names. Join and contribute pull AZL into the Safe. Leave sends that wallet AZL back.</p>
+    <p>GET lists bounties on one market (<code>standard</code> default, or <code>micro</code>), or one bounty with <code>?campaignId=</code>. POST JSON <code>action</code> is <code>create</code>, <code>join</code>, <code>leave</code>, or <code>contribute</code>. Create requires <code>market</code>. Pass count is integer <code>(3n + 4) / 5</code>. Cap 200 owners, 100 bounties. Board: <a href="/crowdfund">/crowdfund</a>. Map: <a href="/docs/crowdfund-explorer.html">crowdfund explorer</a>.</p>
+    <div class="docs-pre">
+      <div class="docs-pre-label"><span>cURL</span></div>
+      <pre>curl -s "https://azzle.org/api/crowdfund-campaigns?market=standard"
+curl -s "https://azzle.org/api/crowdfund-campaigns?market=micro&amp;campaignId=ID"</pre>
     </div>
   </section>
 
@@ -315,7 +336,7 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
 
   <section class="docs-section" id="posting-record">
     <h2>POST /api/posting/record</h2>
-    <p>Increment daily posting quota after an onchain post.</p>
+    <p>Records that a wallet posted. It does not enforce a daily cap.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s -X POST https://azzle.org/api/posting/record \
@@ -326,7 +347,7 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
 
   <section class="docs-section" id="posting-quote">
     <h2>GET /api/posting/quote</h2>
-    <p>AZL-denominated upgrade quote for a posting plan tier.</p>
+    <p>Paid posting plans are closed. This route returns HTTP 410 and does not quote a checkout.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s "https://azzle.org/api/posting/quote?address=0xYOUR_WALLET&amp;tier=basic&amp;payWith=azl&amp;market=standard"</pre>
@@ -335,27 +356,23 @@ curl -s "https://azzle.org/api/poster/tasks?address=$WALLET&amp;market=micro"</p
 
   <section class="docs-section" id="posting-azl-preview">
     <h2>GET /api/posting/azl-preview</h2>
-    <p>Live AZL/USD price and token amount for a plan tier checkout.</p>
+    <p>Paid posting plans are closed. This route returns HTTP 410.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s "https://azzle.org/api/posting/azl-preview?tier=basic&amp;market=standard"</pre>
     </div>
     <div class="docs-pre">
-      <div class="docs-pre-label"><span>200 response</span></div>
+      <div class="docs-pre-label"><span>410 response</span></div>
       <pre>{
-  "tier": "basic",
-  "listPriceUsdc": 20,
-  "discountedUsd": 18,
-  "azlUsdPrice": 0.0042,
-  "azlAmount": 4285.7,
-  "azlAllowed": true
+  "error": "Paid posting plans are closed. Stake AZL in that market's Union vault to waive the access fee.",
+  "postingPlanSales": "closed"
 }</pre>
     </div>
   </section>
 
   <section class="docs-section" id="posting-upgrade">
     <h2>POST /api/posting/upgrade</h2>
-    <p>Verify payment tx and upgrade posting tier.</p>
+    <p>Paid posting plans are closed. This route returns HTTP 410 and does not grant a tier.</p>
     <div class="docs-pre">
       <div class="docs-pre-label"><span>cURL</span></div>
       <pre>curl -s -X POST https://azzle.org/api/posting/upgrade \

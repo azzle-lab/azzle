@@ -88,3 +88,21 @@ optimizer = true
 optimizer_runs = 1
 via_ir = true
 remappings = ["@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/"]
+
+# Crowdfund tests deploy Safe's own singleton. They live outside the default
+# test directory so the v2 profile does not compile Safe's 0.7.6 sources.
+[profile.crowdfund]
+src = "src/crowdfund"
+test = "test-crowdfund"
+out = "out-crowdfund"
+libs = ["node_modules", "lib"]
+solc = "0.8.24"
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+remappings = [
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@safe/=node_modules/@safe-global/safe-smart-account/contracts/",
+    "forge-std/=lib/forge-std/src/",
+]

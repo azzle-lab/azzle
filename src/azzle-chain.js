@@ -264,6 +264,23 @@ async function ensureUsdcAllowance(walletClient, publicClient, usdc, owner, spen
   await publicClient.waitForTransactionReceipt({ hash });
 }
 
+async function ensureAzlAllowance(walletClient, publicClient, azl, owner, spender, needed) {
+  const allowance = await publicClient.readContract({
+    address: azl,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [owner, spender],
+  });
+  if (allowance >= needed) return;
+  const hash = await walletClient.writeContract({
+    address: azl,
+    abi: ERC20_ABI,
+    functionName: "approve",
+    args: [spender, needed],
+  });
+  await publicClient.waitForTransactionReceipt({ hash });
+}
+
 async function runTx(label, fn, onProgress) {
   try {
     return await fn();
@@ -701,6 +718,149 @@ const TASK_STATE = [
   "RESOLVED",
 ];
 
+const CROWDFUND_FACTORY_ABI = [
+  {
+    type: "function",
+    name: "create",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "opener", type: "address" },
+      { name: "totalAmount", type: "uint256" },
+      { name: "minJoin", type: "uint256" },
+      { name: "saltNonce", type: "uint256" },
+    ],
+    outputs: [
+      { name: "safe", type: "address" },
+      { name: "module", type: "address" },
+      { name: "guard", type: "address" },
+    ],
+  },
+  {
+    type: "event",
+    name: "CampaignCreated",
+    inputs: [
+      { name: "safe", type: "address", indexed: true },
+      { name: "module", type: "address", indexed: true },
+      { name: "guard", type: "address", indexed: false },
+      { name: "opener", type: "address", indexed: true },
+      { name: "totalAmount", type: "uint256", indexed: false },
+      { name: "minJoin", type: "uint256", indexed: false },
+      { name: "saltNonce", type: "uint256", indexed: false },
+    ],
+  },
+];
+
+const CROWDFUND_MODULE_ABI = [
+  {
+    type: "function",
+    name: "join",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "amount", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "contribute",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "amount", type: "uint256" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "leave",
+    stateMutability: "nonpayable",
+    inputs: [],
+    outputs: [],
+  },
+];
+
+const CROWDFUND_ERROR_ABI = [
+  { type: "error", name: "AlreadyOwner", inputs: [] },
+  { type: "error", name: "NotOwner", inputs: [] },
+  { type: "error", name: "SoleOwner", inputs: [] },
+  { type: "error", name: "LockedMembership", inputs: [] },
+  { type: "error", name: "BadAmount", inputs: [] },
+  { type: "error", name: "Cap", inputs: [] },
+  { type: "error", name: "OwnerCap", inputs: [] },
+  { type: "error", name: "NotBound", inputs: [] },
+  { type: "error", name: "ModuleCallFailed", inputs: [] },
+  { type: "error", name: "TransferFailed", inputs: [] },
+];
+
+const CROWDFUND_ERROR_TEXT = {
+  AlreadyOwner: "That wallet is already on this bounty.",
+  NotOwner: "That wallet is not on this bounty.",
+  SoleOwner: "The opener cannot leave.",
+  LockedMembership: "This bounty is locked.",
+  BadAmount: "That AZL amount is below the minimum or is not allowed.",
+  Cap: "That pledge would pass the goal.",
+  OwnerCap: "This bounty is full at 200 wallets.",
+  NotBound: "This bounty is not bound to a Safe.",
+  ModuleCallFailed: "The Safe rejected the membership change.",
+  TransferFailed: "The Safe could not send AZL.",
+};
+
+function crowdfundErrorName(err) {
+  const revertHex = extractRevertHex(err);
+  if (!revertHex) return "";
+  try {
+    return decodeErrorResult({ abi: CROWDFUND_ERROR_ABI, data: revertHex }).errorName || "";
+  } catch {
+    return "";
+  }
+}
+
+function formatCrowdfundError(err) {
+  const name = crowdfundErrorName(err);
+  if (name && CROWDFUND_ERROR_TEXT[name]) return CROWDFUND_ERROR_TEXT[name];
+  return formatTxError(err);
+}
+
+function parseAzlWei(value, label) {
+  const text = String(value ?? "").trim();
+  if (!text || /^0+(\.0+)?$/.test(text)) {
+    throw new Error(`${label} must be a positive AZL amount.`);
+  }
+  try {
+    const amount = parseUnits(text, 18);
+    if (amount <= 0n) throw new Error(`${label} must be a positive AZL amount.`);
+    return amount;
+  } catch (err) {
+    if (err instanceof Error && /positive AZL/.test(err.message)) throw err;
+    throw new Error(`${label} must be an AZL amount.`);
+  }
+}
+
+function optionalAzlWei(value) {
+  const text = String(value ?? "").trim();
+  if (!text || /^0+(\.0+)?$/.test(text)) return 0n;
+  return parseAzlWei(text, "Opening pledge");
+}
+
+function randomSaltNonce() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let nonce = 0n;
+  for (const byte of bytes) nonce = (nonce << 8n) + BigInt(byte);
+  return nonce;
+}
+
+function campaignFromReceipt(receipt, factory) {
+  const logs = parseEventLogs({
+    abi: CROWDFUND_FACTORY_ABI,
+    logs: receipt.logs,
+    eventName: "CampaignCreated",
+  });
+  const hit = logs.find((log) => log.address.toLowerCase() === factory.toLowerCase());
+  if (!hit) throw new Error("Crowdfund Safe not found in the receipt.");
+  return {
+    safe: hit.args.safe,
+    module: hit.args.module,
+    guard: hit.args.guard,
+    createTx: receipt.transactionHash,
+  };
+}
+
 let siteConfigByMarket = {};
 
 function normalizeSiteConfig(config) {
@@ -825,6 +985,28 @@ export async function loadSiteConfig(marketOverride) {
   return loaded;
 }
 
+const crowdfundByMarket = {};
+
+function crowdfundManifestPath(market) {
+  return market === "micro"
+    ? "/reference/contracts/deployments/base-8453-micro-crowdfund.json"
+    : "/reference/contracts/deployments/base-8453-crowdfund.json";
+}
+
+export async function loadCrowdfund(marketOverride) {
+  const market = resolveMarket(marketOverride);
+  if (crowdfundByMarket[market]) return crowdfundByMarket[market];
+  const res = await fetch(crowdfundManifestPath(market), { cache: "no-store" });
+  if (!res.ok) throw new Error("Could not load the crowdfund factory.");
+  const loaded = await res.json();
+  if (String(loaded.chainId) !== "8453" || loaded.market !== market) {
+    throw new Error("Crowdfund factory does not match this market.");
+  }
+  requireConfiguredAddress("crowdfund factory", loaded.crowdfundFactory);
+  crowdfundByMarket[market] = loaded;
+  return loaded;
+}
+
 function scopeHash(description) {
   return keccak256(stringToBytes(description.trim()));
 }
@@ -847,6 +1029,29 @@ async function readOnchainScope(publicClient, scopeRegistry, taskId) {
   } catch {
     return null;
   }
+}
+
+function scopeRetryDelay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readScopeText(publicClient, scopeRegistry, taskId) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      const scope = await publicClient.readContract({
+        address: scopeRegistry,
+        abi: SCOPE_REGISTRY_ABI,
+        functionName: "scopeOf",
+        args: [parseScopeTaskId(taskId)],
+      });
+      return String(scope ?? "").trim();
+    } catch (error) {
+      lastError = error;
+      await scopeRetryDelay(600);
+    }
+  }
+  throw lastError || new Error("Could not read the public scope.");
 }
 
 async function writeSetScope(walletClient, publicClient, scopeRegistry, taskId, scope, onProgress) {
@@ -882,14 +1087,28 @@ async function ensureOpenScope(walletClient, publicClient, scopeRegistry, taskId
   const text = String(scope ?? "").trim();
   if (!text) throw new Error("Public listings need a scope before they can be published onchain.");
   if (new TextEncoder().encode(text).length > 8192) throw new Error("Scope too long (max 8192 bytes)");
-  const existing = await readOnchainScope(publicClient, scopeRegistry, taskId);
-  if (existing) return true;
-  await writeSetScope(walletClient, publicClient, scopeRegistry, taskId, text, onProgress);
-  const published = await readOnchainScope(publicClient, scopeRegistry, taskId);
-  if (!published) {
-    throw new Error("Task posted, but public scope is not onchain yet. Open My Tasks and publish it.");
+  if (!scopeRegistry) throw new Error("Public listings need the scope registry on this market.");
+
+  let current = await readScopeText(publicClient, scopeRegistry, taskId);
+  if (current === text) return true;
+  if (current) throw new Error("This task already has a different public scope.");
+
+  let lastError = null;
+  for (let attempt = 0; attempt < 3 && current !== text; attempt += 1) {
+    try {
+      await writeSetScope(walletClient, publicClient, scopeRegistry, taskId, text, onProgress);
+      lastError = null;
+    } catch (error) {
+      lastError = error;
+      const message = String(error?.shortMessage || error?.message || error);
+      if (!/TSv2: published/i.test(message) && attempt === 2) break;
+    }
+    current = await readScopeText(publicClient, scopeRegistry, taskId);
+    if (current === text) return true;
+    await scopeRetryDelay(800);
   }
-  return true;
+  if (current === text) return true;
+  throw lastError || new Error("Public scope did not land onchain for this task.");
 }
 
 function batchCallsConfirmed(status) {
@@ -1250,6 +1469,18 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       throw new Error("Sign in first");
     },
     async assignArbitrator() {
+      throw new Error("Sign in first");
+    },
+    async createCrowdfund() {
+      throw new Error("Sign in first");
+    },
+    async joinCrowdfund() {
+      throw new Error("Sign in first");
+    },
+    async leaveCrowdfund() {
+      throw new Error("Sign in first");
+    },
+    async contributeCrowdfund() {
       throw new Error("Sign in first");
     },
     buildDeliveryReceipt() {
@@ -1786,6 +2017,9 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       if (openDiscovery && !String(description ?? "").trim()) {
         throw new Error("Public listings need a scope.");
       }
+      if (openDiscovery && !c.taskScopeRegistry) {
+        throw new Error("Public listings need the scope registry on this market.");
+      }
 
       let posted = null;
       if (openDiscovery && c.taskScopeRegistry) {
@@ -1818,15 +2052,31 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       }
 
       let scopePublished = false;
-      if (openDiscovery && c.taskScopeRegistry) {
-        scopePublished = await ensureOpenScope(
-          walletClient,
-          publicClient,
-          c.taskScopeRegistry,
-          posted.taskId,
-          description,
-          onProgress
-        );
+      if (openDiscovery) {
+        try {
+          scopePublished = await ensureOpenScope(
+            walletClient,
+            publicClient,
+            c.taskScopeRegistry,
+            posted.taskId,
+            description,
+            onProgress
+          );
+        } catch (error) {
+          const failure = new Error(
+            "Task " + posted.taskId + " is posted. Public scope did not land onchain yet. Open My Tasks and publish it."
+          );
+          failure.taskId = posted.taskId;
+          failure.cause = error;
+          throw failure;
+        }
+        if (!scopePublished) {
+          const failure = new Error(
+            "Task " + posted.taskId + " is posted. Public scope did not land onchain yet. Open My Tasks and publish it."
+          );
+          failure.taskId = posted.taskId;
+          throw failure;
+        }
       }
 
       return {
@@ -1862,84 +2112,8 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
       return { hash: receipt.transactionHash };
     },
 
-    async payUpgrade(tierId, options, onProgress) {
-      const opts = typeof options === "function" ? { onProgress: options } : options ?? {};
-      const progress = typeof options === "function" ? options : onProgress;
-      const payWith = opts.payWith ?? "usdc";
-      const quote = opts.quote ?? null;
-
-      const cfg = await loadSiteConfig();
-      const billingWallet = cfg.billingWallet;
-      if (!billingWallet) throw new Error("Billing wallet not configured — contact support.");
-      const plan = (cfg.postingPlans ?? []).find((p) => p.id === tierId);
-      if (!plan || !plan.priceUsdc) throw new Error("Invalid upgrade plan");
-
-      const c = cfg.contracts;
-      const walletClient = await getWalletClient(wallet, cfg);
-      const publicClient = getPublicClient(cfg);
-
-      if (payWith === "azl") {
-        if (!quote?.minAzlWei) throw new Error("AZL quote required — refresh and try again.");
-        const amount = BigInt(quote.minAzlWei);
-        const azlBal = await publicClient.readContract({
-          address: c.azlToken,
-          abi: ERC20_ABI,
-          functionName: "balanceOf",
-          args: [address],
-        });
-        if (azlBal < amount) {
-          throw new Error(
-            "Not enough AZL — need " +
-              formatAzlHuman(amount) +
-              " on Base (you have " +
-              formatAzlHuman(azlBal) +
-              ")."
-          );
-        }
-        progress?.(
-          "Pay " +
-            (quote.azlAmountFormatted || formatAzlHuman(amount)) +
-            " (~$" +
-            quote.discountedUsd +
-            " · 10% off)…"
-        );
-        const receipt = await runTx("upgradeAzl", async () => {
-          const hash = await walletClient.writeContract({
-            address: c.azlToken,
-            abi: ERC20_ABI,
-            functionName: "transfer",
-            args: [billingWallet, amount],
-          });
-          return publicClient.waitForTransactionReceipt({ hash });
-        }, progress);
-        return { hash: receipt.transactionHash, tier: tierId, payWith: "azl", quoteId: quote.quoteId };
-      }
-
-      const amount = parseUnits(String(plan.priceUsdc), 6);
-      const usdc = await publicClient.readContract({
-        address: c.usdc,
-        abi: ERC20_ABI,
-        functionName: "balanceOf",
-        args: [address],
-      });
-      if (usdc < amount) {
-        throw new Error(
-          "Not enough USDC — need $" + plan.priceUsdc + " on Base (you have $" + formatUnits(usdc, 6) + ")."
-        );
-      }
-
-      progress?.("Pay $" + plan.priceUsdc + " USDC for " + plan.label + "…");
-      const receipt = await runTx("upgrade", async () => {
-        const hash = await walletClient.writeContract({
-          address: c.usdc,
-          abi: ERC20_ABI,
-          functionName: "transfer",
-          args: [billingWallet, amount],
-        });
-        return publicClient.waitForTransactionReceipt({ hash });
-      }, progress);
-
-      return { hash: receipt.transactionHash, tier: tierId, payWith: "usdc" };
+    async payUpgrade() {
+      throw new Error("Paid posting plans are closed. Stake AZL in that market's Union vault to waive the access fee.");
     },
 
     async fundV2(taskId, amountAzl, onProgress) {
@@ -2469,6 +2643,121 @@ export function createPosterApi({ ready, authenticated, wallet, signAuthorizatio
         await this.fundV2(taskId, amountAzl, onProgress);
       }
       return this.activateV2(taskId, onProgress);
+    },
+
+    async createCrowdfund({ market, totalAzl, minJoinAzl, openerAmountAzl, onProgress } = {}) {
+      const resolved = resolveMarket(market);
+      const cfg = await loadSiteConfig(resolved);
+      const crowdfund = await loadCrowdfund(resolved);
+      const factory = crowdfund.crowdfundFactory;
+      const azl = requireConfiguredAddress("AZL token", cfg.contracts.azlToken);
+      const totalAmount = parseAzlWei(totalAzl, "Goal");
+      const minJoin = parseAzlWei(minJoinAzl, "Minimum join");
+      if (minJoin > totalAmount) throw new Error("Minimum join cannot be above the goal.");
+      const openerAmount = optionalAzlWei(openerAmountAzl);
+      if (openerAmount > totalAmount) throw new Error("The opening pledge cannot pass the goal.");
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      onProgress?.("Deploying the Safe…");
+      const created = await runTx("createCrowdfund", async () => {
+        const hash = await walletClient.writeContract({
+          address: factory,
+          abi: CROWDFUND_FACTORY_ABI,
+          functionName: "create",
+          args: [address, totalAmount, minJoin, randomSaltNonce()],
+        });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        return campaignFromReceipt(receipt, factory);
+      }, onProgress);
+      let landed = "0";
+      let pledgeError = "";
+      if (openerAmount > 0n) {
+        onProgress?.("Approve AZL, then pledge…");
+        try {
+          await ensureAzlAllowance(walletClient, publicClient, azl, address, created.module, openerAmount);
+          onProgress?.("Sending your AZL to the Safe…");
+          const hash = await walletClient.writeContract({
+            address: created.module,
+            abi: CROWDFUND_MODULE_ABI,
+            functionName: "contribute",
+            args: [openerAmount],
+          });
+          await publicClient.waitForTransactionReceipt({ hash });
+          landed = String(openerAmountAzl).trim();
+        } catch (err) {
+          pledgeError = "Safe is live. Opening pledge did not land: " + formatCrowdfundError(err);
+        }
+      }
+      return { ...created, market: resolved, openerAmountAzl: landed, pledgeError };
+    },
+
+    async joinCrowdfund({ module, amountAzl, onProgress } = {}) {
+      const cfg = await loadSiteConfig();
+      const azl = requireConfiguredAddress("AZL token", cfg.contracts.azlToken);
+      const moduleAddr = requireConfiguredAddress("crowdfund module", module);
+      const amount = parseAzlWei(amountAzl, "Pledge");
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      try {
+        onProgress?.("Approve AZL…");
+        await ensureAzlAllowance(walletClient, publicClient, azl, address, moduleAddr, amount);
+        onProgress?.("Joining the Safe…");
+        const hash = await walletClient.writeContract({
+          address: moduleAddr,
+          abi: CROWDFUND_MODULE_ABI,
+          functionName: "join",
+          args: [amount],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        return { hash, alreadyOwner: false };
+      } catch (err) {
+        if (crowdfundErrorName(err) === "AlreadyOwner") return { alreadyOwner: true };
+        throw new Error(formatCrowdfundError(err));
+      }
+    },
+
+    async leaveCrowdfund({ module, onProgress } = {}) {
+      const cfg = await loadSiteConfig();
+      const moduleAddr = requireConfiguredAddress("crowdfund module", module);
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      try {
+        onProgress?.("Leaving. The Safe sends your AZL back…");
+        const hash = await walletClient.writeContract({
+          address: moduleAddr,
+          abi: CROWDFUND_MODULE_ABI,
+          functionName: "leave",
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        return { hash, alreadyLeft: false };
+      } catch (err) {
+        if (crowdfundErrorName(err) === "NotOwner") return { alreadyLeft: true };
+        throw new Error(formatCrowdfundError(err));
+      }
+    },
+
+    async contributeCrowdfund({ module, amountAzl, onProgress } = {}) {
+      const cfg = await loadSiteConfig();
+      const azl = requireConfiguredAddress("AZL token", cfg.contracts.azlToken);
+      const moduleAddr = requireConfiguredAddress("crowdfund module", module);
+      const amount = parseAzlWei(amountAzl, "Pledge");
+      const walletClient = await getWalletClient(wallet, cfg);
+      const publicClient = getPublicClient(cfg);
+      try {
+        onProgress?.("Approve AZL…");
+        await ensureAzlAllowance(walletClient, publicClient, azl, address, moduleAddr, amount);
+        onProgress?.("Sending AZL to the Safe…");
+        const hash = await walletClient.writeContract({
+          address: moduleAddr,
+          abi: CROWDFUND_MODULE_ABI,
+          functionName: "contribute",
+          args: [amount],
+        });
+        await publicClient.waitForTransactionReceipt({ hash });
+        return { hash };
+      } catch (err) {
+        throw new Error(formatCrowdfundError(err));
+      }
     },
   };
 }

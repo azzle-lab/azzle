@@ -33,7 +33,7 @@
     "manifest:micro:promote:dry": "hardhat run scripts/promote-v2-micro-manifest.ts --network base",
     "manifest:micro:promote": "set V2_MICRO_MANIFEST_PROMOTE_APPLY=1&& set V2_MICRO_MANIFEST_PROMOTE_YES=1&& hardhat run scripts/promote-v2-micro-manifest.ts --network base",
     "deploy:base:v2:record-observation": "hardhat run scripts/record-v2-observation.ts --network base",
-    "deploy:base:v2:record-observations": "npx ts-node scripts/record-v2-observations-loop.ts",
+    "deploy:base:v2:record-observations": "npx ts-node scripts/record-v2-sponsored-observations-loop.ts",
     "deploy:base:v2:roll-reference": "hardhat run scripts/roll-v2-reference.ts --network base",
     "deploy:base:v2:hop": "hardhat run scripts/deploy-v2-hop.ts --network base",
     "deploy:wire:satellite": "hardhat run scripts/wire-arbitration-satellite.ts --network base",
@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@safe-global/safe-smart-account": "^1.5.0",
     "dotenv": "^17.4.2",
     "hardhat": "^2.22.0",
     "ts-node": "^10.9.0",

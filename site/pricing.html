@@ -3,9 +3,17 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Pricing  /  AZZLE</title>
+<title>Pricing — AZZLE</title>
 <link rel="stylesheet" href="site-theme.css"/>
 <link rel="stylesheet" href="role-dashboard.css"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/pricing"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Pricing  /  AZZLE"/>
+<meta property="og:description" content="Oracle-priced AZL access for posting and claiming on Standard and Micro."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Pricing  /  AZZLE"/>
+<meta name="twitter:description" content="Oracle-priced AZL access for posting and claiming on Standard and Micro."/>
 <meta property="og:image" content="https://azzle.org/og/pricing.png"/>
 <meta property="og:image:width" content="1200"/>
 <meta property="og:image:height" content="630"/>
@@ -16,11 +24,12 @@
 <div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
 <div class="rd-subpage">
   <nav class="azzle-nav" aria-label="Site">
-    <a href="/" class="azzle-nav-logo"><img src="azzletype.png" alt="AZZLE" height="24"/></a>
+    <a href="/" class="azzle-nav-logo"><img src="azzlewordmark.png" alt="AZZLE" height="24"/></a>
     <div class="azzle-nav-center">
       <ul class="azzle-nav-app">
-        <li><a href="/">Chat</a></li>
+        <li><a href="/">Home</a></li>
         <li><a href="/post">Post</a></li>
+        <li><a href="/crowdfund">Crowdfund</a></li>
         <li><a href="/market"><span class="azzle-nav-label-long">Open market</span><span class="azzle-nav-label-short">Market</span></a></li>
         <li><a href="/my-tasks"><span class="azzle-nav-label-long">My tasks</span><span class="azzle-nav-label-short">Tasks</span></a></li>
         <li><a href="/my-work"><span class="azzle-nav-label-long">My work</span><span class="azzle-nav-label-short">Work</span></a></li>
@@ -44,31 +53,52 @@
   <div class="rd-subpage-inner rd-subpage-inner--wide">
     <section class="rd-pricing" id="rd-pricing">
       <div class="rd-checkout-head">
-        <h4>Posting plans</h4>
-        <p>Daily limits reset at midnight UTC. Pay in USDC or AZL on Base  /  AZL gets 10% off (live DEX price).</p>
+        <h4>Union task plans</h4>
+        <p>One Action Credit waives one access fee on that market. The stake stays yours. Unstake any time. Task collateral is still required.</p>
       </div>
-
-      <div class="rd-plan-bar" id="rd-plan-bar" hidden>
-        <div class="rd-plan-bar-main">
-          <span class="rd-plan-name" id="rd-plan-name">Free</span>
-          <span class="rd-plan-usage" id="rd-plan-usage">3 of 3 left today</span>
-        </div>
-        <p class="rd-plan-expires" id="rd-plan-expires" hidden></p>
+      <div class="rd-pricing-grid">
+        <article class="rd-pricing-card">
+          <div class="rd-pricing-card-head"><h6>Micro 1</h6><span class="rd-pricing-price">10M AZL</span></div>
+          <p class="rd-pricing-limit">1 fee waiver per 30 days</p>
+          <p>First credit in 30 days. About one micro access fee.</p>
+        </article>
+        <article class="rd-pricing-card">
+          <div class="rd-pricing-card-head"><h6>Micro 5</h6><span class="rd-pricing-price">50M AZL</span></div>
+          <p class="rd-pricing-limit">5 fee waivers per 30 days</p>
+          <p>First credit in 6 days. Credits stay on micro.</p>
+        </article>
+        <article class="rd-pricing-card">
+          <div class="rd-pricing-card-head"><h6>Micro 20</h6><span class="rd-pricing-price">200M AZL</span></div>
+          <p class="rd-pricing-limit">20 fee waivers per 30 days</p>
+          <p>First credit in 1.5 days.</p>
+        </article>
+        <article class="rd-pricing-card">
+          <div class="rd-pricing-card-head"><h6>Standard 1</h6><span class="rd-pricing-price">100M AZL</span></div>
+          <p class="rd-pricing-limit">1 fee waiver per 30 days</p>
+          <p>First credit in 30 days. Standard stake does not waive micro fees.</p>
+        </article>
+        <article class="rd-pricing-card">
+          <div class="rd-pricing-card-head"><h6>Standard 5</h6><span class="rd-pricing-price">500M AZL</span></div>
+          <p class="rd-pricing-limit">5 fee waivers per 30 days</p>
+          <p>First credit in 6 days.</p>
+        </article>
+        <article class="rd-pricing-card">
+          <div class="rd-pricing-card-head"><h6>Standard 20</h6><span class="rd-pricing-price">2B AZL</span></div>
+          <p class="rd-pricing-limit">20 fee waivers per 30 days</p>
+          <p>First credit in 1.5 days.</p>
+        </article>
       </div>
-
-      <div class="rd-pricing-grid" id="rd-pricing-grid"></div>
-
-      <p class="rd-checkout-status" id="rd-pricing-status">Sign in (top right) to see your plan and upgrade.</p>
-
+      <p class="rd-checkout-status">Stake the AZL yourself on Union. An Action Credit from that market's vault waives the access fee.</p>
       <p class="rd-pricing-foot">
-        Ready to list a job /
-        <a href="/post">Open the full posting form →</a>
+        <a href="/union">Open Union and stake</a>
       </p>
+      <p class="rd-pricing-foot">The rate is on-chain: 10M AZL per credit per 30 days on micro, 100M on standard. A smaller stake still accrues; the first whole credit arrives after 30 days times base stake divided by your stake. Banked credits remain if you unstake. This is a fee waiver. Union revenue rewards are separate from the plan.</p>
+      <p class="rd-pricing-foot">Each task still locks that market's entry deposit and live-task reserve. The access fee is spent unless a credit waives it. The post form quotes the live AZL amount. USD figures on the markets page are policy targets, and the oracle prices them above par.</p>
     </section>
   </div>
 </div>
 <script type="module" src="role-wallet.bundle.js"></script>
-<script src="post-checkout.js"></script>
+<script src="waitbar.js?v=20261030-wait"></script>
 <script src="azl-nav-ticker.js"></script>
 <script src="theme-toggle.js"></script>
 <script src="/ascii-beach-waves.js"></script>
