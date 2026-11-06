@@ -55,7 +55,7 @@
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@safe-global/safe-smart-account": "^1.5.0",
     "dotenv": "^17.4.2",
-    "hardhat": "^2.22.0",
+    "hardhat": "^3.21.2",
     "ts-node": "^10.9.0",
     "typescript": "^5.4.0"
   },
