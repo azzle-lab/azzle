@@ -37,7 +37,7 @@
     "@temporalio/activity": "^1.11.0",
     "@temporalio/client": "^1.11.0",
     "@temporalio/worker": "^1.11.0",
-    "@temporalio/workflow": "^1.11.0",
+    "@temporalio/workflow": "^1.24.0",
     "dotenv": "^16.4.0",
     "nats": "^2.29.0",
     "neo4j-driver": "^5.27.0",
