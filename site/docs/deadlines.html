@@ -87,35 +87,19 @@
     <section class="docs-section">
       <h2>Timeline</h2>
       <figure class="docs-deadline-timeline">
-        <svg viewBox="0 0 880 228" role="img" aria-labelledby="dl-title dl-desc">
-          <title id="dl-title">Task windows from post to past the deadline</title>
-          <desc id="dl-desc">Schematic from post, claim, fund, and delivery to the deadline. The funding window starts at claim. The dispute cutoff and delivery grace start at delivery. Delivery grace can run past the deadline. Lengths are labeled, not drawn to scale.</desc>
-          <line class="axis" x1="36" y1="46" x2="844" y2="46"/>
-          <g class="node">
-            <circle cx="36" cy="46" r="5"/>
-            <circle cx="210" cy="46" r="5"/>
-            <circle cx="360" cy="46" r="5"/>
-            <circle cx="560" cy="46" r="5"/>
-            <circle cx="720" cy="46" r="5"/>
-          </g>
-          <g class="label">
-            <text x="36" y="28" text-anchor="middle">post</text>
-            <text x="210" y="28" text-anchor="middle">claim</text>
-            <text x="360" y="28" text-anchor="middle">fund</text>
-            <text x="560" y="28" text-anchor="middle">delivery</text>
-            <text x="720" y="28" text-anchor="middle">deadline</text>
-          </g>
-          <rect class="bar-deadline" x="36" y="70" width="684" height="10" rx="5"/>
-          <rect class="bar-fund" x="210" y="96" width="120" height="10" rx="5"/>
-          <rect class="bar-dispute" x="560" y="138" width="80" height="10" rx="5"/>
-          <rect class="bar-grace" x="560" y="174" width="284" height="10" rx="5"/>
-          <g class="sub">
-            <text x="36" y="96">MAX_TASK_DURATION, at most 30 days, chosen at post</text>
-            <text x="210" y="122">FUNDING_WINDOW, 1 day from claim</text>
-            <text x="560" y="164">POSTER_DISPUTE_GRACE_WINDOW, 12 hours from delivery</text>
-            <text x="560" y="200">DELIVERY_GRACE_WINDOW, 1 day from delivery, can pass the deadline</text>
-          </g>
-        </svg>
+        <ol class="docs-deadline-rail">
+          <li>post</li>
+          <li>claim</li>
+          <li>fund</li>
+          <li>delivery</li>
+          <li>deadline</li>
+        </ol>
+        <ul class="docs-deadline-rows">
+          <li class="full"><b></b><span><code>MAX_TASK_DURATION</code> At most 30 days, chosen at post. The bar runs from post to the deadline.</span></li>
+          <li class="fund"><b></b><span><code>FUNDING_WINDOW</code> 1 day from claim.</span></li>
+          <li class="dispute"><b></b><span><code>POSTER_DISPUTE_GRACE_WINDOW</code> 12 hours from delivery.</span></li>
+          <li class="grace"><b></b><span><code>DELIVERY_GRACE_WINDOW</code> 1 day from delivery. It can run past the deadline.</span></li>
+        </ul>
         <figcaption>Schematic. Bar lengths are not to scale. Source: <code>TaskRegistryV2</code>.</figcaption>
       </figure>
     </section>
