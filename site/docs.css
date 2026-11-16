@@ -1109,3 +1109,22 @@ body.page-docs[data-docs-bg="dark"] .docs-contracts-market--micro{
     grid-row:1;
   }
 }
+
+.docs-deadline-timeline{
+  margin:16px 0 0;
+  overflow-x:auto;
+  border:1px solid var(--b);
+  border-radius:var(--radius);
+  background:var(--surface);
+  padding:16px 16px 12px;
+}
+.docs-deadline-timeline svg{display:block;width:100%;min-width:720px;height:auto}
+.docs-deadline-timeline .axis{stroke:var(--b2);stroke-width:2}
+.docs-deadline-timeline .node{fill:var(--heading)}
+.docs-deadline-timeline .label{fill:var(--heading);font:600 13px var(--sans, Inter, system-ui, sans-serif)}
+.docs-deadline-timeline .sub{fill:var(--muted);font:500 12px var(--mono, ui-monospace, monospace)}
+.docs-deadline-timeline .bar-deadline{fill:var(--b2)}
+.docs-deadline-timeline .bar-fund,
+.docs-deadline-timeline .bar-dispute{fill:var(--accent)}
+.docs-deadline-timeline .bar-grace{fill:var(--accent);opacity:.45}
+.docs-deadline-timeline figcaption{margin:10px 0 0;color:var(--dim);font-size:12px;line-height:1.45}
