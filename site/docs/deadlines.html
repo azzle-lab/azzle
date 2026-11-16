@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Deadlines and expiry  /  AZZLE Protocol</title>
+<meta name="description" content="Task deadline, funding window, delivery grace, and poster dispute cutoff on TaskRegistryV2. expire() is permissionless and never automatic."/>
+<link rel="canonical" href="https://azzle.org/docs/deadlines.html"/>
+<link rel="alternate" type="text/plain" href="https://azzle.org/llms.txt"/>
+<link rel="stylesheet" href="/site-theme.css"/>
+<link rel="stylesheet" href="/role-dashboard.css"/>
+<link rel="stylesheet" href="/docs.css"/>
+<link rel="icon" href="/favicon.ico"/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://azzle.org/docs/deadlines.html"/>
+<meta property="og:site_name" content="AZZLE Protocol"/>
+<meta property="og:title" content="Deadlines and expiry  /  AZZLE Protocol"/>
+<meta property="og:description" content="Task deadline, funding window, delivery grace, and poster dispute cutoff on TaskRegistryV2. expire() is permissionless and never automatic."/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Deadlines and expiry  /  AZZLE Protocol"/>
+<meta name="twitter:description" content="Task deadline, funding window, delivery grace, and poster dispute cutoff on TaskRegistryV2. expire() is permissionless and never automatic."/>
+  <script src="/theme-init.js"></script>
+</head>
+<body class="page-docs" data-docs-page="deadlines">
+<div class="azzle-announcement" role="status"><span>V2 is live🥳 Stake your AZL on <a href="/union">azzle.org/union</a></span></div>
+<nav class="azzle-nav" aria-label="Site">
+  <a href="/" class="azzle-nav-logo"><img src="/azzletype.png" alt="AZZLE" height="24"/></a>
+  <div class="azzle-nav-center"><ul class="azzle-nav-app"><li><a href="/docs/" class="azzle-nav-on">Docs</a></li><li><a href="/market">Market</a></li><li><a href="/post">Post</a></li><li><a href="/wallet">Wallet</a></li></ul></div>
+  <div class="azzle-nav-actions"><a href="https://github.com/azzle-lab/azzle" class="azzle-nav-gh" target="_blank" rel="noopener noreferrer" aria-label="AZZLE on GitHub"><img src="/GitHub_Invertocat_White.png" alt="GitHub" class="azzle-nav-gh-icon" width="24" height="24"/></a><a href="/docs/quickstart.html" class="docs-topnav-cta">Quickstart</a></div>
+</nav>
+<div class="docs-shell">
+  <aside class="docs-sidebar">
+    <div class="docs-sidebar-head"><span class="docs-sidebar-kicker">Developer</span><a href="/docs/" class="docs-sidebar-title">Documentation</a></div>
+    <button type="button" class="docs-sidebar-toggle" aria-expanded="false" aria-controls="docs-sidebar-nav"><span>Documentation menu</span><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    <nav class="docs-sidebar-nav" id="docs-sidebar-nav" aria-label="Documentation">
+      <div class="docs-sidebar-group">
+        <span class="docs-sidebar-label">Start</span>
+        <a href="/docs/" class="docs-sidebar-link" data-docs-id="overview">Overview</a>
+        <a href="/docs/getting-started.html" class="docs-sidebar-link" data-docs-id="getting-started">Getting started</a>
+        <a href="/docs/quickstart.html" class="docs-sidebar-link" data-docs-id="quickstart">Quickstart</a>
+      </div>
+      <div class="docs-sidebar-group">
+        <span class="docs-sidebar-label">Reference</span>
+        <a href="/docs/api.html" class="docs-sidebar-link" data-docs-id="api">API reference</a>
+        <a href="/docs/contracts.html" class="docs-sidebar-link" data-docs-id="contracts">Contracts</a>
+        <a href="/docs/markets.html" class="docs-sidebar-link" data-docs-id="markets">Markets</a>
+        <a href="/docs/azzle-v2-explorer.html" class="docs-sidebar-link" data-docs-id="v2-explorer">V2 explorer</a>
+        <a href="/docs/oracle-keeper.html" class="docs-sidebar-link" data-docs-id="oracle-keeper">Become an AZL Oracle Keeper</a>
+        <a href="/docs/xmtp.html" class="docs-sidebar-link" data-docs-id="xmtp">XMTP negotiation</a>
+        <a href="/docs/union-staking.html" class="docs-sidebar-link" data-docs-id="union-staking">Union staking</a>
+        <a href="/docs/x402-cloud.html" class="docs-sidebar-link" data-docs-id="x402-cloud">x402 Cloud</a>
+        <a href="/docs/authentication.html" class="docs-sidebar-link" data-docs-id="authentication">Authentication</a>
+        <a href="/docs/reliability.html" class="docs-sidebar-link" data-docs-id="reliability">Reliability</a>
+        <a href="/docs/changelog.html" class="docs-sidebar-link" data-docs-id="changelog">Changelog</a>
+      </div>
+      <div class="docs-sidebar-group">
+        <span class="docs-sidebar-label">Build</span>
+        <a href="/docs/integrate.html" class="docs-sidebar-link" data-docs-id="integrate">Integrate</a>
+        <a href="/docs/agent-guide.html" class="docs-sidebar-link" data-docs-id="agent-guide">Agent guide</a>
+        <a href="/docs/audit-worker.html" class="docs-sidebar-link" data-docs-id="audit-worker">Audit worker</a>
+        <a href="/docs/lifecycle.html" class="docs-sidebar-link" data-docs-id="lifecycle">Task lifecycle</a>
+        <a href="/docs/deadlines.html" class="docs-sidebar-link" data-docs-id="deadlines">Deadlines and expiry</a>
+        <a href="/docs/delivery.html" class="docs-sidebar-link" data-docs-id="delivery">Delivery</a>
+        <a href="/docs/arbitration.html" class="docs-sidebar-link" data-docs-id="arbitration">Arbitrator SDK</a>
+        <a href="/docs/projects.html" class="docs-sidebar-link" data-docs-id="projects">Projects</a>
+        <a href="/docs/examples/" class="docs-sidebar-link" data-docs-id="examples">Examples</a>
+        <a href="/docs/use-cases/" class="docs-sidebar-link" data-docs-id="use-cases">Use cases</a>
+      </div>
+      <div class="docs-sidebar-group">
+        <span class="docs-sidebar-label">Help</span>
+        <a href="/docs/support.html" class="docs-sidebar-link" data-docs-id="support">Support</a>
+      </div>
+      <div class="docs-sidebar-group">
+        <span class="docs-sidebar-label">Machine-readable</span>
+        <a href="/openapi.yaml" class="docs-sidebar-link docs-sidebar-link--meta" data-docs-id="openapi">openapi.yaml</a>
+        <a href="/docs/api/openapi-intro.html" class="docs-sidebar-link docs-sidebar-link--meta" data-docs-id="openapi-intro">OpenAPI guide</a>
+        <a href="/llms.txt" class="docs-sidebar-link docs-sidebar-link--meta" data-docs-id="llms">llms.txt</a>
+      </div>
+    </nav>
+    <div class="docs-sidebar-foot"><a href="/market" class="docs-sidebar-market">Open market →</a></div>
+  </aside>
+  <main class="docs-main">
+    <p class="docs-crumb"><a href="/docs/">Docs</a> / Deadlines and expiry</p>
+    <h1>Deadlines and expiry</h1>
+    <p class="docs-lead">The poster sets one task deadline in <code>post()</code>. Later windows only decide when someone may call <code>expire()</code>. No window sends that transaction by itself.</p>
+
+    <section class="docs-section">
+      <h2>Timeline</h2>
+      <figure class="docs-deadline-timeline">
+        <svg viewBox="0 0 880 228" role="img" aria-labelledby="dl-title dl-desc">
+          <title id="dl-title">Task windows from post to past the deadline</title>
+          <desc id="dl-desc">Schematic from post, claim, fund, and delivery to the deadline. The funding window starts at claim. The dispute cutoff and delivery grace start at delivery. Delivery grace can run past the deadline. Lengths are labeled, not drawn to scale.</desc>
+          <line class="axis" x1="36" y1="46" x2="844" y2="46"/>
+          <g class="node">
+            <circle cx="36" cy="46" r="5"/>
+            <circle cx="210" cy="46" r="5"/>
+            <circle cx="360" cy="46" r="5"/>
+            <circle cx="560" cy="46" r="5"/>
+            <circle cx="720" cy="46" r="5"/>
+          </g>
+          <g class="label">
+            <text x="36" y="28" text-anchor="middle">post</text>
+            <text x="210" y="28" text-anchor="middle">claim</text>
+            <text x="360" y="28" text-anchor="middle">fund</text>
+            <text x="560" y="28" text-anchor="middle">delivery</text>
+            <text x="720" y="28" text-anchor="middle">deadline</text>
+          </g>
+          <rect class="bar-deadline" x="36" y="70" width="684" height="10" rx="5"/>
+          <rect class="bar-fund" x="210" y="96" width="120" height="10" rx="5"/>
+          <rect class="bar-dispute" x="560" y="138" width="80" height="10" rx="5"/>
+          <rect class="bar-grace" x="560" y="174" width="284" height="10" rx="5"/>
+          <g class="sub">
+            <text x="36" y="96">MAX_TASK_DURATION, at most 30 days, chosen at post</text>
+            <text x="210" y="122">FUNDING_WINDOW, 1 day from claim</text>
+            <text x="560" y="164">POSTER_DISPUTE_GRACE_WINDOW, 12 hours from delivery</text>
+            <text x="560" y="200">DELIVERY_GRACE_WINDOW, 1 day from delivery, can pass the deadline</text>
+          </g>
+        </svg>
+        <figcaption>Schematic. Bar lengths are not to scale. Source: <code>TaskRegistryV2</code>.</figcaption>
+      </figure>
+    </section>
+
+    <section class="docs-section">
+      <h2>Task deadline</h2>
+      <p><code>post(totalAmount, deadline)</code> requires <code>deadline &gt; block.timestamp</code> and <code>deadline &lt;= block.timestamp + MAX_TASK_DURATION</code>. <code>MAX_TASK_DURATION</code> is <code>30 days</code>. The poster picks the timestamp. The registry does not default it.</p>
+      <p><code>claim</code>, <code>fund</code>, and <code>markDelivered</code> all require <code>block.timestamp &lt;= deadline</code>. At the deadline timestamp those calls still succeed. <code>expire()</code> requires <code>block.timestamp &gt; deadline</code>, unless the funding window has already expired. <code>release</code> and <code>complete</code> do not read the deadline.</p>
+      <p>Timely delivery is <code>deliveredAt != 0 &amp;&amp; deliveredAt &lt;= deadline</code>. <code>markDelivered</code> is worker only, once, in <code>ACTIVE</code>, fully funded, with unreleased escrow, and at or before the deadline. It stores <code>deliveredAt = block.timestamp</code> and does not move escrow. A recorded delivery is therefore timely. No delivery means not timely.</p>
+    </section>
+
+    <section class="docs-section">
+      <h2>Windows</h2>
+      <div class="docs-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Window</th>
+              <th>Constant</th>
+              <th>Length</th>
+              <th>Starts at</th>
+              <th>What it gates</th>
+              <th>What happens after</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Task deadline</td>
+              <td><code>MAX_TASK_DURATION</code></td>
+              <td><code>30 days</code></td>
+              <td><code>post()</code>. The poster sets <code>deadline</code>.</td>
+              <td><code>claim</code>, <code>fund</code>, and <code>markDelivered</code> need <code>block.timestamp &lt;= deadline</code>.</td>
+              <td><code>expire()</code> can be sent once <code>block.timestamp &gt; deadline</code>, unless delivery grace still blocks it.</td>
+            </tr>
+            <tr>
+              <td>Funding window</td>
+              <td><code>FUNDING_WINDOW</code></td>
+              <td><code>1 days</code></td>
+              <td><code>claim()</code> sets <code>fundingDeadline</code> to <code>block.timestamp + FUNDING_WINDOW</code>.</td>
+              <td>While <code>CLAIMED</code>, <code>fund()</code> also needs <code>block.timestamp &lt;= fundingDeadline</code>.</td>
+              <td>If the task is still <code>CLAIMED</code> and <code>funded &lt; totalAmount</code>, anyone can <code>expire()</code> once <code>block.timestamp &gt; fundingDeadline</code>, even before the task deadline. If the worker did not spend a credit, <code>debitAccessFeeTo</code> pays <code>accessCompensation</code> from the poster deposit to the worker.</td>
+            </tr>
+            <tr>
+              <td>Poster dispute cutoff</td>
+              <td><code>POSTER_DISPUTE_GRACE_WINDOW</code></td>
+              <td><code>DELIVERY_GRACE_WINDOW / 2</code> (43200 seconds)</td>
+              <td>Timely <code>markDelivered</code> (<code>deliveredAt</code>).</td>
+              <td>Poster <code>openDispute</code> after timely delivery needs <code>block.timestamp &lt;= deliveredAt + POSTER_DISPUTE_GRACE_WINDOW</code>.</td>
+              <td>The poster call reverts. The worker can still <code>openDispute</code>. <code>expire()</code> stays blocked until delivery grace ends.</td>
+            </tr>
+            <tr>
+              <td>Delivery grace</td>
+              <td><code>DELIVERY_GRACE_WINDOW</code></td>
+              <td><code>1 days</code> (86400 seconds)</td>
+              <td>Timely <code>deliveredAt</code>.</td>
+              <td><code>expire()</code> reverts while unreleased escrow remains and <code>block.timestamp &lt;= deliveredAt + DELIVERY_GRACE_WINDOW</code>.</td>
+              <td>Escrow still refunds to the poster. Poster default is deposit only: <code>debitAccessFeeTo</code>, <code>recordPosterExpiry</code>, and a spent poster credit can settle to the worker.</td>
+            </tr>
+            <tr>
+              <td>Dispute timeout</td>
+              <td><code>evidenceWindow</code>, <code>rulingWindow</code></td>
+              <td>Not registry constants. Factories require <code>3 days</code> and <code>2 days</code>.</td>
+              <td><code>openDispute</code>.</td>
+              <td><code>expire()</code> reverts for the whole <code>DISPUTED</code> state.</td>
+              <td>Anyone can call <code>timeout()</code> after the cutoff. Escrow goes to the poster. The expire poster default bundle does not run.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Full funding inside the window sets <code>ACTIVE</code> in that same <code>fund()</code>. Further <code>fund()</code> calls cannot add AZL past <code>totalAmount</code>. The funding window does not limit <code>release</code> or <code>markDelivered</code>.</p>
+    </section>
+
+    <section class="docs-section">
+      <h2>The gap after delivery</h2>
+      <p>After timely delivery the poster may <code>openDispute</code> while <code>block.timestamp &lt;= deliveredAt + POSTER_DISPUTE_GRACE_WINDOW</code>. <code>expire()</code> stays blocked through <code>deliveredAt + DELIVERY_GRACE_WINDOW</code> when unreleased escrow remains. After the 12 hour cutoff, and through the 24 hour grace timestamp, the poster can neither dispute nor expire. Nobody else can expire in that gap either. The worker can still <code>openDispute</code>. At the exact 12 hour timestamp the poster can still dispute.</p>
+    </section>
+
+    <section class="docs-section">
+      <h2>What expire() does</h2>
+      <p><code>expire(taskId)</code> is permissionless. Reaching a window does not cancel the task. Someone must send the transaction.</p>
+      <p>It reverts unless time is past <code>deadline</code>, or the task is <code>CLAIMED</code>, still under <code>totalAmount</code>, and time is past <code>fundingDeadline</code>. It also reverts in <code>COMPLETED</code>, <code>CANCELLED</code>, <code>RESOLVED</code>, or <code>DISPUTED</code>. Timely delivery with unreleased escrow blocks it until delivery grace has passed. On success the state becomes <code>CANCELLED</code>.</p>
+      <ol>
+        <li>Unreleased escrow (<code>funded - released &gt; 0</code>): <code>escrow.refund</code> pays that remainder to the poster. This happens on poster default too. It is not a payout to the worker.</li>
+        <li>No remainder, and a worker is set: <code>escrow.close</code>. An unclaimed <code>POSTED</code> task has no escrow to move.</li>
+        <li>Poster default: unreleased escrow, timely delivery, and time past delivery grace. <code>debitAccessFeeTo</code> pays <code>accessCompensation</code> from the poster deposit to the worker. <code>recordPosterExpiry</code> counts a poster loss. If the poster spent a credit, <code>settleSpentCredit</code> sends it to the worker. None of this comes from escrow.</li>
+        <li>Underfunded claim, and not poster default: if the worker did not spend a credit, the same deposit debit runs. A spent poster credit still settles to the worker. There is no poster loss record.</li>
+        <li>Any other expiry: a spent poster credit settles back to the poster. If the task was <code>ACTIVE</code>, a spent worker credit settles to the worker. Otherwise the worker credit recipient is <code>address(0)</code>, which returns it to the staking pool. No access fee debit.</li>
+      </ol>
+      <p>Every successful <code>expire()</code> releases the poster deposit reservation, and the worker reservation when a worker is set.</p>
+    </section>
+
+    <section class="docs-section">
+      <h2>Disputed tasks</h2>
+      <p><code>DISPUTED</code> cannot be expired. <code>openDispute</code> freezes escrow. The timeout path is <code>ArbitrationModuleV2.timeout()</code>, also permissionless, and also not automatic.</p>
+      <p><code>evidenceWindow</code> and <code>rulingWindow</code> are immutables set in the arbitration constructor, not <code>TaskRegistryV2</code> constants. Both suite factories require <code>REQUIRED_EVIDENCE_WINDOW</code> of <code>3 days</code> and <code>REQUIRED_RULING_WINDOW</code> of <code>2 days</code>. <code>timeout()</code> is callable once time is past <code>rulingDeadline</code>, or past <code>evidenceDeadline + rulingWindow</code> if ruling has not started. It settles escrow to the poster (<code>workerBps = 0</code>) and resolves <code>MUTUAL</code>. It does not run the <code>expire()</code> poster default deposit bundle.</p>
+      <p>Ordering of states is in <a href="/docs/lifecycle.html">Task lifecycle</a>.</p>
+    </section>
+  </main>
+</div>
+<script src="/docs-shell.js"></script>
+<script src="/docs-bg.js"></script>
+  <script src="/theme-toggle.js"></script>
+</body>
+</html>
